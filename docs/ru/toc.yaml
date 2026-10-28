@@ -1,0 +1,29 @@
+title: quite-admin
+href: index.md
+navigation:
+  header:
+    rightItems:
+      - type: controls
+items:
+  - name: Обзор
+    href: index.md
+  - name: Быстрый старт
+    href: quickstart.md
+  - name: Подключение и адаптеры
+    href: integration.md
+  - name: Регистрация и поля
+    href: configuration.md
+  - name: Язык и оформление
+    href: customization.md
+  - name: Авторизация и права
+    href: authentication.md
+  - name: Логирование
+    href: logging.md
+  - name: Свои страницы и шаблоны
+    href: custom-pages.md
+  - name: Другая ORM
+    href: custom-adapters.md
+  - name: Архитектура
+    href: architecture.md
+  - name: Разработка и совместимость
+    href: development.md

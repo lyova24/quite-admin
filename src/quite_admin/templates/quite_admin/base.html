@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ title }}{% endblock %}</title>
+  {% if description %}<meta name="description" content="{{ description }}">{% endif %}
+  <link rel="stylesheet" href="{{ url('/assets/admin.css') }}">
+  <link rel="stylesheet" href="{{ url('/theme.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="shell {% if not identity %}shell-login{% endif %}">
+  {% if identity %}
+    <aside class="sidebar">
+      <a class="brand" href="{{ url('/') }}"><span class="brand-mark">q.</span>{{ title }}</a>
+      <p class="nav-label">{{ t('WORKSPACE') }}</p>
+      <a class="nav-link {% if not resource and not page %}active{% endif %}" href="{{ url('/') }}">{{ t('Overview') }} <span>↗</span></a>
+      <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
+      <nav aria-label="{{ t('Collections') }}">
+      {% for item in resources %}
+        <a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"><span class="nav-icon">▦</span>{{ item.label }}</a>
+      {% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
+      </nav>
+      {% if pages %}
+      <p class="nav-label">{{ t('PAGES') }}</p>
+      <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}<a class="nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}">{{ item.title }}</a>{% endfor %}</nav>
+      {% endif %}
+      <div class="sidebar-bottom"><span class="status-dot"></span> Quite Admin <span class="muted">v0.1</span></div>
+    </aside>
+  {% endif %}
+    <main class="main">
+    {% if identity %}
+      <header class="topbar"><span class="topbar-context">{{ t('Workspace') }} <span class="muted">/</span> {% if resource %}{{ resource.label }}{% elif page %}{{ page.title }}{% else %}{{ t('Overview') }}{% endif %}</span>
+        <div class="account"><span class="avatar">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><span>{{ identity.display_name or identity.subject }}</span>
+        <form method="post" action="{{ url('/logout') }}"><input type="hidden" name="__csrf" value="{{ csrf }}"><button class="link-button" type="submit">{{ t('Sign out') }}</button></form></div>
+      </header>
+    {% endif %}
+      <div class="content">{% block content %}{% endblock %}</div>
+    </main>
+  </div>
+</body>
+</html>

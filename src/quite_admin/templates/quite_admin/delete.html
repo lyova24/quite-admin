@@ -1,0 +1,8 @@
+{% extends "quite_admin/base.html" %}
+{% block content %}
+<a class="back-link" href="{{ url('/models/' ~ resource.slug ~ '/') }}">← {{ resource.label }}</a>
+<section class="panel delete-card"><span class="delete-icon">!</span><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Delete this record?') }}</h1><p class="subtitle">{{ t('This will permanently remove the record. Database cascade rules also apply.') }}</p>
+<dl class="delete-summary">{% for field in resource.schema.primary_keys %}<div><dt>{{ field.label }}</dt><dd>{{ field.format(record[field.name]) }}</dd></div>{% endfor %}</dl>
+<form method="post"><input type="hidden" name="__csrf" value="{{ csrf }}"><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Keep record') }}</a><button class="button danger" type="submit">{{ t('Delete permanently') }}</button></div></form>
+</section>
+{% endblock %}

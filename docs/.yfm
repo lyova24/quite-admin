@@ -1,0 +1,15 @@
+lang: en
+langs:
+  - en
+  - ru
+allowHtml: false
+strict: true
+staticContent: true
+template:
+  features:
+    substitutions: false
+docs-viewer:
+  project-name: quite-admin
+  logo-options:
+    title: quite-admin
+    url: ../{lang}/

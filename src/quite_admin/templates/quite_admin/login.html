@@ -1,0 +1,16 @@
+{% extends "quite_admin/base.html" %}
+{% block title %}{{ t('Sign in') }} · {{ title }}{% endblock %}
+{% block content %}
+<section class="login-card">
+  <span class="brand-mark large">q.</span><p class="eyebrow">{{ t('WORKSPACE') }}</p>
+  <h1>{{ title }}</h1><p class="subtitle">{{ description or t('Sign in to your workspace to continue.') }}</p>
+  {% if error %}<div class="alert" role="alert">{{ t(error) }}</div>{% endif %}
+  <form method="post" class="stack">
+    <input type="hidden" name="__csrf" value="{{ csrf }}">
+    <div><label for="username">{{ t('Username') }}</label><input id="username" name="username" autocomplete="username" maxlength="256" required autofocus></div>
+    <div><label for="password">{{ t('Password') }}</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></div>
+    <button class="button primary full" type="submit">{{ t('Sign in') }} <span>→</span></button>
+  </form>
+  <p class="login-note">{{ t('Your data. A little more organized.') }}</p>
+</section>
+{% endblock %}

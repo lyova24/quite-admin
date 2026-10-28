@@ -1,0 +1,31 @@
+{% extends "quite_admin/base.html" %}
+{% block content %}
+<a class="back-link" href="{{ url('/models/' ~ resource.slug ~ '/') }}">← {{ resource.label }}</a>
+<div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record' if creating else 'Edit record') }}</h1><p class="subtitle">{{ t('A new addition to your collection.' if creating else 'Make a change. Keep everything in order.') }}</p></div></div>
+<form method="post" class="panel record-form">
+  <input type="hidden" name="__csrf" value="{{ csrf }}">
+  {% if errors %}<div class="alert" role="alert">{{ t(errors.get('__all__', 'Please correct the highlighted fields.')) }}{% for name, message in errors.items() if name not in values and name != '__all__' %}<p>{{ name }}: {{ t(message) }}</p>{% endfor %}</div>{% endif %}
+  <div class="form-grid">
+  {% for field in fields %}{% set editable = field.name in writable %}{% set help = resource.options.fields.get(field.name) %}
+  <div class="form-field {% if field.kind == 'json' %}wide{% endif %}">
+    <label for="field-{{ field.name }}">{{ field.label }} {% if not editable %}<span class="field-tag">{{ t('Read only') }}</span>{% elif field.nullable %}<span class="optional-label">{{ t('optional') }}</span>{% endif %}</label>
+    {% if not editable %}<div class="readonly-value" id="field-{{ field.name }}">{% if field.kind == 'boolean' and values[field.name] in ('true', 'false') %}{{ t('True' if values[field.name] == 'true' else 'False') }}{% else %}{{ values[field.name] or '—' }}{% endif %}</div>
+    {% elif field.kind == 'boolean' or field.choices %}
+      <select id="field-{{ field.name }}" name="{{ field.name }}" {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>
+      {% if field.nullable %}<option value="" {% if not values[field.name] %}selected{% endif %}>— {{ t('None') }} —</option>{% endif %}
+      {% if field.kind == 'boolean' %}<option value="true" {% if values[field.name] == 'true' %}selected{% endif %}>{{ t('True') }}</option><option value="false" {% if values[field.name] == 'false' or (not values[field.name] and not field.nullable) %}selected{% endif %}>{{ t('False') }}</option>
+      {% else %}{% for choice in field.choices %}<option value="{{ choice }}" {% if values[field.name] == choice %}selected{% endif %}>{{ choice }}</option>{% endfor %}{% endif %}
+      </select>
+    {% elif field.kind == 'json' %}<textarea id="field-{{ field.name }}" name="{{ field.name }}" rows="8" spellcheck="false" {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>{{ values[field.name] }}</textarea>
+    {% else %}<input id="field-{{ field.name }}" name="{{ field.name }}" value="{{ values[field.name] }}" type="{{ 'number' if field.kind in ('integer', 'number') else 'date' if field.kind == 'date' else 'text' }}" {% if field.kind == 'number' %}step="any"{% elif field.kind == 'integer' %}step="1"{% endif %} {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %} {% if errors.get(field.name) %}aria-invalid="true"{% endif %} {% if field.kind == 'datetime' %}placeholder="2026-01-01T12:00:00+00:00"{% endif %}>
+    {% endif %}
+    {% if creating and editable and field.has_default %}<label class="checkbox-label"><input type="checkbox" name="__default__{{ field.name }}" value="true" {% if field.name in defaults %}checked{% endif %}> {{ t('Use model / database default') }}</label>{% endif %}
+    {% if help and help.help_text %}<p class="field-help">{{ help.help_text }}</p>{% endif %}
+    {% if field.foreign_key %}<p class="field-help">{{ t('References {target}. Enter the related key.', target=field.foreign_key) }}</p>{% endif %}
+    {% if errors.get(field.name) %}<p class="field-error">{{ t(errors[field.name]) }}</p>{% endif %}
+  </div>
+  {% endfor %}
+  </div>
+  <div class="form-footer"><span class="muted">{% if creating %}{{ t('Generated values are filled automatically.') }}{% else %}{{ t('Primary keys and generated fields are read only.') }}{% endif %}</span><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Cancel') }}</a><button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }} →</button></div></div>
+</form>
+{% endblock %}

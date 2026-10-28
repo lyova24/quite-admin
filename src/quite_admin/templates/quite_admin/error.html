@@ -1,0 +1,2 @@
+{% extends "quite_admin/base.html" %}
+{% block content %}<section class="panel empty-state error-page"><p class="eyebrow">{{ status_code }}</p><h1>{{ t('Something needs your attention.') }}</h1><p class="subtitle">{{ t(error) }}</p><a class="button secondary" href="{{ url('/') }}">{{ t('Back to workspace') }}</a></section>{% endblock %}

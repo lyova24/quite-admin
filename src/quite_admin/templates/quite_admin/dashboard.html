@@ -1,0 +1,13 @@
+{% extends "quite_admin/base.html" %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">{{ t('YOUR WORKSPACE, AT A GLANCE') }}</p><h1>{{ title }}</h1><p class="subtitle">{{ description or t('Browse your collections and keep things running.') }}</p></div><span class="badge">{{ resources|length }} {{ tn('collection', 'collections', resources|length) }}</span></div>
+<div class="section-heading"><h2>{{ t('Collections') }}</h2><span class="muted">{{ t('Ready to explore') }}</span></div>
+<div class="collection-grid">
+{% for item in resources %}
+  <a class="collection-card" href="{{ url('/models/' ~ item.slug ~ '/') }}"><div class="card-top"><span class="collection-icon">▦</span><span class="arrow">↗</span></div><h2>{{ item.label }}</h2>{% set field_count = item.options.visible_fields(item.schema)|length %}<p class="muted">{{ field_count }} {{ tn('field', 'fields', field_count) }}</p><div class="card-footer">{{ t('Open collection') }} <span>→</span></div></a>
+{% else %}
+  <div class="empty-state"><h2>{{ t('No collections yet') }}</h2><p>{{ t('Connect an adapter or register an existing model in your application.') }}</p></div>
+{% endfor %}
+</div>
+{% if pages %}<div class="section-heading"><h2>{{ t('Your pages') }}</h2></div><div class="page-grid">{% for item in pages %}<a class="custom-page-card" href="{{ url('/pages/' ~ item.slug) }}">{{ item.title }} <span>↗</span></a>{% endfor %}</div>{% endif %}
+{% endblock %}

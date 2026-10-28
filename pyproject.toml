@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quite-admin"
+version = "0.1.0"
+description = "An embeddable, adapter-based admin for FastAPI and Litestar."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+  "Typing :: Typed",
+]
+dependencies = [
+  "starlette>=0.40,<2.0",
+  "jinja2>=3.1.6,<4",
+  "itsdangerous>=2.2,<3",
+  "python-multipart>=0.0.20,<1",
+  "anyio>=4.4,<5",
+]
+
+[project.optional-dependencies]
+sqlalchemy = ["sqlalchemy[asyncio]>=2.0,<2.1"]
+tortoise = ["tortoise-orm>=0.25,<1.0"]
+peewee = ["peewee>=3.17,<4"]
+fastapi = ["fastapi>=0.115,<1"]
+litestar = ["litestar>=2.12,<3"]
+all = ["quite-admin[sqlalchemy,tortoise,peewee,fastapi,litestar]"]
+
+[dependency-groups]
+dev = [
+  "quite-admin[all]",
+  "aiosqlite>=0.20",
+  "httpx>=0.27,<1",
+  # Starlette 1.x TestClient uses httpx2; async integration tests also use httpx.
+  "httpx2>=2,<3",
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.24,<2",
+  "ruff>=0.9",
+  "uvicorn>=0.30,<1",
+  "build>=1.2",
+  "structlog>=26.1,<27",
+  "loguru>=0.7.3,<1",
+]
+logging-check = ["picologging>=0.9.3,<1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/quite_admin"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
