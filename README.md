@@ -24,7 +24,8 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
 - Editable, read-only and hidden fields, with server-side enforcement.
 - SQL reflection without model imports.
-- SQLAlchemy / SQLModel, Tortoise, Peewee and GINO adapters; an adapter protocol for other data sources.
+- SQLAlchemy / SQLModel, Tortoise, Peewee and GINO 1.x (`gino-legacy` extra) adapters;
+  an adapter protocol for other data sources.
 - Typed adapter filters/projections and delegation to application services for writes.
 - Custom pages and Jinja2 template overrides.
 - Write lifecycle hooks, custom field controls and permission-checked record actions.

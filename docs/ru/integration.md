@@ -104,7 +104,7 @@ adapter = GinoAdapter(db)  # Существующий экземпляр gino.Gi
 # Или: GinoAdapter(db, models=[User, Order])
 ```
 
-Установите `quite-admin[gino]`. GINO 1.x использует SQLAlchemy 1.3 и не может быть
+Установите `quite-admin[gino-legacy]`. GINO 1.x использует SQLAlchemy 1.3 и не может быть
 установлен вместе с extra современных адаптеров SQLAlchemy/SQL reflection.
 Пулом PostgreSQL владеет приложение. См. [подключение, связи и проверки GINO](gino.md).
 

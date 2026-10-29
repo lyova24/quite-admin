@@ -7,14 +7,19 @@ Litestar use the same adapter.
 ## Install
 
 ```bash
-pip install 'quite-admin[gino,fastapi]'
-# Or: pip install 'quite-admin[gino,litestar]'
+pip install 'quite-admin[gino-legacy,fastapi]'
+# Or: pip install 'quite-admin[gino-legacy,litestar]'
 ```
 
 GINO 1.x requires SQLAlchemy 1.3, while the SQL reflection and SQLAlchemy adapters
-require SQLAlchemy 2.x. Use the `gino` extra instead of `sqlalchemy` or `all` in a
+require SQLAlchemy 2.x. Use the `gino-legacy` extra instead of `sqlalchemy` or `all` in a
 GINO application. The existing `all` extra retains the modern adapter dependency set
 and does not include GINO. See the upstream [GINO compatibility notes](https://python-gino.org/docs/en/1.0/how-to/faq.html).
+
+The unreleased `quite-admin[gino]` installation name has been replaced by
+`quite-admin[gino-legacy]`; the Python import `quite_admin.adapters.gino.GinoAdapter`
+is unchanged. Released GINO requires the legacy SQLAlchemy stack. Modern SQLAlchemy
+models use the [SQLAlchemy adapter](integration.md), not this GINO adapter.
 
 ## Connect existing models
 
@@ -98,20 +103,15 @@ GINO 1.0.1 expects PostgreSQL UUID columns declared with `UUID()` (the default
 `UUID(as_uuid=True)` triggers an upstream SQLAlchemy 1.3 double-conversion error;
 the adapter does not patch the host's column types or driver codecs.
 
-GINO 1.0.1 expects PostgreSQL UUID columns declared with `UUID()` (the default
-`as_uuid=False`). asyncpg already returns Python UUID values. Declaring
-`UUID(as_uuid=True)` triggers an upstream SQLAlchemy 1.3 double-conversion error;
-the adapter does not patch the host's column types or driver codecs.
-
 ## Run the PostgreSQL checks
 
 GINO has a separate locked environment and PostgreSQL CI job for CPython 3.11–3.15.
 The normal SQLite suite does not install GINO alongside SQLAlchemy 2.x.
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-gino uv sync --locked --no-dev --extra gino --group gino-check
+UV_PROJECT_ENVIRONMENT=.venv-gino-legacy uv sync --locked --no-dev --extra gino-legacy --group gino-check
 QUITE_ADMIN_GINO_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_gino_test' \
-  UV_PROJECT_ENVIRONMENT=.venv-gino uv run --no-sync pytest --confcutdir=tests/gino tests/gino -q
+  UV_PROJECT_ENVIRONMENT=.venv-gino-legacy uv run --no-sync pytest --confcutdir=tests/gino tests/gino -q
 ```
 
 Use a **disposable** local database named `quite_admin_gino_test` (or `quite_admin_test`).

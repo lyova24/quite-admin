@@ -2,20 +2,20 @@ version = 1
 revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
-    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra == 'extra-11-quite-admin-sqlalchemy'",
-    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy'",
-    "(python_full_version < '3.12' and extra != 'extra-11-quite-admin-gino' and extra == 'extra-11-quite-admin-sqlalchemy') or (sys_platform != 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra == 'extra-11-quite-admin-sqlalchemy')",
-    "extra != 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy' and extra != 'group-11-quite-admin-dev'",
-    "(python_full_version < '3.12' and extra != 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy') or (sys_platform != 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy')",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy'",
+    "(python_full_version < '3.12' and extra != 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (sys_platform != 'emscripten' and extra != 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy')",
+    "extra != 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy' and extra != 'extra-11-quite-admin-sqlalchemy' and extra != 'group-11-quite-admin-dev'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino-legacy' and extra != 'extra-11-quite-admin-sqlalchemy'",
+    "(python_full_version < '3.12' and extra != 'extra-11-quite-admin-gino-legacy' and extra != 'extra-11-quite-admin-sqlalchemy') or (sys_platform != 'emscripten' and extra != 'extra-11-quite-admin-gino-legacy' and extra != 'extra-11-quite-admin-sqlalchemy')",
 ]
 conflicts = [[
-    { package = "quite-admin", extra = "gino" },
+    { package = "quite-admin", extra = "gino-legacy" },
     { package = "quite-admin", extra = "sqlalchemy" },
 ], [
     { package = "quite-admin", extra = "all" },
-    { package = "quite-admin", extra = "gino" },
+    { package = "quite-admin", extra = "gino-legacy" },
 ], [
-    { package = "quite-admin", extra = "gino" },
+    { package = "quite-admin", extra = "gino-legacy" },
     { package = "quite-admin", group = "dev" },
 ]]
 
@@ -1568,13 +1568,13 @@ all = [
     { name = "fastapi" },
     { name = "litestar" },
     { name = "peewee" },
-    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'group-11-quite-admin-dev'" },
+    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'group-11-quite-admin-dev'" },
     { name = "tortoise-orm" },
 ]
 fastapi = [
     { name = "fastapi" },
 ]
-gino = [
+gino-legacy = [
     { name = "asyncpg" },
     { name = "gino" },
     { name = "sqlalchemy", version = "1.3.24", source = { registry = "https://pypi.org/simple" } },
@@ -1586,7 +1586,7 @@ peewee = [
     { name = "peewee" },
 ]
 sqlalchemy = [
-    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-sqlalchemy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino') or (extra == 'extra-11-quite-admin-gino' and extra == 'group-11-quite-admin-dev')" },
+    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-sqlalchemy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 tortoise = [
     { name = "tortoise-orm" },
@@ -1608,7 +1608,7 @@ dev = [
     { name = "loguru" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
-    { name = "quite-admin", extra = ["all"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'group-11-quite-admin-dev'" },
+    { name = "quite-admin", extra = ["all"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'group-11-quite-admin-dev'" },
     { name = "ruff" },
     { name = "structlog" },
     { name = "uvicorn" },
@@ -1627,21 +1627,21 @@ logging-check = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.4,<5" },
-    { name = "asyncpg", marker = "extra == 'gino'", specifier = ">=0.30,<1" },
+    { name = "asyncpg", marker = "extra == 'gino-legacy'", specifier = ">=0.30,<1" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.115,<1" },
-    { name = "gino", marker = "extra == 'gino'", specifier = ">=1.0.1,<1.1" },
+    { name = "gino", marker = "extra == 'gino-legacy'", specifier = ">=1.0.1,<1.1" },
     { name = "itsdangerous", specifier = ">=2.2,<3" },
     { name = "jinja2", specifier = ">=3.1.6,<4" },
     { name = "litestar", marker = "extra == 'litestar'", specifier = ">=2.12,<3" },
     { name = "peewee", marker = "extra == 'peewee'", specifier = ">=3.17,<4" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
     { name = "quite-admin", extras = ["sqlalchemy", "tortoise", "peewee", "fastapi", "litestar"], marker = "extra == 'all'" },
-    { name = "sqlalchemy", marker = "extra == 'gino'", specifier = ">=1.3.24,<1.4" },
+    { name = "sqlalchemy", marker = "extra == 'gino-legacy'", specifier = ">=1.3.24,<1.4" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sqlalchemy'", specifier = ">=2.0,<2.1" },
     { name = "starlette", specifier = ">=0.40,<2.0" },
     { name = "tortoise-orm", marker = "extra == 'tortoise'", specifier = ">=0.25,<1.0" },
 ]
-provides-extras = ["sqlalchemy", "tortoise", "peewee", "gino", "fastapi", "litestar", "all"]
+provides-extras = ["sqlalchemy", "tortoise", "peewee", "gino-legacy", "fastapi", "litestar", "all"]
 
 [package.metadata.requires-dev]
 database-check = [

@@ -17,8 +17,8 @@ jobs:
         include:
           - adapter: modern
             export-options: --extra all --all-groups
-          - adapter: gino
-            export-options: --no-dev --extra gino --group gino-check
+          - adapter: gino-legacy
+            export-options: --no-dev --extra gino-legacy --group gino-check
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

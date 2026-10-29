@@ -107,7 +107,7 @@ adapter = GinoAdapter(db)  # Existing gino.Gino instance.
 # Or: GinoAdapter(db, models=[User, Order])
 ```
 
-Install `quite-admin[gino]`. GINO 1.x uses SQLAlchemy 1.3 and cannot share an
+Install `quite-admin[gino-legacy]`. GINO 1.x uses SQLAlchemy 1.3 and cannot share an
 installation with the modern SQLAlchemy/SQL reflection extras. The host owns the
 PostgreSQL pool. See [GINO setup, relationships and checks](gino.md).
 

@@ -7,14 +7,19 @@
 ## Установка
 
 ```bash
-pip install 'quite-admin[gino,fastapi]'
-# Или: pip install 'quite-admin[gino,litestar]'
+pip install 'quite-admin[gino-legacy,fastapi]'
+# Или: pip install 'quite-admin[gino-legacy,litestar]'
 ```
 
 GINO 1.x требует SQLAlchemy 1.3, а адаптеры SQL reflection и SQLAlchemy — SQLAlchemy 2.x.
-В приложении GINO выбирайте extra `gino` вместо `sqlalchemy` или `all`.
+В приложении GINO выбирайте extra `gino-legacy` вместо `sqlalchemy` или `all`.
 Существующий extra `all` сохраняет набор зависимостей современных адаптеров и не включает
 GINO. См. [описание совместимости GINO](https://python-gino.org/docs/en/1.0/how-to/faq.html).
+
+Нерелизное имя установки `quite-admin[gino]` заменено на `quite-admin[gino-legacy]`;
+Python-импорт `quite_admin.adapters.gino.GinoAdapter` сохранён. Выпущенные версии GINO
+требуют старый стек SQLAlchemy. Современные модели SQLAlchemy используют
+[адаптер SQLAlchemy](integration.md), а модели GINO — этот адаптер.
 
 ## Подключение существующих моделей
 
@@ -107,9 +112,9 @@ CRUD, поиск буквального текста, стабильная па�
 Обычный SQLite-набор не устанавливает GINO вместе с SQLAlchemy 2.x.
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-gino uv sync --locked --no-dev --extra gino --group gino-check
+UV_PROJECT_ENVIRONMENT=.venv-gino-legacy uv sync --locked --no-dev --extra gino-legacy --group gino-check
 QUITE_ADMIN_GINO_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_gino_test' \
-  UV_PROJECT_ENVIRONMENT=.venv-gino uv run --no-sync pytest --confcutdir=tests/gino tests/gino -q
+  UV_PROJECT_ENVIRONMENT=.venv-gino-legacy uv run --no-sync pytest --confcutdir=tests/gino tests/gino -q
 ```
 
 Используйте **одноразовую** локальную БД `quite_admin_gino_test` (или `quite_admin_test`).

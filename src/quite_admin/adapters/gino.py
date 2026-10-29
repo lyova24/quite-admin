@@ -26,7 +26,8 @@ registry.register("postgresql.asyncpg", "gino.dialects.asyncpg", "AsyncpgDialect
 class GinoAdapter(GinoRelations):
     """GINO 1.0 / SQLAlchemy 1.3 / PostgreSQL, using the host-owned Gino pool.
 
-    Discover imported subclasses of db.Model, or restrict exposure with models=.
+    Install quite-admin[gino-legacy]. Discover imported subclasses of db.Model,
+    or restrict exposure with models=.
     Native model persistence is used for record writes. Application services must
     be connected explicitly through DelegatingAdapter, as with other adapters.
     """

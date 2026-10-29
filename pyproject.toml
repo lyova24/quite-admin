@@ -30,7 +30,7 @@ dependencies = [
 sqlalchemy = ["sqlalchemy[asyncio]>=2.0,<2.1"]
 tortoise = ["tortoise-orm>=0.25,<1.0"]
 peewee = ["peewee>=3.17,<4"]
-gino = ["gino>=1.0.1,<1.1", "sqlalchemy>=1.3.24,<1.4", "asyncpg>=0.30,<1"]
+gino-legacy = ["gino>=1.0.1,<1.1", "sqlalchemy>=1.3.24,<1.4", "asyncpg>=0.30,<1"]
 fastapi = ["fastapi>=0.115,<1"]
 litestar = ["litestar>=2.12,<3"]
 all = ["quite-admin[sqlalchemy,tortoise,peewee,fastapi,litestar]"]
@@ -83,10 +83,10 @@ line-length = 100
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
 # GINO 1.x requires SQLAlchemy <1.4; the modern SQL adapters require 2.x.
-# `all` retains its existing meaning. Select GINO in a separate environment.
+# `all` retains its existing meaning. Select gino-legacy in a separate environment.
 [tool.uv]
 conflicts = [
-  [{ extra = "gino" }, { extra = "sqlalchemy" }],
-  [{ extra = "gino" }, { extra = "all" }],
-  [{ extra = "gino" }, { group = "dev" }],
+  [{ extra = "gino-legacy" }, { extra = "sqlalchemy" }],
+  [{ extra = "gino-legacy" }, { extra = "all" }],
+  [{ extra = "gino-legacy" }, { group = "dev" }],
 ]
