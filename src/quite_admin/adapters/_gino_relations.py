@@ -6,8 +6,9 @@ from sqlalchemy import and_, exists, false, select
 
 from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
+from quite_admin.schema import RelatedFilter
 
-from ._sql_metadata import SQLRelationMetadata
+from ._sql_metadata import SQLRelationMetadata, related_predicates
 
 
 class GinoRelations:
@@ -29,6 +30,27 @@ class GinoRelations:
             )
             result[name] = replace(link, relation=relation, local=local, remote=remote)
         return result
+
+    def _filter_conditions(self, model, query):
+        if not query.related:
+            return ()
+        links = self._links(model)
+        physical = replace(
+            query,
+            related=tuple(
+                RelatedFilter(
+                    item.relation,
+                    {
+                        getattr(links[item.relation].relation.target, name).name: value
+                        for name, value in item.key.items()
+                    },
+                )
+                for item in query.related
+            ),
+        )
+        return related_predicates(
+            self._table(model), physical, SQLRelationMetadata()._links(self._table(model))
+        )
 
     def relations(self, model):
         return tuple(link.relation for link in self._links(model).values())
@@ -68,6 +90,8 @@ class GinoRelations:
         )
 
     async def related(self, model, name, key, query):
+        if query.related:
+            raise ValueError("Relationship filters are supported only in list().")
         links = self._links(model)
         if name not in links:
             raise Conflict("Unknown relationship.")

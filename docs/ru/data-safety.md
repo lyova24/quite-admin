@@ -86,7 +86,7 @@ Peewee 3.19 передаёт PyMySQL 1.2 устаревшие аргументы
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py -q
 ```
 
 Для MySQL нужен URL `mysql://`. Тесты создают и удаляют свои таблицы; запускайте их

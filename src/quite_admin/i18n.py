@@ -21,6 +21,28 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Filters": "Фильтры",
+    "Active filters": "Активные фильтры",
+    "Apply filters": "Применить фильтры",
+    "Clear all": "Сбросить всё",
+    "Any value": "Любое значение",
+    "Equals": "Равно",
+    "From": "От",
+    "To": "До",
+    "Empty values": "Пустые значения",
+    "Any empty value state": "С NULL и без NULL",
+    "Is NULL": "Равно NULL",
+    "Is not NULL": "Не равно NULL",
+    "Invalid filter.": "Некорректный фильтр.",
+    "Please correct the highlighted filters.": "Исправьте выделенные фильтры.",
+    "Filter value is too long.": "Слишком длинное значение фильтра.",
+    "The upper bound must be greater than or equal to the lower bound.": (
+        "Верхняя граница должна быть не меньше нижней."
+    ),
+    "Use compatible date and time values.": "Используйте совместимые значения даты и времени.",
+    "At most 50 filters are supported.": "Допускается не более 50 фильтров.",
+    "At most 10 relationship filters are supported.": "Допускается не более 10 фильтров по связям.",
+    "Try different filters or search.": "Измените фильтры или поисковый запрос.",
     "Choose records": "Выбрать записи",
     "Search related records": "Поиск связанных записей",
     "Remove": "Убрать",

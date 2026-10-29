@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from sqlalchemy import Column, Table
+from sqlalchemy import Column, Table, and_, exists
 from sqlalchemy.exc import NoReferencedTableError
 
 from quite_admin.relations import Relation
@@ -129,3 +129,35 @@ class SQLRelationMetadata:
                         )
                     )
         return {link.relation.name: link for link in links}
+
+
+def related_predicates(model, query, links):
+    """Correlated EXISTS: no duplicate rows, including composite/self foreign keys."""
+    for item in query.related:
+        link = links[item.relation]
+        target = link.relation.target.alias()
+        conditions = [target.c[name] == value for name, value in item.key.items()]
+        statement = target.select()
+        if link.through is not None:
+            through = link.through.alias()
+            statement = statement.select_from(
+                target.join(
+                    through,
+                    and_(
+                        *(
+                            target.c[remote] == through.c[column]
+                            for remote, column in zip(link.remote, link.through_remote, strict=True)
+                        )
+                    ),
+                )
+            )
+            conditions.extend(
+                through.c[column] == model.c[local]
+                for column, local in zip(link.through_local, link.local, strict=True)
+            )
+        else:
+            conditions.extend(
+                target.c[remote] == model.c[local]
+                for local, remote in zip(link.local, link.remote, strict=True)
+            )
+        yield exists(statement.where(and_(*conditions)).correlate(model))

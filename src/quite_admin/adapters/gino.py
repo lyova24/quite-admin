@@ -16,7 +16,7 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
 from ._gino_relations import GinoRelations
-from ._queries import ordering, predicates
+from ._queries import ordering, predicates, validate_query
 
 # SQLAlchemy 1.3's entry-point loader depends on the removed pkg_resources module.
 # Register GINO's own dialect through SQLAlchemy's public API instead. Import this
@@ -32,6 +32,8 @@ class GinoAdapter(CheckedWrites, GinoRelations):
     Native model persistence is used for record writes. Application services must
     be connected explicitly through DelegatingAdapter, as with other adapters.
     """
+
+    supports_related_filters = True
 
     def __init__(self, db: Gino, *, models: Iterable[type] | None = None) -> None:
         self.db = db
@@ -123,9 +125,10 @@ class GinoAdapter(CheckedWrites, GinoRelations):
 
     async def _page(self, model: type, query: Query, *, condition=None) -> RecordPage:
         schema = self.describe(model)
-        query.validate(schema)
+        validate_query(self, model, query)
         statement = model.query
         conditions = list(predicates(query, lambda name: getattr(model, name)))
+        conditions.extend(self._filter_conditions(model, query))
         if condition is not None:
             conditions.append(condition)
         if query.search and query.search_fields:

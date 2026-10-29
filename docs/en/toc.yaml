@@ -17,6 +17,8 @@ items:
     href: gino.md
   - name: Collections and fields
     href: configuration.md
+  - name: List filters
+    href: filters.md
   - name: Relationships
     href: relationships.md
   - name: Language and appearance

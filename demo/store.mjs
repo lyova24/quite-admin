@@ -139,6 +139,25 @@ export class Store {
           }
       }
   }
+  filter(slug, params) {
+    const collection = this.collection(slug);
+    return collection.records.filter((row) => [...params].every(([name, raw]) => {
+      if (!raw) return true;
+      if (name.startsWith("r.")) return (row.links[name.slice(2)] || []).includes(raw);
+      if (!name.startsWith("f.")) return true;
+      const match = /^f\.(.+)\.(eq|gte|lte|is_null)$/.exec(name);
+      if (!match) return false;
+      const field = collection.fields.find((item) => item.name === match[1]);
+      if (!field) return false;
+      const value = row.values[field.name], operator = match[2];
+      if (operator === "is_null") return (value == null) === (raw === "true");
+      if (value == null) return false;
+      const numeric = ["integer", "number"].includes(field.kind);
+      const a = numeric ? Number(value) : String(value), b = numeric ? Number(raw) : raw;
+      return operator === "gte" ? a >= b : operator === "lte" ? a <= b : a === b;
+    }));
+  }
+
   revision(slug, key) {
     const row = this.record(slug, key);
     return JSON.stringify({ values: row.values, links: Object.fromEntries(Object.entries(row.links).sort().map(([name, keys]) => [name, [...keys].sort()])) });

@@ -45,3 +45,15 @@ def tortoise_filters(statement, query):
         }[item.operator]
         statement = statement.filter(**{item.field + suffix: item.value})
     return statement
+
+
+def validate_query(adapter, model, query):
+    schemas = {}
+    if query.related:
+        names = {item.relation for item in query.related if hasattr(item, "relation")}
+        schemas = {
+            relation.name: adapter.describe(relation.target)
+            for relation in adapter.relations(model)
+            if relation.name in names
+        }
+    query.validate(adapter.describe(model), related_schemas=schemas)

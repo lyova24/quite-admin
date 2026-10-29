@@ -31,7 +31,7 @@ Context callbacks may be synchronous or asynchronous; synchronous callbacks run 
 Custom pages currently support GET requests only.
 
 The shared context reserves `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
-`pages`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` and `tn`.
+`pages`, `scripts`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` and `tn`.
 Use `url("/models/orders/")` to generate a link with the correct mount prefix.
 The base template inherits your [language and appearance](customization.md) settings.
 Breadcrumbs link to the overview, collection and parent record, preserving mount/proxy prefixes.
@@ -44,8 +44,9 @@ For example, `templates/quite_admin/list.html` overrides the default list screen
 User templates take precedence over packaged templates.
 
 No frontend build or external CDN is required for the admin interface.
-The current Content Security Policy prohibits JavaScript. Additional interactive pages
-require an explicit policy change in `SecurityHeaders` and appropriate asset routes.
+Custom pages retain `script-src 'none'`. Built-in relationship pickers use narrowly
+scoped SHA-256 hashes and SRI on the pages that need them; inline scripts and arbitrary
+same-origin scripts remain blocked. Custom pages do not inherit those permissions.
 
 The source checkout includes `examples/templates/report.html` and its context callback
 in `examples/common.py` as a complete custom-page example.

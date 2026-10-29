@@ -28,6 +28,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from . import filters as list_filters
 from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
 from .concurrency import CheckedAdapter, StaleRecord, WriteGuard, canonical
@@ -37,7 +38,7 @@ from .i18n import Language, Translator
 from .logging import EventLogger, LoggerProtocol
 from .operations import Operation, OperationHooks, _operation
 from .relations import RelationAdapter
-from .schema import ModelSchema, Query
+from .schema import ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
 
 SLUG = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
@@ -694,6 +695,49 @@ class Admin:
         if search_fields is None:
             search_fields = tuple(item.name for item in fields if item.kind == "string")
         search_fields = tuple(name for name in search_fields if name in visible)
+        filter_fields = list_filters.controls(resource)
+        try:
+            filters, filter_errors, active = list_filters.parse(
+                resource, filter_fields, request.query_params
+            )
+        except ValueError as exc:
+            raise HTTPException(400, "Invalid filter.") from exc
+        relation_filters = await self._list_relation_filters(request, resource)
+        related = []
+        allowed_relations = {"r." + item["relation"].name: item for item in relation_filters}
+        for name, token in request.query_params.items():
+            if not name.startswith("r."):
+                continue
+            if name not in allowed_relations or len(request.query_params.getlist(name)) != 1:
+                raise HTTPException(400, "Invalid filter.")
+            if not token:
+                continue
+            editor = allowed_relations[name]
+            try:
+                selected_record = await self._record(editor["target"], token)
+                label = editor["target"].record_label(selected_record)
+                editor["selected"] = [token]
+                editor["choices"] = [(token, label)]
+                related.append(
+                    RelatedFilter(editor["relation"].name, editor["target"].schema.parse_key(token))
+                )
+                active.append({"parameter": name, "label": editor["relation"].label + ": " + label})
+            except NotFound as exc:
+                raise HTTPException(400, "Invalid filter.") from exc
+        if len(related) > 10:
+            filter_errors["__all__"] = "At most 10 relationship filters are supported."
+        if not filter_errors and any(
+            not value and name.startswith(("f.", "r."))
+            for name, value in request.query_params.items()
+        ):
+            params = request.query_params.__class__(
+                [
+                    (name, value)
+                    for name, value in request.query_params.multi_items()
+                    if value or not name.startswith(("f.", "r."))
+                ]
+            )
+            return self._redirect(request, f"/models/{resource.slug}/?{params}")
         query = Query(
             offset=(page - 1) * limit,
             limit=limit,
@@ -701,8 +745,14 @@ class Admin:
             search_fields=search_fields,
             order_by=order,
             descending=request.query_params.get("direction") == "desc",
+            filters=filters,
+            related=tuple(related),
         )
-        result = await resource.adapter.list(resource.model, query)
+        result = (
+            RecordPage([], 0)
+            if filter_errors
+            else await resource.adapter.list(resource.model, query)
+        )
         permissions = {
             action: await self._allowed(request, resource, action)
             for action in ("view", "create", "edit", "delete")
@@ -710,15 +760,46 @@ class Admin:
         base = self._url(request, f"/models/{resource.slug}/")
 
         def query_url(**updates: Any) -> str:
-            return (
-                base
-                + "?"
-                + str(request.query_params.__class__({**dict(request.query_params), **updates}))
-            )
+            params = [
+                (key, value)
+                for key, value in request.query_params.multi_items()
+                if key not in updates and (value or not key.startswith(("f.", "r.")))
+            ]
+            params.extend((key, value) for key, value in updates.items() if value is not None)
+            return base + "?" + str(request.query_params.__class__(params))
+
+        clear = {item["parameter"]: None for item in active}
+        clear.update(q=None, page=1)
+        for item in active:
+            item["remove_url"] = query_url(**{item["parameter"]: None, "page": 1})
+            if "field" in item:
+                field, operator, value = item["field"], item["operator"], item["value"]
+                if operator == "is_null":
+                    text = self.gettext("Is NULL" if value == "true" else "Is not NULL")
+                else:
+                    text = (
+                        list_filters.OPERATORS[operator]
+                        + " "
+                        + (
+                            self.gettext("True" if value == "true" else "False")
+                            if field.kind == "boolean"
+                            else value
+                        )
+                    )
+                item["label"] = field.label + " " + text
 
         return await self._render(
             request,
             "quite_admin/list.html",
+            status=422 if filter_errors else 200,
+            trusted_scripts=("relations.js",) if relation_filters else (),
+            filter_fields=filter_fields,
+            filter_values=dict(request.query_params),
+            filter_errors=filter_errors,
+            active_filters=active,
+            clear_filters_url=query_url(**clear),
+            relation_filters=relation_filters,
+            picker_messages=self._picker_messages(),
             resource=resource,
             columns=columns,
             result=result,
@@ -932,23 +1013,7 @@ class Admin:
             if editable
             else {},
             relation_editors=editors,
-            picker_messages={
-                name: self.gettext(text)
-                for name, text in {
-                    "choose": "Choose records",
-                    "search": "Search related records",
-                    "remove": "Remove",
-                    "previous": "Previous",
-                    "next": "Next",
-                    "loading": "Loading…",
-                    "empty": "No matching records.",
-                    "failed": "Could not load records. Try again.",
-                    "retry": "Retry",
-                    "selected": "Selected",
-                    "results": "Results",
-                    "limit": "Select up to 1000 records.",
-                }.items()
-            },
+            picker_messages=self._picker_messages(),
             revision_token=revision_token,
             stale=stale,
             editable=editable,
@@ -1063,6 +1128,46 @@ class Admin:
         )
         return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
 
+    def _picker_messages(self):
+        return {
+            name: self.gettext(text)
+            for name, text in {
+                "choose": "Choose records",
+                "search": "Search related records",
+                "remove": "Remove",
+                "previous": "Previous",
+                "next": "Next",
+                "loading": "Loading…",
+                "empty": "No matching records.",
+                "failed": "Could not load records. Try again.",
+                "retry": "Retry",
+                "selected": "Selected",
+                "results": "Results",
+                "limit": "Select up to 1000 records.",
+            }.items()
+        }
+
+    async def _list_relation_filters(self, request, resource):
+        if not getattr(resource.adapter, "supports_related_filters", False):
+            return []
+        editors = await self._available_relations(
+            request, resource, creating=False, allow_edit=False
+        )
+        for editor in editors:
+            editor.update(
+                {
+                    "selected": [],
+                    "choices": [],
+                    "multiple": False,
+                    "endpoint": self._url(
+                        request,
+                        f"/models/{resource.slug}/relationships/{editor['relation'].name}/options",
+                    )
+                    + "?purpose=filter",
+                }
+            )
+        return editors
+
     async def _available_relations(self, request, resource, *, creating, allow_edit=True):
         if not isinstance(resource.adapter, RelationAdapter):
             return []
@@ -1175,16 +1280,23 @@ class Admin:
         return editors
 
     async def _relation_options(self, request):
+        filtering = request.query_params.get("purpose") == "filter"
         creating = not request.query_params.get("record")
-        resource = await self._resource(request, "create" if creating else "edit")
-        if not creating:
-            await self._record(resource, request.query_params["record"])
-        available = await self._available_relations(request, resource, creating=creating)
+        resource = await self._resource(
+            request, "list" if filtering else "create" if creating else "edit"
+        )
+        if filtering:
+            available = await self._list_relation_filters(request, resource)
+        else:
+            if not creating:
+                await self._record(resource, request.query_params["record"])
+            available = await self._available_relations(request, resource, creating=creating)
         editor = next(
             (
                 item
                 for item in available
-                if item["relation"].name == request.path_params["relation"] and item["editable"]
+                if item["relation"].name == request.path_params["relation"]
+                and (filtering or item["editable"])
             ),
             None,
         )

@@ -18,11 +18,13 @@ from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
 from ._peewee_relations import PeeweeRelations
 from ._queries import ordering as order_expressions
-from ._queries import predicates
+from ._queries import predicates, validate_query
 
 
 class PeeweeAdapter(CheckedWrites, PeeweeRelations):
     """Pass models explicitly or a project-specific base. Never scans unrelated global models."""
+
+    supports_related_filters = True
 
     def __init__(self, *, models: Iterable[type] = (), base: type | None = None) -> None:
         self.models = tuple(models)
@@ -124,10 +126,12 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
         return query.first()
 
     async def list(self, model: type, query: Query) -> RecordPage:
-        query.validate(self.describe(model))
+        validate_query(self, model, query)
 
         def operation() -> RecordPage:
             statement = model.select()
+            for condition in self._filter_conditions(model, query):
+                statement = statement.where(condition)
             if query.filters:
                 statement = statement.where(
                     *predicates(query, lambda name: getattr(model, name), peewee=True)

@@ -24,6 +24,8 @@ from tests.test_relations import (
     test_checked_relationship_changes_are_atomic,
     test_create_with_forward_and_collection_relationships,
     test_inline_relationship_fields_share_the_record_save,
+    test_read_only_users_can_filter_by_related_records,
+    test_related_filters_count_before_pagination_and_combine_with_scalars,
     test_related_queries_share_filter_sort_and_projection_contract,
     test_relationship_contract_and_atomic_rollback,
     test_searchable_picker_pagination_and_permissions,

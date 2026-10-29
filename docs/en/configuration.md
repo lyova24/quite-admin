@@ -136,3 +136,5 @@ invalid or expired revision also returns 409. Do not replace the old revision wi
 a new one after a conflict without reviewing the latest record. This applies to
 form edits, not delete requests or custom actions. Custom adapters opt in through
 [`CheckedAdapter`](custom-adapters.md#concurrent-edits); others retain their own write policy.
+
+See [list filters](filters.md) for `filter_fields` and related-record filtering.

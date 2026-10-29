@@ -154,3 +154,19 @@ concurrency policy. Direct calls to `update()` / `save_relations()` are uncondit
 only `save_checked()` enforces the supplied guard. Deletes and actions have their
 own application policy. No persistent version history is maintained: changes that
 return exactly to the original values cannot be distinguished from an unchanged row.
+
+## Relationship filters
+
+`Query.related` contains `RelatedFilter(relation, key)` objects, combined with AND.
+All built-in adapters advertise `supports_related_filters = True` and implement
+these filters in `list()` before total counting, ordering, offset and projection.
+Relationship filters do not apply to `related()` queries. Custom adapters opt in
+explicitly by setting this capability and implementing the same semantics. Without
+it, the HTML list offers scalar filters only. `DelegatingAdapter` does not advertise
+this capability by default.
+
+Validate with `query.validate(schema, related_schemas={name: target_schema, ...})`.
+It requires known relationship names and complete, typed non-null target keys,
+at most ten unique relationships. The default `query.validate(schema)` rejects
+nonempty `related`, preventing accidental silently ignored conditions. Use EXISTS
+or equivalent storage logic to avoid duplicate rows and inflated totals.

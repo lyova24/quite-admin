@@ -17,6 +17,8 @@ items:
     href: gino.md
   - name: Регистрация и поля
     href: configuration.md
+  - name: Фильтры списков
+    href: filters.md
   - name: Связи
     href: relationships.md
   - name: Язык и оформление

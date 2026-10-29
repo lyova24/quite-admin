@@ -100,6 +100,7 @@ class ModelOptions:
     expose_sensitive_fields: tuple[str, ...] = ()
     writable_protected_fields: tuple[str, ...] = ()
     actions: tuple[RecordAction, ...] = ()
+    filter_fields: tuple[str, ...] | None = None
 
     def validate(self, schema: ModelSchema) -> None:
         names = set(schema.by_name)
@@ -110,6 +111,7 @@ class ModelOptions:
             self.readonly_fields,
             self.exclude,
             self.search_fields,
+            self.filter_fields,
             self.expose_sensitive_fields,
             self.writable_protected_fields,
             tuple(self.fields),

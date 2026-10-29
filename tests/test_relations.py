@@ -577,3 +577,92 @@ async def test_picker_search_reaches_records_beyond_the_old_1000_limit(auth, rel
         assert final_page.json()["total"] == 1006
         assert len(final_page.json()["items"]) == 6
         assert not final_page.json()["has_next"]
+
+
+async def test_related_filters_count_before_pagination_and_combine_with_scalars(related_backend):
+    from quite_admin import RelatedFilter
+
+    adapter, models = related_backend
+    parent, child, profile, tags = await seed(adapter, models)
+    model = models["parents"]
+    other = await adapter.create(model, {"name": "Other"})
+    parent_key = key(adapter, model, parent)
+    relations = {
+        "children": relation_to(adapter, model, models["children"], "one_to_many"),
+        "profiles": relation_to(adapter, model, models["profiles"], "one_to_one"),
+        "tags": relation_to(adapter, model, models["tags"], "many_to_many"),
+    }
+    rows = {"children": child, "profiles": profile, "tags": tags[0]}
+    await adapter.save_relations(
+        model,
+        {},
+        {
+            relation.name: [key(adapter, models[name], rows[name])]
+            for name, relation in relations.items()
+        },
+        key=parent_key,
+    )
+    for name, relation in relations.items():
+        related = RelatedFilter(relation.name, key(adapter, models[name], rows[name]))
+        result = await adapter.list(model, Query(related=(related,), limit=1))
+        assert result.total == 1 and result.records[0]["id"] == parent["id"]
+        assert (await adapter.list(model, Query(related=(related,), offset=1))).total == 1
+        assert (
+            await adapter.list(
+                model, Query(related=(related,), filters=(Filter("name", "eq", "Other"),))
+            )
+        ).total == 0
+    forward = relation_to(adapter, models["children"], model, "many_to_one")
+    result = await adapter.list(
+        models["children"], Query(related=(RelatedFilter(forward.name, parent_key),))
+    )
+    assert result.total == 1 and result.records[0]["id"] == child["id"]
+    assert (
+        await adapter.list(
+            models["children"],
+            Query(related=(RelatedFilter(forward.name, key(adapter, model, other)),)),
+        )
+    ).total == 0
+    for related in (
+        RelatedFilter("__unknown__", parent_key),
+        RelatedFilter(forward.name, {}),
+        RelatedFilter(forward.name, {"id": "1 OR 1=1"}),
+    ):
+        with pytest.raises(ValueError):
+            await adapter.list(models["children"], Query(related=(related,)))
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_read_only_users_can_filter_by_related_records(auth, related_backend, framework):
+    adapter, models = related_backend
+    parent, child, profile, tags = await seed(adapter, models)
+    model, target = models["parents"], models["tags"]
+    relation = relation_to(adapter, model, target, "many_to_many")
+    await adapter.create(model, {"name": "Other parent"})
+    await adapter.save_relations(
+        model, {}, {relation.name: [key(adapter, target, tags[0])]}, key=key(adapter, model, parent)
+    )
+    admin = Admin(auth=auth, secret_key="s" * 32, adapters=[adapter], secure_cookies=False)
+    admin.configure("parents", options=ModelOptions(can_create=False, can_edit=False))
+    admin.configure("tags", options=ModelOptions(can_edit=False))
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    if framework == "fastapi":
+        admin.mount_fastapi(host)
+    else:
+        admin.mount_litestar(host)
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        await login(client)
+        token = adapter.describe(target).record_key(tags[0])
+        path = "/admin/models/parents/"
+        result = await client.get(path, params={"r." + relation.name: token})
+        assert result.status_code == 200 and "1 record" in result.text
+        assert "Other parent" not in result.text
+        assert "Red" in result.text and 'name="r.' in result.text
+        options = f"{path}relationships/{relation.name}/options"
+        assert (await client.get(options, params={"purpose": "filter"})).status_code == 200
+        assert (await client.get(options)).status_code == 403
+        admin.configure(
+            "tags", options=ModelOptions(permission=lambda r, i, action: action != "view")
+        )
+        assert (await client.get(path, params={"r." + relation.name: token})).status_code == 400
+        assert (await client.get(options, params={"purpose": "filter"})).status_code == 403

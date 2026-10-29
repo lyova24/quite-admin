@@ -15,7 +15,8 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
-from ._queries import predicates
+from ._queries import predicates, validate_query
+from ._sql_metadata import related_predicates
 from ._sql_relations import SQLRelations
 
 
@@ -25,6 +26,8 @@ class SQLAdapter(CheckedWrites, SQLRelations):
     Works with any ORM's database, using a separate SQLAlchemy Engine for access.
     Writes use database defaults and constraints; Python-side ORM hooks don't run.
     """
+
+    supports_related_filters = True
 
     def __init__(
         self,
@@ -155,11 +158,13 @@ class SQLAdapter(CheckedWrites, SQLRelations):
         return and_(*(model.c[name] == value for name, value in key.items()))
 
     async def list(self, model: Table, query: Query) -> RecordPage:
-        query.validate(self.describe(model))
+        validate_query(self, model, query)
 
         def operation(connection: Connection) -> RecordPage:
             statement = select(model)
             statement = statement.where(*predicates(query, model.c.__getitem__))
+            if query.related:
+                statement = statement.where(*related_predicates(model, query, self._links(model)))
             if query.search and query.search_fields:
                 statement = statement.where(
                     or_(

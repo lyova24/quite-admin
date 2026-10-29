@@ -4,6 +4,13 @@
 
 ### Added
 
+- List filters for booleans/enums, exact text, inclusive numeric/date ranges and SQL NULL.
+  Active filter chips survive search, sorting and pagination. `ModelOptions.filter_fields`
+  controls scalar filters; hidden fields are rejected. Related-record filters support 1:1,
+  1:N and M:N with permission-checked search and database-side counts before pagination.
+- Optional `Query.related` / `RelatedFilter` with explicit adapter capability advertisement;
+  built-in adapters support it without changing required adapter API version 1.
+
 - Searchable relationship pickers with server-side pagination, independent selected chips,
   accessible checkbox choices and no candidate limit. Selected membership remains bounded
   to 1000 per form. A narrow per-page CSP hash allows only the integrity-checked built-in

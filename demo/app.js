@@ -75,6 +75,39 @@ function dashboard() {
     .map(([slug, c]) => `<a class="collection-card" href="${href(slug)}"><h2>${e(c.label)}</h2><p class="muted">${e(records(c.records.length))}</p><div class="card-footer">${e(t("Open collection"))}<span aria-hidden="true">→</span></div></a>`)
     .join("")}</section>`;
 }
+function demoFilters(slug, query, queryUrl) {
+  const c = store.collection(slug);
+  const value = (name) => e(query.get(name) || "");
+  const control = (name, label, type = "text") => `<div><label for="${e(name)}">${e(t(label))}</label><input id="${e(name)}" name="${e(name)}" type="${type}" step="any" value="${value(name)}"></div>`;
+  const select = (name, choices) => `<select id="${e(name)}" name="${e(name)}"><option value="">${e(t("Any value"))}</option>${choices.map(([key, label]) => `<option value="${e(key)}" ${query.get(name) === key ? "selected" : ""}>${e(label)}</option>`).join("")}</select>`;
+  const messages = Object.fromEntries(Object.entries({ choose: "Choose records", search: "Search related records", remove: "Remove", previous: "Previous", next: "Next", loading: "Loading…", empty: "No matching records.", failed: "Could not load records. Try again.", retry: "Retry", selected: "Selected", results: "Results", limit: "Select up to 1000 records." }).map(([key, val]) => [key, t(val)]));
+  const clear = Object.fromEntries([...query.keys()].filter((name) => name === "q" || name.startsWith("f.") || name.startsWith("r.")).map((name) => [name, null]));
+  const active = [...query].filter(([name, val]) => val && (name.startsWith("f.") || name.startsWith("r."))).map(([name, val]) => {
+    let label;
+    if (name.startsWith("r.")) {
+      const relation = c.relations.find((item) => item.name === name.slice(2));
+      const row = store.collection(relation.target).records.find((item) => item.key === val);
+      label = relation.label + ": " + (row ? store.label(relation.target, row) : "—");
+    } else {
+      const match = /^f\.(.+)\.(eq|gte|lte|is_null)$/.exec(name);
+      const field = c.fields.find((item) => item.name === match[1]);
+      label = field.label + " " + (match[2] === "is_null" ? t(val === "true" ? "Is NULL" : "Is not NULL") : ({eq:"=",gte:"≥",lte:"≤"}[match[2]] + " " + (field.kind === "boolean" ? t(val === "true" ? "True" : "False") : val)));
+    }
+    return `<a class="filter-chip" href="${e(queryUrl({[name]: null, page: 1}))}">${e(label)} ×</a>`;
+  }).join("");
+  const fields = c.fields.filter((field) => field.nullable || !["json", "binary", "unsupported"].includes(field.kind)).map((field) => {
+    const prefix = `f.${field.name}.`;
+    const range = ["integer", "number", "date", "datetime", "time"].includes(field.kind);
+    const input = range ? `<div class="filter-range">${control(prefix+"gte", "From", field.kind === "date" ? "date" : ["integer","number"].includes(field.kind) ? "number" : "text")}${control(prefix+"lte", "To", field.kind === "date" ? "date" : ["integer","number"].includes(field.kind) ? "number" : "text")}</div>` : field.kind === "boolean" || field.choices.length ? `<label class="sr-only" for="${e(prefix)}eq">${e(field.label)}</label>${select(prefix+"eq", field.kind === "boolean" ? [["true",t("True")],["false",t("False")]] : field.choices.map((v) => [v,v]))}` : ["json", "binary", "unsupported"].includes(field.kind) ? "" : control(prefix+"eq", "Equals");
+    return `<fieldset class="filter-field"><legend>${e(field.label)}</legend>${input}${field.nullable ? `<label class="sr-only" for="${e(prefix)}is_null">${e(t("Empty values"))}</label>${select(prefix+"is_null", [["true",t("Is NULL")],["false",t("Is not NULL")]])}` : ""}</fieldset>`;
+  }).join("");
+  const related = c.relations.map((relation) => {
+    const name = "r." + relation.name, key = query.get(name), target = store.collection(relation.target);
+    const row = target.records.find((row) => row.key === key);
+    return `<div class="filter-field"><label for="filter-relation-${e(relation.name)}">${e(relation.label)}</label><div class="relation-picker" data-relation-picker data-relation="${e(relation.name)}" data-endpoint="./" data-messages="${e(JSON.stringify(messages))}"><select class="picker-native" id="filter-relation-${e(relation.name)}" name="${e(name)}"><option value="">${e(t("Any value"))}</option>${row ? `<option value="${e(key)}" selected>${e(store.label(relation.target, row))}</option>` : ""}</select></div></div>`;
+  }).join("");
+  return {panel:`<details class="filter-disclosure"><summary class="button secondary">${e(t("Filters"))}</summary><div class="filter-panel"><div class="filter-grid">${fields}${related}</div><div class="filter-footer button-group"><button class="button primary">${e(t("Apply filters"))}</button>${button(queryUrl({...clear,page:1}),"Clear all")}</div></div></details>`, active: active ? `<div class="active-filters">${active}${button(queryUrl({...clear,page:1}),"Clear all")}</div>` : ""};
+}
 function listing(slug, query) {
   const c = store.collection(slug);
   const search = query.get("q") || "";
@@ -83,10 +116,11 @@ function listing(slug, query) {
   const primaryName = c.fields.find((field) => c.columns.includes(field.name) && !field.primaryKey && field.kind === "string")?.name;
   const queryUrl = (updates) => {
     const params = new URLSearchParams(query);
-    for (const [name, value] of Object.entries(updates)) params.set(name, value);
+    for (const [name, value] of Object.entries(updates)) { if (value == null) params.delete(name); else params.set(name, value); }
     return href(slug) + "?" + params;
   };
-  let rows = c.records.filter((row) => c.fields.some((field) =>
+  const filters = demoFilters(slug, query, queryUrl);
+  let rows = store.filter(slug, query).filter((row) => c.fields.some((field) =>
     field.kind === "string" && String(row.values[field.name] ?? "").toLowerCase().includes(search.toLowerCase()),
   ));
   rows = rows.slice().sort((a, b) => {
@@ -100,7 +134,7 @@ function listing(slug, query) {
   const total = rows.length;
   rows = rows.slice((page - 1) * limit, page * limit);
   return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><span class="record-count">${e(records(total))}</span></div>${button(href(slug, "new"), "Create record", "primary")}</div>
-  <section class="record-list"><div class="toolbar list-toolbar"><form id="demo-search" class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"><button class="button secondary">${e(t("Search"))}</button></form></div>
+  <section class="record-list"><form id="demo-search"><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"><button class="button secondary">${e(t("Search"))}</button></div></div>${filters.panel}</form>${filters.active}
   ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
   <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
     const field = c.fields.find((field) => field.name === name), active = sort.name === name;
@@ -233,7 +267,8 @@ function render() {
     search.onsubmit = (event) => {
       event.preventDefault();
       const params = new URLSearchParams(query);
-      params.set("q", new FormData(event.target).get("q"));
+      for (const name of [...params.keys()]) if (name.startsWith("f.") || name.startsWith("r.")) params.delete(name);
+      for (const [name, value] of new FormData(event.target)) if (value) params.set(name, value); else params.delete(name);
       params.set("page", "1");
       location.hash = href(slug) + "?" + params;
     };

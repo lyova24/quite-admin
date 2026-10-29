@@ -49,6 +49,38 @@ class PeeweeRelations:
             )
         return tuple(result)
 
+    def _filter_conditions(self, model, query):
+        fields = self._relation_fields(model) if query.related else {}
+        for item in query.related:
+            direction, field = fields[item.relation]
+            target_model = field.model if direction == "reverse" else field.rel_model
+            target = target_model.alias()
+            statement = target.select(pw.SQL("1"))
+            conditions = [getattr(target, name) == value for name, value in item.key.items()]
+            if direction == "many":
+                source_fk = field.through_model._meta.model_refs[model][0]
+                target_fk = field.through_model._meta.model_refs[target_model][0]
+                through = field.through_model.alias()
+                statement = statement.join(
+                    through,
+                    on=(
+                        getattr(through, target_fk.name)
+                        == getattr(target, target_fk.rel_field.name)
+                    ),
+                )
+                conditions.append(
+                    getattr(through, source_fk.name) == getattr(model, source_fk.rel_field.name)
+                )
+            elif direction == "reverse":
+                conditions.append(
+                    getattr(target, field.name) == getattr(model, field.rel_field.name)
+                )
+            else:
+                conditions.append(
+                    getattr(target, field.rel_field.name) == getattr(model, field.name)
+                )
+            yield pw.fn.EXISTS(statement.where(*conditions))
+
     def _related_query(self, parent, name):
         direction, field = self._relation_fields(type(parent))[name]
         if direction == "many":

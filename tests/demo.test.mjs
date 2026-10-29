@@ -99,3 +99,13 @@ test("stale record and relationship edits preserve the latest data", () => {
   store.save("products", row.key, {}, { tags: [] }, latest);
   assert.throws(() => store.save("products", row.key, { name: "Stale relations" }, {}, latest), /record changed/);
 });
+
+
+test("list filters combine scalar ranges and related membership before paging", () => {
+  const store = new Store(seed);
+  const result = store.filter("products", new URLSearchParams({"f.active.eq":"true", "f.price.gte":"20", "f.price.lte":"30"}));
+  assert.ok(result.length > 0);
+  assert.ok(result.every((row) => row.values.active === "true" && Number(row.values.price) >= 20 && Number(row.values.price) <= 30));
+  const first = store.collection("products").records.find((row) => row.links.tags?.length);
+  assert.ok(store.filter("products", new URLSearchParams({"r.tags":first.links.tags[0]})).every((row) => row.links.tags.includes(first.links.tags[0])));
+});

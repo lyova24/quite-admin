@@ -222,6 +222,12 @@ class Filter:
 
 
 @dataclass(frozen=True)
+class RelatedFilter:
+    relation: str
+    key: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
 class Query:
     offset: int = 0
     limit: int = 25
@@ -231,8 +237,11 @@ class Query:
     descending: bool = False
     filters: tuple[Filter, ...] = ()
     columns: tuple[str, ...] | None = None
+    related: tuple[RelatedFilter, ...] = ()
 
-    def validate(self, schema: ModelSchema) -> None:
+    def validate(
+        self, schema: ModelSchema, *, related_schemas: Mapping[str, ModelSchema] | None = None
+    ) -> None:
         if type(self.offset) is not int or self.offset < 0:
             raise ValueError("offset must be a nonnegative integer.")
         if type(self.limit) is not int or not 1 <= self.limit <= 10000:
@@ -254,6 +263,17 @@ class Query:
             if not isinstance(item, Filter):
                 raise ValueError("filters must contain Filter objects.")
             item.validate(schema)
+        if len(self.related) > 10:
+            raise ValueError("At most 10 relationship filters are supported.")
+        for item in self.related:
+            if not isinstance(item, RelatedFilter) or item.relation not in (related_schemas or {}):
+                raise ValueError("Unknown or unsupported relationship filter.")
+            target = related_schemas[item.relation]
+            target.validate_key(item.key)
+            for name, value in item.key.items():
+                Filter(name, "eq", value).validate(target)
+        if len({item.relation for item in self.related}) != len(self.related):
+            raise ValueError("Duplicate relationship filters.")
         if self.columns is not None and (
             not self.columns
             or len(set(self.columns)) != len(self.columns)

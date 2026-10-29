@@ -14,12 +14,14 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
-from ._queries import tortoise_filters
+from ._queries import tortoise_filters, validate_query
 from ._tortoise_relations import TortoiseRelations
 
 
 class TortoiseAdapter(CheckedWrites, TortoiseRelations):
     """Discovery happens after host startup, when Tortoise has initialized raw FK fields."""
+
+    supports_related_filters = True
 
     def __init__(self, *, models: Iterable[type] = (), apps: Iterable[str] | None = None) -> None:
         self.models = tuple(models)
@@ -73,8 +75,12 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
         return {field.name: getattr(item, field.name) for field in self.describe(model).fields}
 
     async def list(self, model: type, query: Query) -> RecordPage:
-        query.validate(self.describe(model))
+        validate_query(self, model, query)
         statement = tortoise_filters(model.all(), query)
+        for item in query.related:
+            statement = statement.filter(
+                **{item.relation + "__" + name: value for name, value in item.key.items()}
+            )
         if query.search and query.search_fields:
             statement = statement.filter(
                 Q(
