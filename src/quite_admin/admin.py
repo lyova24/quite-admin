@@ -4,8 +4,10 @@ import inspect
 import re
 import secrets
 from collections.abc import Awaitable, Callable, Iterable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 from anyio import to_thread
@@ -28,6 +30,7 @@ from .config import Action, ModelOptions, Permission
 from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
 from .logging import EventLogger, LoggerProtocol
+from .operations import Operation, OperationHooks, _operation
 from .relations import RelationAdapter
 from .schema import ModelSchema, Query
 from .theme import Theme
@@ -144,6 +147,7 @@ class Admin:
         session_max_age: int = 8 * 60 * 60,
         logger: LoggerProtocol | None = None,
         log_structured: bool = False,
+        hooks: OperationHooks | None = None,
     ) -> None:
         if len(secret_key.encode()) < 32:
             raise ValueError("secret_key must contain at least 32 bytes of random secret material.")
@@ -162,6 +166,7 @@ class Admin:
             raise ValueError("logo must be an existing SVG, PNG, JPEG, WebP or GIF file.")
         self._logging = EventLogger(logger, structured=log_structured)
         self.logger = self._logging.logger
+        self.hooks = hooks if hooks is not None else OperationHooks()
         self.sources: list[Source] = []
         self.collection_options: dict[str, ModelOptions] = {}
         self.pages: dict[str, Page] = {}
@@ -189,6 +194,7 @@ class Admin:
             Route("/models/{slug}/new", self._create, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/edit", self._edit, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/delete", self._delete, methods=["GET", "POST"]),
+            Route("/models/{slug}/{key}/actions/{action}", self._record_action, methods=["POST"]),
             Route("/models/{slug}/{key}", self._record_page, methods=["GET", "POST"]),
         ]
         self.app = Starlette(
@@ -761,23 +767,27 @@ class Admin:
                 changes = resource.options.parse_values(
                     resource.schema, scalar, creating, managed_fields=managed
                 )
-                if selections:
-                    saved = await resource.adapter.save_relations(
-                        resource.model,
-                        changes,
-                        selections,
-                        key=None
-                        if creating
-                        else resource.schema.parse_key(request.path_params["key"]),
-                    )
-                elif creating:
-                    saved = await resource.adapter.create(resource.model, changes)
-                else:
-                    saved = await resource.adapter.update(
-                        resource.model,
-                        resource.schema.parse_key(request.path_params["key"]),
-                        changes,
-                    )
+                key = None if creating else resource.schema.parse_key(request.path_params["key"])
+
+                async def execute():
+                    if selections:
+                        return await resource.adapter.save_relations(
+                            resource.model, changes, selections, key=key
+                        )
+                    if creating:
+                        return await resource.adapter.create(resource.model, changes)
+                    return await resource.adapter.update(resource.model, key, changes)
+
+                saved = await self._perform_write(
+                    request,
+                    resource,
+                    "create" if creating else "edit",
+                    record,
+                    changes,
+                    selections,
+                    key,
+                    execute,
+                )
                 await self._logging.emit(
                     "info",
                     "quite_admin.record_created" if creating else "quite_admin.record_updated",
@@ -830,7 +840,108 @@ class Admin:
                 if creating
                 else f"/models/{resource.slug}/{resource.schema.record_key(record)}",
             ),
+            record_actions=[]
+            if creating
+            else [
+                action
+                for action in resource.options.actions
+                if await self._action_allowed(request, resource, action)
+            ],
         )
+
+    async def _perform_write(
+        self, request, resource, action, record, values, relations, key, execute
+    ):
+        def snapshot(value):
+            return MappingProxyType(deepcopy(dict(value)))
+
+        operation = Operation(
+            request=request,
+            identity=request.state.identity,
+            collection=resource.slug,
+            model=resource.model,
+            action=action,
+            key=snapshot(key) if key is not None else None,
+            values=snapshot(values),
+            record=snapshot(record),
+            relations=MappingProxyType(
+                {name: tuple(snapshot(item) for item in keys) for name, keys in relations.items()}
+            ),
+        )
+        token = _operation.set(operation)
+        try:
+            if self.hooks.before_write is not None:
+                result = self.hooks.before_write(operation)
+                if inspect.isawaitable(result):
+                    await result
+            saved = execute()
+            if inspect.isawaitable(saved):
+                saved = await saved
+            if self.hooks.after_write is not None:
+                try:
+                    result = self.hooks.after_write(
+                        operation, snapshot(saved) if saved is not None else None
+                    )
+                    if inspect.isawaitable(result):
+                        await result
+                except Exception as exc:
+                    await self._logging.emit(
+                        "warning",
+                        "quite_admin.after_write_failed",
+                        collection=resource.slug,
+                        operation=action,
+                        error_type=type(exc).__name__,
+                    )
+            return saved
+        finally:
+            _operation.reset(token)
+
+    async def _action_allowed(self, request, resource, action):
+        if not await self._allowed(request, resource, action.required_permission):
+            return False
+        if action.permission is None:
+            return True
+        result = action.permission(request, request.state.identity, action.required_permission)
+        return bool(await result if inspect.isawaitable(result) else result)
+
+    async def _record_action(self, request):
+        await self._identity(request)
+        resource = (await self.resources()).get(request.path_params["slug"])
+        if resource is None:
+            raise NotFound("Table not found.")
+        action = next(
+            (
+                action
+                for action in resource.options.actions
+                if action.slug == request.path_params["action"]
+            ),
+            None,
+        )
+        if action is None:
+            raise NotFound("Action not found.")
+        if not await self._action_allowed(request, resource, action):
+            raise HTTPException(403, "You do not have permission to perform this action.")
+        await self._form(request)
+        key = resource.schema.parse_key(request.path_params["key"])
+        record = await self._record(resource, request.path_params["key"])
+        await self._perform_write(
+            request,
+            resource,
+            "action:" + action.slug,
+            record,
+            {},
+            {},
+            key,
+            lambda: action.handler(_operation.get()),
+        )
+        await self._logging.emit(
+            "info",
+            "quite_admin.record_action",
+            collection=resource.slug,
+            operation=action.slug,
+            status_code=303,
+        )
+        return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
 
     async def _relation_editors(self, request, resource, record, *, creating, allow_edit=True):
         if not isinstance(resource.adapter, RelationAdapter):
@@ -961,7 +1072,17 @@ class Admin:
         record = await self._record(resource, token)
         if request.method == "POST":
             await self._form(request)
-            await resource.adapter.delete(resource.model, resource.schema.parse_key(token))
+            key = resource.schema.parse_key(token)
+            await self._perform_write(
+                request,
+                resource,
+                "delete",
+                record,
+                {},
+                {},
+                key,
+                lambda: resource.adapter.delete(resource.model, key),
+            )
             await self._logging.emit(
                 "info", "quite_admin.record_deleted", collection=resource.slug, status_code=303
             )

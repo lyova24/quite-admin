@@ -44,8 +44,9 @@ The core imports no ORM; unused adapters do not add installation requirements.
 3. Bound the body size, parse form data, reject duplicates and validate CSRF.
 4. Build the server-side writable-field allowlist and reject unknown, hidden or read-only fields.
 5. Convert form strings to scalar types and return validation errors to the form.
-6. Run the adapter operation in its own transaction.
-7. Roll back constraint failures and return `409`; redirect after a successful POST.
+6. Call the optional before-write hook, then run the adapter operation in its own transaction.
+7. Roll back constraint failures and return `409`. After commit, notify the after-write hook
+   and redirect. See [operations and extensions](extensions.md) for timing and audit limits.
 
 The session identifies a subject. The backend supplies current roles and account status
 for each protected request. Record keys are URL-safe base64-encoded JSON arrays and

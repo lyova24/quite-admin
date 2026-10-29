@@ -2,8 +2,9 @@ from .adapters.base import ADAPTER_API_VERSION
 from .adapters.delegating import DelegatingAdapter
 from .admin import Admin, Page
 from .auth import AuthBackend, Identity, PasswordAuth, hash_password, verify_password
-from .config import FieldOptions, ModelOptions
+from .config import FieldOptions, ModelOptions, RecordAction
 from .logging import LoggerProtocol
+from .operations import Operation, OperationHooks, current_operation
 from .relations import Relation, RelationAdapter
 from .schema import Field, Filter, ModelSchema, Query, RecordPage
 from .theme import Theme
@@ -22,13 +23,17 @@ __all__ = [
     "LoggerProtocol",
     "ModelOptions",
     "ModelSchema",
+    "Operation",
+    "OperationHooks",
     "Page",
     "PasswordAuth",
     "Query",
     "RecordPage",
+    "RecordAction",
     "Relation",
     "RelationAdapter",
     "Theme",
     "hash_password",
     "verify_password",
+    "current_operation",
 ]

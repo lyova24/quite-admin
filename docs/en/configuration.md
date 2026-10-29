@@ -48,6 +48,40 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 `FieldOptions(read_only=True)` also makes a field read-only.
 Unknown configuration fields raise a configuration error.
 
+Names containing `password`, common secret names (`secret`, `token`, `credentials`,
+`authorization`, `api_key`, `private_key`, `session_key`) and names ending in `_token`
+or `_secret` are hidden by default. Explicit `exclude` always wins. This naming heuristic
+does not identify every secret; review discovered metadata before exposing a database.
+Use `expose_sensitive_fields=("api_key",)` only for a deliberate exception.
+
+`created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`, `is_admin`,
+`is_superuser`, `is_staff`, `roles` and `permissions` are read-only by default.
+Opt in with `writable_protected_fields=("is_admin",)` when the application allows it.
+This never overrides explicit, generated or adapter-provided read-only restrictions.
+These defaults change 0.1.0 behavior; add deliberate exceptions when upgrading.
+Excluding a PK does not make its identity secret: record URLs encode the key.
+
+## Custom field controls
+
+`FieldOptions` accepts `kind`, `parser`, `formatter` and `template` in addition to labels
+and help text. For example, a counter formatted as `#7`:
+
+```python
+FieldOptions(
+    kind="string",
+    parser=lambda raw: int(raw.removeprefix("#")),
+    formatter=lambda value: "#" + str(value),
+    template="counter.html",
+)
+```
+
+The parser returns the native value or raises `ValueError`. The formatter returns text,
+which templates escape. The optional template receives `field`, `values`, `errors` and
+the normal shared context. Render a control named `{{ field.name }}` with its value from
+`values[field.name]`. It is included only for writable fields; standard labels/errors and
+server-side allowlists remain active. Unsupported adapter types remain read-only unless
+a custom adapter explicitly describes a supported field type/codec. See [extensions](extensions.md).
+
 Primary keys are immutable after creation. Generated and computed fields cannot be edited.
 Binary and unknown field types are displayed read-only. A non-generated primary key
 can be provided when creating a record.

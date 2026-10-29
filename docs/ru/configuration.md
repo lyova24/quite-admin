@@ -1,5 +1,38 @@
 # Регистрация и поля
 
+По умолчанию скрываются имена с `password`, имена `secret`, `token`, `credentials`,
+`authorization`, `api_key`, `private_key`, `session_key`, а также окончания `_token`
+и `_secret`. `exclude` всегда имеет приоритет. Эвристика не находит все секреты —
+проверяйте обнаруженную схему. Для явного исключения есть
+`expose_sensitive_fields=("api_key",)`.
+
+Поля `created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`, `is_admin`,
+`is_superuser`, `is_staff`, `roles`, `permissions` по умолчанию только для чтения.
+Явно разрешить изменение можно через `writable_protected_fields=("is_admin",)`.
+Это не отменяет ограничения `readonly_fields`, generated и read-only метаданные адаптера.
+Defaults отличаются от 0.1.0: при обновлении укажите необходимые исключения явно.
+Скрытие PK не делает идентификатор секретным: ключ закодирован в URL записи.
+
+## Собственные контролы полей
+
+`FieldOptions` принимает `kind`, `parser`, `formatter`, `template`. Пример счётчика `#7`:
+
+```python
+FieldOptions(
+    kind="string",
+    parser=lambda raw: int(raw.removeprefix("#")),
+    formatter=lambda value: "#" + str(value),
+    template="counter.html",
+)
+```
+
+Parser возвращает нативное значение или выбрасывает `ValueError`. Formatter возвращает
+текст, который экранируется шаблонами. Шаблон получает `field`, `values`, `errors`
+и общий контекст. Контрол должен иметь имя `{{ field.name }}` и значение
+`values[field.name]`. Шаблон включается только для writable-поля; серверный allowlist,
+подпись и отображение ошибок сохраняются. Неизвестные типы адаптера остаются read-only,
+пока собственный адаптер явно не опишет поддерживаемый тип/codec. См. [расширения](extensions.md).
+
 У существующей записи одна страница просмотра и редактирования. Без права изменения поля
 доступны только для чтения, а прямой POST отклоняется сервером. `edit_fields` определяет порядок
 и набор редактируемых полей; остальные видимые поля показываются там же только для чтения.

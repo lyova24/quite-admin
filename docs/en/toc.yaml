@@ -27,6 +27,8 @@ items:
     href: custom-adapters.md
   - name: Architecture
     href: architecture.md
+  - name: Operations and extensions
+    href: extensions.md
   - name: Data access and compatibility
     href: data-safety.md
   - name: Development and compatibility

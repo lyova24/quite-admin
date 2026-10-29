@@ -10,6 +10,7 @@
   <div class="form-field {% if field.kind == 'json' %}wide{% endif %}">
     <label for="field-{{ field.name }}">{{ field.label }} {% if not editable %}<span class="field-tag">{{ t('Read only') }}</span>{% elif field.nullable %}<span class="optional-label">{{ t('optional') }}</span>{% endif %}</label>
     {% if not editable %}<div class="readonly-value" id="field-{{ field.name }}">{% if field.kind == 'boolean' and values[field.name] in ('true', 'false') %}{{ t('True' if values[field.name] == 'true' else 'False') }}{% else %}{{ values[field.name] or '—' }}{% endif %}</div>
+    {% elif help and help.template %}{% include help.template %}
     {% elif field.kind == 'boolean' or field.choices %}
       <select id="field-{{ field.name }}" name="{{ field.name }}" {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>
       {% if field.nullable %}<option value="" {% if not values[field.name] %}selected{% endif %}>— {{ t('None') }} —</option>{% endif %}
@@ -43,4 +44,5 @@
   </div>
   <div class="form-footer"><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Cancel') if editable else t('Back') }}</a>{% if editable %}<button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }}</button>{% endif %}</div></div>
 </form>
+{% if record_actions %}<div class="button-group">{% for action in record_actions %}<form method="post" action="{{ url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/actions/' ~ action.slug) }}"><input type="hidden" name="__csrf" value="{{ csrf }}"><button class="button secondary" type="submit">{{ action.label }}</button></form>{% endfor %}</div>{% endif %}
 {% endblock %}

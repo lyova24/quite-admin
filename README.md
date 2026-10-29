@@ -17,6 +17,7 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - SQLAlchemy / SQLModel, Tortoise and Peewee adapters; an adapter protocol for other data sources.
 - Typed adapter filters/projections and delegation to application services for writes.
 - Custom pages and Jinja2 template overrides.
+- Write lifecycle hooks, custom field controls and permission-checked record actions.
 - English/Russian UI, configurable colors, admin name and description.
 - Application-owned logging with stdlib, structlog, Loguru and Litestar backends.
 - FastAPI and Litestar mounting, including nested paths and reverse-proxy prefixes.

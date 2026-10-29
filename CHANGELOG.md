@@ -4,6 +4,8 @@
 
 ### Added
 
+- Public write lifecycle hooks and request-scoped operation context for application services.
+- Custom field parsers/formatters/templates and permission-checked POST record actions.
 - Typed adapter filters, scalar projections and a shared relationship-query contract.
 - `ADAPTER_API_VERSION` and `DelegatingAdapter` for application-service write policies.
 - Inline one-to-one, one-to-many and many-to-many editors across SQL reflection,
@@ -15,6 +17,8 @@
 
 ### Changed
 
+- Common credential fields are hidden and service/privilege fields are read-only by default.
+  Use explicit `expose_sensitive_fields` / `writable_protected_fields` exceptions when required.
 - Records use one page for viewing and editing. Read-only users see the same page
   without writable controls. Existing `/edit` URLs redirect to the record URL.
 - Template overrides must use `form.html` for the record page; the separate

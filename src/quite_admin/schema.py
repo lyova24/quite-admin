@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import math
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
@@ -48,6 +48,8 @@ class Field:
     max_length: int | None = None
     choices: tuple[str, ...] = ()
     foreign_key: str | None = None
+    parser: Callable[[Any], Any] | None = None
+    formatter: Callable[[Any], str] | None = None
 
     def __post_init__(self) -> None:
         if not self.name or self.name.startswith("__"):
@@ -67,7 +69,9 @@ class Field:
             return None
         raw = str(value)
         try:
-            if self.kind == "boolean":
+            if self.parser is not None:
+                result = self.parser(value)
+            elif self.kind == "boolean":
                 if raw.lower() not in {"true", "false", "1", "0"}:
                     raise ValueError(Message("Choose true or false."))
                 result = raw.lower() in {"true", "1"}
@@ -105,6 +109,8 @@ class Field:
     def format(self, value: Any) -> str:
         if value is None:
             return ""
+        if self.formatter is not None:
+            return self.formatter(value)
         if isinstance(value, Enum):
             return str(value.value)
         if self.kind == "json":
