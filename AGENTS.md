@@ -17,5 +17,6 @@
 - Documentation-only changes, tests, behavior-preserving refactoring and development tooling updates do not require a library version bump. A dependency upgrade alone does not imply `MAJOR`: assess the library's compatibility.
 - Plan the version relative to the latest released version, choosing the highest applicable bump. If there is no release, use the previous recorded version. Bump once per batch of changes; the current planned version is `0.2.0`. Keep the version visible in README and record changes in CHANGELOG.md.
 - The source of truth is `project.version` in `pyproject.toml`. Update `src/quite_admin/__init__.py::__version__` in sync and regenerate `uv.lock` with `uv lock`; check version references in the UI and documentation.
+- Every version-changing commit must update `pyproject.toml`, README, `__version__` and `uv.lock` together. Never change only the displayed README version; verify that all library version references agree before committing.
 - `package.json` and `package-lock.json` belong to documentation tooling and need not match the Python package version. Update lockfiles through their package managers.
 - Document breaking changes and migration steps in EN/RU. Create release tags and publish only when explicitly requested by the user.
