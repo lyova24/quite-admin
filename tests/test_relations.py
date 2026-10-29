@@ -5,7 +5,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from litestar import Litestar
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, create_engine
+from sqlalchemy import Column, ForeignKey, Index, Integer, MetaData, String, Table, create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
 from tortoise import Tortoise, fields
@@ -57,7 +57,9 @@ async def related_backend(request, tmp_path):
             __tablename__ = "profiles"
             id = mapped_column(Integer, primary_key=True)
             name = mapped_column(String(100))
-            parent_id = mapped_column(ForeignKey("parents.id"), nullable=True, unique=True)
+            parent_id = mapped_column(
+                ForeignKey("parents.id"), nullable=True, unique=True, index=True
+            )
 
         class StrictChild(Base):
             __tablename__ = "strict_children"
@@ -198,6 +200,30 @@ def key(adapter, model, row):
 
 def relation_to(adapter, source, target, kind):
     return next(r for r in adapter.relations(source) if r.target is target and r.kind == kind)
+
+
+@pytest.mark.parametrize("index_kind", ["unique", "composite", "nonunique", "partial"])
+def test_reflected_relationship_cardinality_respects_index_scope(index_kind):
+    metadata = MetaData()
+    parent = Table("parents", metadata, Column("id", Integer, primary_key=True))
+    child = Table(
+        "children",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("parent_id", ForeignKey("parents.id")),
+        Column("name", String),
+    )
+    Index(
+        "child_parent",
+        child.c.parent_id,
+        *([child.c.name] if index_kind == "composite" else []),
+        unique=index_kind != "nonunique",
+        **({"sqlite_where": child.c.name == "selected"} if index_kind == "partial" else {}),
+    )
+    adapter = SQLAdapter(create_engine("sqlite://"))
+    expected = "one_to_one" if index_kind == "unique" else "one_to_many"
+    relation_to(adapter, parent, child, expected)
+    relation_to(adapter, child, parent, "one_to_one" if expected == "one_to_one" else "many_to_one")
 
 
 async def seed(adapter, models):

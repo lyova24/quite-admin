@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import String, Table, and_, delete, false, func, insert, or_, select, update
+from sqlalchemy import Column, String, Table, and_, delete, false, func, insert, or_, select, update
 from sqlalchemy.exc import NoReferencedTableError
 
 from quite_admin.errors import Conflict, NotFound
@@ -28,10 +28,20 @@ class _Link:
 
 
 def _unique(table, columns):
-    return set(columns) == {c.name for c in table.primary_key.columns} or any(
-        getattr(c, "__visit_name__", "") == "unique_constraint"
-        and set(columns) == {column.name for column in c.columns}
-        for c in table.constraints
+    return (
+        set(columns) == {c.name for c in table.primary_key.columns}
+        or any(
+            getattr(c, "__visit_name__", "") == "unique_constraint"
+            and set(columns) == {column.name for column in c.columns}
+            for c in table.constraints
+        )
+        or any(
+            index.unique
+            and all(isinstance(expression, Column) for expression in index.expressions)
+            and not any(name.endswith("_where") for name in index.dialect_kwargs)
+            and set(columns) == {column.name for column in index.columns}
+            for index in table.indexes
+        )
     )
 
 

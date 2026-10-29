@@ -12,6 +12,7 @@ from quite_admin.schema import Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates
+from ._sql_relations import _unique
 
 
 class SQLAlchemyRelations:
@@ -66,11 +67,7 @@ class SQLAlchemyRelations:
     def _unique_fk(self, model: type, names: tuple[str, ...]) -> bool:
         table = inspect(model).local_table
         columns = {inspect(model).column_attrs[name].columns[0].name for name in names}
-        return columns == {c.name for c in table.primary_key.columns} or any(
-            getattr(constraint, "__visit_name__", "") == "unique_constraint"
-            and columns == {c.name for c in constraint.columns}
-            for constraint in table.constraints
-        )
+        return _unique(table, columns)
 
     async def related(
         self, model: type, name: str, key: Mapping[str, Any], query: Query

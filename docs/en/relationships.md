@@ -41,6 +41,9 @@ partial updates. Use an application-specific UI for larger collections.
 
 Reflection recognizes pure many-to-many junctions with two foreign-key constraints and a
 unique combined key. Junctions with extra payload columns require an application adapter.
+One-to-one detection accepts primary keys, unique constraints and full unique indexes;
+partial unique indexes do not guarantee global cardinality. MySQL represents reflected
+unique constraints as indexes, which are supported as well.
 SQLAlchemy uses mapped `relationship()` definitions; view-only and dynamic/write-only relationships
 are read-only. Peewee uses foreign keys, backrefs and `ManyToManyField`; Tortoise uses native relations.
 

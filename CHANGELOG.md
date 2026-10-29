@@ -30,6 +30,8 @@
 
 ### Fixed
 
+- SQL relationship discovery recognizes full unique indexes, including MySQL's
+  reflected one-to-one foreign keys, without treating partial indexes as globally unique.
 - High-severity documentation-tool dependency advisories, with a tested Node 24
   compatibility adapter for patched markdown-it. Remaining moderate findings stay visible.
 - Adapter queries validate scalar field names and pagination, writes reject unknown attributes,
