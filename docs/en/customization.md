@@ -11,6 +11,7 @@ admin = Admin(
     title="Store administration",
     description="Products, customers and orders in one place.",
     language="en",
+    logo="assets/logo.svg",
     theme=Theme(
         primary="#2563eb",
         background="#f8fafc",
@@ -53,9 +54,15 @@ Submitted boolean values remain `true` / `false`, and stored data, URLs and log 
 and overview pages. The footer retains the Quite Admin library name.
 
 `description` is plain text shown below the name on the sign-in and overview pages.
-It is also used in the HTML description metadata. If empty, those pages show their localized
-default introduction and omit the description meta tag.
+It is also used in the HTML description metadata. If empty, those pages omit the introduction
+and the description meta tag. Built-in screens contain no marketing slogans.
 Both settings are escaped as text; they do not accept HTML.
+
+Set `logo` to an existing local SVG, PNG, JPEG, WebP or GIF file. Relative paths are resolved
+against the application's working directory. It is served from the admin's `/logo` route,
+including mount/proxy prefixes, and appears in the sidebar and sign-in page.
+It defaults to the `q.` mark. Missing files and unsupported extensions raise `ValueError`.
+Custom templates receive `logo_url`; no external image hosts or CSP changes are required.
 
 ## Colors
 

@@ -31,7 +31,7 @@ Context callbacks may be synchronous or asynchronous; synchronous callbacks run 
 Custom pages currently support GET requests only.
 
 The shared context reserves `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
-`pages`, `title`, `description`, `language`, `theme`, `t` and `tn`.
+`pages`, `title`, `description`, `language`, `theme`, `logo_url`, `t` and `tn`.
 Use `url("/models/orders/")` to generate a link with the correct mount prefix.
 The base template inherits your [language and appearance](customization.md) settings.
 

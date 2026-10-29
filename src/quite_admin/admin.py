@@ -16,7 +16,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
+from starlette.responses import FileResponse, RedirectResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -34,6 +34,14 @@ from .theme import Theme
 
 SLUG = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 FORM_BODY_LIMIT = 1024 * 1024
+LOGO_TYPES = {
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
 PageContext = Callable[[Request], Mapping[str, Any] | Awaitable[Mapping[str, Any]]]
 
 
@@ -124,6 +132,7 @@ class Admin:
         description: str = "",
         language: Language = "en",
         theme: Theme | None = None,
+        logo: str | Path | None = None,
         templates_dir: str | Path | None = None,
         secure_cookies: bool = True,
         session_cookie: str = "quite_admin_session",
@@ -141,6 +150,11 @@ class Admin:
         self._translations = Translator(language)
         self.language = language
         self.theme = theme if theme is not None else Theme()
+        self.logo = Path(logo).expanduser().resolve() if logo is not None else None
+        if self.logo is not None and (
+            not self.logo.is_file() or self.logo.suffix.lower() not in LOGO_TYPES
+        ):
+            raise ValueError("logo must be an existing SVG, PNG, JPEG, WebP or GIF file.")
         self._logging = EventLogger(logger, structured=log_structured)
         self.logger = self._logging.logger
         self.sources: list[Source] = []
@@ -161,6 +175,7 @@ class Admin:
         routes = [
             Mount("/assets", app=StaticFiles(directory=Path(__file__).parent / "static")),
             Route("/theme.css", self._theme_styles),
+            Route("/logo", self._logo),
             Route("/login", self._login, methods=["GET", "POST"]),
             Route("/logout", self._logout, methods=["POST"]),
             Route("/", self._dashboard),
@@ -199,6 +214,11 @@ class Admin:
 
     async def _theme_styles(self, request: Request) -> Response:
         return Response(self.theme.stylesheet(), media_type="text/css")
+
+    async def _logo(self, request: Request) -> Response:
+        if self.logo is None:
+            raise HTTPException(404, "Logo not found.")
+        return FileResponse(self.logo, media_type=LOGO_TYPES[self.logo.suffix.lower()])
 
     def add_adapter(
         self, adapter: Adapter, *, discover: bool = True, namespace: str | None = None
@@ -495,6 +515,7 @@ class Admin:
             "description": self.description,
             "language": self.language,
             "theme": self.theme,
+            "logo_url": self._url(request, "/logo") if self.logo is not None else None,
             "t": self.gettext,
             "tn": self.ngettext,
             "identity": identity,

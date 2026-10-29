@@ -2,8 +2,8 @@
 {% block title %}{{ t('Sign in') }} · {{ title }}{% endblock %}
 {% block content %}
 <section class="login-card">
-  <span class="brand-mark large">q.</span><p class="eyebrow">{{ t('WORKSPACE') }}</p>
-  <h1>{{ title }}</h1><p class="subtitle">{{ description or t('Sign in to your workspace to continue.') }}</p>
+  {% if logo_url %}<img class="brand-logo large" src="{{ logo_url }}" width="48" height="48" alt="">{% else %}<span class="brand-mark large">q.</span>{% endif %}
+  <h1>{{ title }}</h1>{% if description %}<p class="subtitle">{{ description }}</p>{% endif %}
   {% if error %}<div class="alert" role="alert">{{ t(error) }}</div>{% endif %}
   <form method="post" class="stack">
     <input type="hidden" name="__csrf" value="{{ csrf }}">
@@ -11,6 +11,5 @@
     <div><label for="password">{{ t('Password') }}</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></div>
     <button class="button primary full" type="submit">{{ t('Sign in') }} <span>→</span></button>
   </form>
-  <p class="login-note">{{ t('Your data. A little more organized.') }}</p>
 </section>
 {% endblock %}

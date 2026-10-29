@@ -192,3 +192,4 @@ h1{font-size:27px}
 .page-heading>div{min-width:0}
 .page-heading h1,.login-card h1,.subtitle{overflow-wrap:anywhere}
 .subtitle{white-space:pre-line}
+.brand-logo{display:block;flex-shrink:0;object-fit:contain}.brand-logo.large{width:48px;height:48px;margin-bottom:24px}.login-card .stack{margin-top:30px}

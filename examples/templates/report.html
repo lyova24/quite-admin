@@ -1,6 +1,6 @@
 {% extends "quite_admin/base.html" %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">CUSTOM PAGE</p><h1>{{ page.title }}</h1><p class="subtitle">A page from your own templates, using your own queries.</p></div><span class="badge">Live data</span></div>
+<div class="page-heading"><h1>{{ page.title }}</h1></div>
 <div class="collection-grid">
   <div class="collection-card"><div class="card-top"><span class="collection-icon">♧</span></div><h1>{{ customer_count }}</h1><p class="muted">Customers in your workspace</p><div class="card-footer"><a href="{{ url('/models/customers/') }}">Explore customers →</a></div></div>
   <div class="collection-card"><div class="card-top"><span class="collection-icon">▤</span></div><h1>{{ order_count }}</h1><p class="muted">Orders in your workspace</p><div class="card-footer"><a href="{{ url('/models/orders/') }}">Explore orders →</a></div></div>

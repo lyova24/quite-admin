@@ -222,6 +222,53 @@ def test_unknown_language_is_rejected(auth):
         Admin(auth=auth, secret_key="s" * 32, language="de")
 
 
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_custom_logo_is_served_safely_under_a_proxy_prefix(auth, tmp_path, framework):
+    image = tmp_path / "logo.svg"
+    image.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle r="10"/></svg>'
+    )
+    admin = Admin(auth=auth, secret_key="s" * 32, logo=image, secure_cookies=False)
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    if framework == "fastapi":
+        admin.mount_fastapi(host, "/control")
+    else:
+        admin.mount_litestar(host, "/control")
+    async with AsyncClient(
+        transport=ASGITransport(app=host, root_path="/proxy"), base_url="http://test"
+    ) as client:
+        page = await client.get("/proxy/control/login")
+        assert 'src="/proxy/control/logo"' in page.text
+        logo = await client.get("/proxy/control/logo?path=pyproject.toml")
+        assert logo.status_code == 200 and logo.text == image.read_text()
+        assert logo.headers["content-type"] == "image/svg+xml"
+        assert logo.headers["x-content-type-options"] == "nosniff"
+        assert "script-src 'none'" in logo.headers["content-security-policy"]
+
+
+def test_logo_configuration_rejects_missing_files_and_non_images(auth, tmp_path):
+    (tmp_path / "config.txt").write_text("not an image")
+    for path in (tmp_path / "missing.svg", tmp_path / "config.txt"):
+        with pytest.raises(ValueError, match="logo must be"):
+            Admin(auth=auth, secret_key="s" * 32, logo=path)
+
+
+async def test_default_screens_have_no_unsolicited_descriptions(auth):
+    admin = Admin(auth=auth, secret_key="s" * 32, language="ru", secure_cookies=False)
+    async with AsyncClient(transport=ASGITransport(app=admin), base_url="http://test") as client:
+        initial = await client.get("/login")
+        assert 'class="subtitle"' not in initial.text
+        assert "Войдите в рабочее пространство" not in initial.text
+        await login(client, "")
+        home = await client.get("/")
+        for unwanted in (
+            "ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО",
+            "Просматривайте коллекции",
+            "Готовы к работе",
+        ):
+            assert unwanted not in home.text
+
+
 @pytest.mark.parametrize(("python_type", "kind"), [(int, "integer"), (dict, "json")])
 def test_invalid_typed_values_have_localizable_errors(auth, python_type, kind):
     admin = Admin(auth=auth, secret_key="s" * 32, language="ru")

@@ -13,8 +13,7 @@
   <div class="shell {% if not identity %}shell-login{% endif %}">
   {% if identity %}
     <aside class="sidebar">
-      <a class="brand" href="{{ url('/') }}"><span class="brand-mark">q.</span>{{ title }}</a>
-      <p class="nav-label">{{ t('WORKSPACE') }}</p>
+      <a class="brand" href="{{ url('/') }}">{% if logo_url %}<img class="brand-logo" src="{{ logo_url }}" width="32" height="32" alt="">{% else %}<span class="brand-mark">q.</span>{% endif %}{{ title }}</a>
       <a class="nav-link {% if not resource and not page %}active{% endif %}" href="{{ url('/') }}">{{ t('Overview') }} <span>↗</span></a>
       <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
       <nav aria-label="{{ t('Collections') }}">
