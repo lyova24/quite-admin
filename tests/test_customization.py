@@ -102,6 +102,8 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, backend, framew
         form = await client.get(prefix + "/models/items/new")
         assert "Создать запись" in form.text
         assert "Только чтение" in form.text
+        assert "Поля записи" in form.text
+        assert "Неизменяемые поля" in form.text
         assert 'value="true"' in form.text  # Only labels are translated, never stored values.
         data = {"__csrf": csrf(form), "name": "Search", "active": "true", "note": ""}
         invalid = await client.post(prefix + "/models/items/new", data={**data, "active": "maybe"})

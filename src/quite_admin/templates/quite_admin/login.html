@@ -9,7 +9,7 @@
     <input type="hidden" name="__csrf" value="{{ csrf }}">
     <div><label for="username">{{ t('Username') }}</label><input id="username" name="username" autocomplete="username" maxlength="256" required autofocus></div>
     <div><label for="password">{{ t('Password') }}</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></div>
-    <button class="button primary full" type="submit">{{ t('Sign in') }} <span>→</span></button>
+    <button class="button primary full" type="submit">{{ t('Sign in') }}</button>
   </form>
 </section>
 {% endblock %}

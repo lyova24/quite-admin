@@ -14,18 +14,18 @@
   {% if identity %}
     <aside class="sidebar">
       <a class="brand" href="{{ url('/') }}">{% if logo_url %}<img class="brand-logo" src="{{ logo_url }}" width="32" height="32" alt="">{% else %}<span class="brand-mark">q.</span>{% endif %}{{ title }}</a>
-      <a class="nav-link {% if not resource and not page %}active{% endif %}" href="{{ url('/') }}">{{ t('Overview') }} <span>↗</span></a>
+      <a class="nav-link {% if not resource and not page %}active{% endif %}" href="{{ url('/') }}"{% if not resource and not page %} aria-current="page"{% endif %}>{{ t('Overview') }}</a>
       <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
       <nav aria-label="{{ t('Collections') }}">
       {% for item in resources %}
-        <a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"><span class="nav-icon">▦</span>{{ item.label }}</a>
+        <a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"{% if resource and resource.slug == item.slug %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
       </nav>
       {% if pages %}
       <p class="nav-label">{{ t('PAGES') }}</p>
-      <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}<a class="nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}">{{ item.title }}</a>{% endfor %}</nav>
+      <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}<a class="nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}"{% if page and page.slug == item.slug %} aria-current="page"{% endif %}>{{ item.title }}</a>{% endfor %}</nav>
       {% endif %}
-      <div class="sidebar-bottom"><span class="status-dot"></span> Quite Admin <span class="muted">v0.2.0</span></div>
+      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.2.0</span></div>
     </aside>
   {% endif %}
     <main class="main">

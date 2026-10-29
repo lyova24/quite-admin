@@ -1,48 +1,66 @@
 {% extends "quite_admin/base.html" %}
 {% block content %}
+{% macro render_field(field) %}{% set editable = field.name in writable %}{% set help = resource.options.fields.get(field.name) %}
+  <div class="form-field {% if field.kind == 'json' %}wide{% endif %}">
+    <label id="label-{{ field.name }}" for="field-{{ field.name }}">{{ field.label }} {% if not editable %}<span class="field-tag">{{ t('Read only') }}</span>{% elif field.nullable %}<span class="optional-label">{{ t('optional') }}</span>{% endif %}</label>
+    {% set descriptions %}{% if help and help.help_text %}help-{{ field.name }} {% endif %}{% if field.foreign_key %}reference-{{ field.name }} {% endif %}{% if errors.get(field.name) %}error-{{ field.name }}{% endif %}{% endset %}
+    {% if not editable %}<div class="readonly-value" id="field-{{ field.name }}" aria-labelledby="label-{{ field.name }}">{% if field.kind == 'boolean' and values[field.name] in ('true', 'false') %}{{ t('True' if values[field.name] == 'true' else 'False') }}{% else %}{{ values[field.name] or '—' }}{% endif %}</div>
+    {% elif help and help.template %}{% include help.template %}
+    {% elif field.kind == 'boolean' or field.choices %}
+      <select id="field-{{ field.name }}" name="{{ field.name }}"{% if descriptions|trim %} aria-describedby="{{ descriptions|trim }}"{% endif %} {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>
+      {% if field.nullable %}<option value="" {% if not values[field.name] %}selected{% endif %}>— {{ t('None') }} —</option>{% endif %}
+      {% if field.kind == 'boolean' %}<option value="true" {% if values[field.name] == 'true' %}selected{% endif %}>{{ t('True') }}</option><option value="false" {% if values[field.name] == 'false' or (not values[field.name] and not field.nullable) %}selected{% endif %}>{{ t('False') }}</option>
+      {% else %}{% for choice in field.choices %}<option value="{{ choice }}" {% if values[field.name] == choice %}selected{% endif %}>{{ choice }}</option>{% endfor %}{% endif %}
+      </select>
+    {% elif field.kind == 'json' %}<textarea class="code-input" id="field-{{ field.name }}" name="{{ field.name }}"{% if descriptions|trim %} aria-describedby="{{ descriptions|trim }}"{% endif %} rows="4" spellcheck="false" {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>{{ values[field.name] }}</textarea>
+    {% else %}<input id="field-{{ field.name }}" name="{{ field.name }}"{% if descriptions|trim %} aria-describedby="{{ descriptions|trim }}"{% endif %} value="{{ values[field.name] }}" type="{{ 'number' if field.kind in ('integer', 'number') else 'date' if field.kind == 'date' else 'text' }}" {% if field.kind == 'number' %}step="any"{% elif field.kind == 'integer' %}step="1"{% endif %} {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %} {% if errors.get(field.name) %}aria-invalid="true"{% endif %} {% if field.kind == 'datetime' %}placeholder="2026-01-01T12:00:00+00:00"{% endif %}>
+    {% endif %}
+    {% if creating and editable and field.has_default %}<label class="checkbox-label"><input type="checkbox" name="__default__{{ field.name }}" value="true" {% if field.name in defaults %}checked{% endif %}> {{ t('Use model / database default') }}</label>{% endif %}
+    {% if help and help.help_text %}<p class="field-help" id="help-{{ field.name }}">{{ help.help_text }}</p>{% endif %}
+    {% if field.foreign_key %}<p class="field-help" id="reference-{{ field.name }}">{{ t('References {target}. Enter the related key.', target=field.foreign_key) }}</p>{% endif %}
+    {% if errors.get(field.name) %}<p class="field-error" id="error-{{ field.name }}">{{ t(errors[field.name]) }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
 <a class="back-link" href="{{ url('/models/' ~ resource.slug ~ '/') }}">← {{ resource.label }}</a>
 <div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record') if creating else resource.record_label(record) }}</h1></div>{% if can_delete %}<a class="button danger-outline" href="{{ url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/delete') }}">{{ t('Delete record') }}</a>{% endif %}</div>
 <form method="post" action="{{ form_action }}" class="panel record-form">
   <input type="hidden" name="__csrf" value="{{ csrf }}">
   {% if errors %}<div class="alert" role="alert">{{ t(errors.get('__all__', 'Please correct the highlighted fields.')) }}{% for name, message in errors.items() if name not in values and name != '__all__' %}<p>{{ name }}: {{ t(message) }}</p>{% endfor %}</div>{% endif %}
-  <div class="form-grid">
-  {% for field in fields %}{% set editable = field.name in writable %}{% set help = resource.options.fields.get(field.name) %}
-  <div class="form-field {% if field.kind == 'json' %}wide{% endif %}">
-    <label for="field-{{ field.name }}">{{ field.label }} {% if not editable %}<span class="field-tag">{{ t('Read only') }}</span>{% elif field.nullable %}<span class="optional-label">{{ t('optional') }}</span>{% endif %}</label>
-    {% if not editable %}<div class="readonly-value" id="field-{{ field.name }}">{% if field.kind == 'boolean' and values[field.name] in ('true', 'false') %}{{ t('True' if values[field.name] == 'true' else 'False') }}{% else %}{{ values[field.name] or '—' }}{% endif %}</div>
-    {% elif help and help.template %}{% include help.template %}
-    {% elif field.kind == 'boolean' or field.choices %}
-      <select id="field-{{ field.name }}" name="{{ field.name }}" {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>
-      {% if field.nullable %}<option value="" {% if not values[field.name] %}selected{% endif %}>— {{ t('None') }} —</option>{% endif %}
-      {% if field.kind == 'boolean' %}<option value="true" {% if values[field.name] == 'true' %}selected{% endif %}>{{ t('True') }}</option><option value="false" {% if values[field.name] == 'false' or (not values[field.name] and not field.nullable) %}selected{% endif %}>{{ t('False') }}</option>
-      {% else %}{% for choice in field.choices %}<option value="{{ choice }}" {% if values[field.name] == choice %}selected{% endif %}>{{ choice }}</option>{% endfor %}{% endif %}
-      </select>
-    {% elif field.kind == 'json' %}<textarea id="field-{{ field.name }}" name="{{ field.name }}" rows="8" spellcheck="false" {% if errors.get(field.name) %}aria-invalid="true"{% endif %}>{{ values[field.name] }}</textarea>
-    {% else %}<input id="field-{{ field.name }}" name="{{ field.name }}" value="{{ values[field.name] }}" type="{{ 'number' if field.kind in ('integer', 'number') else 'date' if field.kind == 'date' else 'text' }}" {% if field.kind == 'number' %}step="any"{% elif field.kind == 'integer' %}step="1"{% endif %} {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %} {% if errors.get(field.name) %}aria-invalid="true"{% endif %} {% if field.kind == 'datetime' %}placeholder="2026-01-01T12:00:00+00:00"{% endif %}>
-    {% endif %}
-    {% if creating and editable and field.has_default %}<label class="checkbox-label"><input type="checkbox" name="__default__{{ field.name }}" value="true" {% if field.name in defaults %}checked{% endif %}> {{ t('Use model / database default') }}</label>{% endif %}
-    {% if help and help.help_text %}<p class="field-help">{{ help.help_text }}</p>{% endif %}
-    {% if field.foreign_key %}<p class="field-help">{{ t('References {target}. Enter the related key.', target=field.foreign_key) }}</p>{% endif %}
-    {% if errors.get(field.name) %}<p class="field-error">{{ t(errors[field.name]) }}</p>{% endif %}
-  </div>
+  {% set writable_fields = fields|selectattr('name', 'in', writable)|list %}
+  {% set readonly_fields = fields|rejectattr('name', 'in', writable)|list %}
+  {% for heading, group_fields in [
+    ('Record fields', writable_fields|rejectattr('kind', 'equalto', 'json')|list),
+    ('Structured data', writable_fields|selectattr('kind', 'equalto', 'json')|list),
+    ('Read-only fields' if editable else 'Record fields', readonly_fields)
+  ] %}
+  {% if group_fields %}<section class="form-section" aria-labelledby="section-{{ loop.index }}">
+    <h2 id="section-{{ loop.index }}">{{ t(heading) }}</h2>
+    <div class="form-grid">{% for field in group_fields %}{{ render_field(field) }}{% endfor %}</div>
+  </section>{% endif %}
   {% endfor %}
+  {% if relation_editors %}<section class="form-section" aria-labelledby="section-relations">
+  <h2 id="section-relations">{{ t('Relationships') }}</h2>
+  <div class="form-grid">
   {% for editor in relation_editors %}{% set relation = editor.relation %}
   <div class="form-field wide">
     <label for="relation-{{ relation.name }}">{{ relation.label }}{% if not editor.editable %} <span class="field-tag">{{ t('Read only') }}</span>{% endif %}</label>
     {% if editor.editable %}
     <input type="hidden" name="__relation_present__{{ relation.name }}" value="true">
-    <select id="relation-{{ relation.name }}" name="__relation__{{ relation.name }}" {% if editor.multiple %}multiple size="6"{% endif %} {% if errors.get('__relation__' ~ relation.name) %}aria-invalid="true"{% endif %}>
+    {% set relation_descriptions %}{% if editor.multiple %}relation-help-{{ relation.name }} {% endif %}{% if editor.truncated %}relation-limit-{{ relation.name }} {% endif %}{% if errors.get('__relation__' ~ relation.name) %}relation-error-{{ relation.name }}{% endif %}{% endset %}
+    <select id="relation-{{ relation.name }}" name="__relation__{{ relation.name }}"{% if relation_descriptions|trim %} aria-describedby="{{ relation_descriptions|trim }}"{% endif %} {% if editor.multiple %}multiple size="6"{% endif %} {% if errors.get('__relation__' ~ relation.name) %}aria-invalid="true"{% endif %}>
       {% if not editor.multiple %}<option value="">— {{ t('None') }} —</option>{% endif %}
       {% for key, label in editor.choices %}<option value="{{ key }}" {% if key in editor.selected %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
-    {% if editor.multiple %}<p class="field-help">{{ t('Hold Ctrl or Command to select multiple records.') }}</p>{% endif %}
+    {% if editor.multiple %}<p class="field-help" id="relation-help-{{ relation.name }}">{{ t('Hold Ctrl or Command to select multiple records.') }}</p>{% endif %}
     {% else %}<div class="readonly-value">{% for key, label in editor.choices if key in editor.selected %}<a href="{{ url('/models/' ~ editor.target.slug ~ '/' ~ key) }}">{{ label }}</a>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</div>{% endif %}
-    {% if editor.truncated %}<p class="field-help">{{ t('The relationship picker is limited to 1000 records. Existing selections are preserved.') }}</p>{% endif %}
-    {% if errors.get('__relation__' ~ relation.name) %}<p class="field-error">{{ t(errors['__relation__' ~ relation.name]) }}</p>{% endif %}
+    {% if editor.truncated %}<p class="field-help" id="relation-limit-{{ relation.name }}">{{ t('The relationship picker is limited to 1000 records. Existing selections are preserved.') }}</p>{% endif %}
+    {% if errors.get('__relation__' ~ relation.name) %}<p class="field-error" id="relation-error-{{ relation.name }}">{{ t(errors['__relation__' ~ relation.name]) }}</p>{% endif %}
   </div>
   {% endfor %}
   </div>
+  </section>{% endif %}
   <div class="form-footer"><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Cancel') if editable else t('Back') }}</a>{% if editable %}<button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }}</button>{% endif %}</div></div>
 </form>
-{% if record_actions %}<div class="button-group">{% for action in record_actions %}<form method="post" action="{{ url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/actions/' ~ action.slug) }}"><input type="hidden" name="__csrf" value="{{ csrf }}"><button class="button secondary" type="submit">{{ action.label }}</button></form>{% endfor %}</div>{% endif %}
+{% if record_actions %}<section class="record-actions" aria-labelledby="record-actions-title"><h2 id="record-actions-title">{{ t('Actions') }}</h2><div class="button-group">{% for action in record_actions %}<form method="post" action="{{ url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/actions/' ~ action.slug) }}"><input type="hidden" name="__csrf" value="{{ csrf }}"><button class="button secondary" type="submit">{{ action.label }}</button></form>{% endfor %}</div></section>{% endif %}
 {% endblock %}

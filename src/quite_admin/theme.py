@@ -24,12 +24,12 @@ class Theme:
     """Main UI colors, as #RGB or #RRGGBB. Related shades are derived automatically."""
 
     primary: str = "#3e6656"
-    background: str = "#f7f8fa"
+    background: str = "#f5f6f8"
     surface: str = "#ffffff"
-    text: str = "#1c2635"
-    muted: str = "#7b8594"
-    border: str = "#e9ecf1"
-    danger: str = "#ba4949"
+    text: str = "#20252b"
+    muted: str = "#626b76"
+    border: str = "#dce0e5"
+    danger: str = "#b43e3e"
     on_primary: str = "#ffffff"
     on_danger: str = "#ffffff"
 
@@ -60,6 +60,6 @@ class Theme:
             "danger-border": _mix(self.danger, self.border, 0.3),
             "on-danger": self.on_danger,
             "subtle": _mix(self.text, self.surface, 0.02),
-            "hover": _mix(self.primary, self.surface, 0.03),
+            "hover": _mix(self.text, self.surface, 0.04),
         }
         return ":root{" + ";".join(f"--{name}:{value}" for name, value in colors.items()) + "}\n"

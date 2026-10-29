@@ -27,7 +27,7 @@ admin = Admin(
 ```
 
 All settings are optional. Defaults are `title="Quite Admin"`, `description=""`,
-`language="en"` and the original light theme with a green accent.
+`language="en"` and a neutral light theme with a restrained green accent.
 
 ## Language
 
@@ -71,13 +71,13 @@ Invalid colors raise `ValueError` when constructing the theme.
 
 | Option | Default | Used for |
 | --- | --- | --- |
-| `primary` | `#3e6656` | Primary buttons, navigation accents, icons and positive badges |
-| `background` | `#f7f8fa` | Main page background |
+| `primary` | `#3e6656` | Primary actions, selected navigation and active search/sort indicators |
+| `background` | `#f5f6f8` | Main page background |
 | `surface` | `#ffffff` | Sidebar, header, cards, inputs and panels |
-| `text` | `#1c2635` | Main text |
-| `muted` | `#7b8594` | Secondary text and hints |
-| `border` | `#e9ecf1` | Separators and borders |
-| `danger` | `#ba4949` | Delete actions and error messages |
+| `text` | `#20252b` | Main text |
+| `muted` | `#626b76` | Secondary text and hints |
+| `border` | `#dce0e5` | Separators and borders |
+| `danger` | `#b43e3e` | Delete actions and error messages |
 | `on_primary` | `#ffffff` | Text on primary buttons and brand marks |
 | `on_danger` | `#ffffff` | Text on destructive buttons |
 
@@ -101,6 +101,45 @@ theme = Theme(
 The theme is served from the admin's own `/theme.css` route and loaded after the base stylesheet.
 Mount paths and reverse-proxy prefixes are included automatically.
 No inline styles, external CDN or JavaScript are required; the existing `style-src 'self'` policy stays in place.
+
+## Shared interface system
+
+Built-in screens share the same tokens and components. The system font stack is retained;
+no font download is required. Typography uses 28 px page titles, 16 px section headings,
+14 px inputs, body text and table values, 13 px labels and 12 px secondary details. Spacing follows
+a 4 px grid; corners use 4 px badges, 6 px controls and 8 px panels. White surfaces sit on a
+neutral page background with 1 px borders and no decorative shadows or gradients.
+
+Lists use 44 px rows, right-aligned numeric columns and tabular numerals. The current sort
+has a directional arrow and `aria-sort`; a newly selected column sorts ascending first.
+The toolbar sits above the table frame, and the record count sits beside the page title.
+An active search is shown below the toolbar. Clearing it resets the page and preserves
+sorting and page size. Rows retain keyboard-accessible record links and a separate delete
+confirmation link. Hover and keyboard focus identify the current row; there is no bulk selection.
+Boolean values use neutral text: true/false does not imply success/failure.
+The accent identifies actions and selection; red identifies destructive actions and errors.
+
+Record forms group writable fields, structured JSON data, read-only values and relationships
+into sections within one surface. The footer keeps save/cancel actions visible while scrolling.
+Built-in controls link their hints and validation errors with `aria-describedby` and mark invalid
+fields with `aria-invalid`. Custom field templates should follow the same pattern. Custom record
+actions appear in a separate Actions section. On small screens, forms use a single column,
+navigation scrolls horizontally and tables retain horizontal scrolling for comparison.
+
+Use the tokens in your own same-origin stylesheet when extending the interface:
+
+| Tokens | Purpose |
+| --- | --- |
+| `--text-xs`, `--text-sm`, `--text-base`, `--text-section`, `--text-title` | Typography scale |
+| `--space-1` … `--space-6`, `--space-8`, `--space-10` | 4, 8, 12, 16, 20, 24, 32 and 40 px spacing |
+| `--radius-sm`, `--radius-control`, `--radius` | Badge, control and surface corners |
+| `--bg`, `--paper`, `--subtle`, `--hover` | Page, surface, inset and row interaction levels |
+| `--line`, `--border`, `--control-height` | Borders and shared 38 px control height |
+
+Existing custom templates that extend the base template inherit the palette and shared styles.
+To use the grouped form layout, wrap each `.form-grid` in a `.form-section` with a labelled
+section heading. `.record-form` supplies the outer surface spacing; `.form-footer` supplies
+the sticky action area. Template overrides can be compared with the built-in `form.html`.
 
 ## Custom templates
 

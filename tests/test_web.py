@@ -233,3 +233,58 @@ async def test_custom_templates_pages_are_authenticated(client, admin, tmp_path)
     assert "/admin/pages/private" not in report.text
     assert (await client.get("/admin/pages/private")).status_code == 403
     assert (await client.get("/admin/pages/missing")).status_code == 404
+
+
+async def test_search_clear_keeps_sort_and_page_size(client, backend):
+    import re
+    from html import unescape
+    from urllib.parse import parse_qs, urlsplit
+
+    adapter, model = backend
+    await adapter.create(model, {"name": "First match"})
+    await adapter.create(model, {"name": "Second match"})
+    await login(client)
+    path = "/admin/models/items/"
+    page = await client.get(path + "?q=match&sort=name&direction=desc&limit=1&page=2")
+    assert page.status_code == 200
+    assert 'aria-sort="descending"' in page.text
+    links = [unescape(link) for link in re.findall(r'href="([^"]+)"', page.text)]
+    clear = next(link for link in links if "q=&" in link)
+    assert parse_qs(urlsplit(clear).query, keep_blank_values=True) == {
+        "q": [""],
+        "sort": ["name"],
+        "direction": ["desc"],
+        "limit": ["1"],
+        "page": ["1"],
+    }
+    cleared = await client.get(clear)
+    assert cleared.status_code == 200
+    assert "Second match" in cleared.text
+    assert "2 records" in cleared.text
+    assert "filter-chip" not in cleared.text
+    # A new column begins ascending; clicking the active column reverses it.
+    count_sort = next(link for link in links if "sort=count&" in link)
+    assert parse_qs(urlsplit(count_sort).query)["direction"] == ["asc"]
+    name_sort = next(link for link in links if "sort=name&direction=asc" in link)
+    ascending = await client.get(name_sort)
+    assert ascending.status_code == 200
+    assert 'aria-sort="ascending"' in ascending.text
+    assert "First match" in ascending.text
+
+
+async def test_form_validation_describes_invalid_control(client):
+    await login(client)
+    form = await client.get("/admin/models/items/new")
+    invalid = await client.post(
+        "/admin/models/items/new",
+        data={"__csrf": csrf(form), "name": "Preserved input", "active": "invalid"},
+    )
+    assert invalid.status_code == 422
+    assert 'name="active" aria-describedby="error-active"' in invalid.text
+    assert 'aria-invalid="true"' in invalid.text
+    assert 'id="error-active">Choose true or false.' in invalid.text
+    assert 'value="Preserved input"' in invalid.text
+    assert '<section class="form-section"' in invalid.text
+    assert "Read-only fields" in invalid.text
+    assert 'name="count"' not in invalid.text
+    assert "Save changes" not in invalid.text

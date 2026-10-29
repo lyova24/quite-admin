@@ -58,7 +58,7 @@ const button = (path, text, cls = "secondary") =>
 const input = (field, value) => {
   const attrs = `id="field-${e(field.name)}" name="${e(field.name)}"`;
   if (field.kind === "json")
-    return `<textarea ${attrs} rows="8">${e(value)}</textarea>`;
+    return `<textarea class="code-input" ${attrs} rows="4">${e(value)}</textarea>`;
   if (field.kind === "boolean" || field.choices.length) {
     const choices =
       field.kind === "boolean" ? ["true", "false"] : field.choices;
@@ -68,82 +68,73 @@ const input = (field, value) => {
 };
 
 function login() {
-  return `${notice()}<main class="panel demo-login"><h1>${e(seed.title)}</h1><form id="demo-login"><label>${e(t("Username"))}<input name="username" autocomplete="username" required></label><label>${e(t("Password"))}<input name="password" type="password" autocomplete="current-password" required></label><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></main>`;
+  return `${notice()}<main class="shell-login"><div class="content"><section class="login-card"><span class="brand-mark large">q.</span><h1>${e(seed.title)}</h1><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;
 }
 function dashboard() {
-  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><section class="collection-grid">${Object.entries(
-    store.state,
-  )
-    .map(
-      ([slug, c]) =>
-        `<a class="collection-card" href="${href(slug)}"><span class="nav-icon">▦</span><h2>${e(c.label)}</h2><span>${e(records(c.records.length))}</span></a>`,
-    )
+  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><div class="section-heading"><h2>${e(t("Collections"))}</h2></div><section class="collection-grid">${Object.entries(store.state)
+    .map(([slug, c]) => `<a class="collection-card" href="${href(slug)}"><h2>${e(c.label)}</h2><p class="muted">${e(records(c.records.length))}</p><div class="card-footer">${e(t("Open collection"))}<span aria-hidden="true">→</span></div></a>`)
     .join("")}</section>`;
 }
 function listing(slug, query) {
   const c = store.collection(slug);
   const search = query.get("q") || "";
-  const sort =
-    c.fields.find((field) => field.name === query.get("sort")) || c.fields[0];
+  const sort = c.fields.find((field) => field.name === query.get("sort")) || c.fields[0];
   const descending = query.get("direction") === "desc";
-  let rows = c.records.filter((row) =>
-    c.fields.some(
-      (field) =>
-        field.kind === "string" &&
-        String(row.values[field.name] ?? "")
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-    ),
-  );
+  const primaryName = c.fields.find((field) => c.columns.includes(field.name) && !field.primaryKey && field.kind === "string")?.name;
+  const queryUrl = (updates) => {
+    const params = new URLSearchParams(query);
+    for (const [name, value] of Object.entries(updates)) params.set(name, value);
+    return href(slug) + "?" + params;
+  };
+  let rows = c.records.filter((row) => c.fields.some((field) =>
+    field.kind === "string" && String(row.values[field.name] ?? "").toLowerCase().includes(search.toLowerCase()),
+  ));
   rows = rows.slice().sort((a, b) => {
-    const av = a.values[sort.name],
-      bv = b.values[sort.name];
+    const av = a.values[sort.name], bv = b.values[sort.name];
     const cmp = ["integer", "number"].includes(sort.kind)
       ? Number(av) - Number(bv)
       : String(av ?? "").localeCompare(String(bv ?? ""));
-    return (
-      (descending ? -cmp : cmp) || Number(a.values.id) - Number(b.values.id)
-    );
+    return (descending ? -cmp : cmp) || Number(a.values.id) - Number(b.values.id);
   });
-  const page = Math.max(1, Number(query.get("page")) || 1),
-    limit = 5;
+  const page = Math.max(1, Number(query.get("page")) || 1), limit = 5;
   const total = rows.length;
   rows = rows.slice((page - 1) * limit, page * limit);
-  return `<div class="page-heading"><h1>${e(c.label)}</h1>${button(href(slug, "new"), "Create record", "primary")}</div><div class="panel"><form id="demo-search" class="search-bar"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records"))}" value="${e(search)}"><button class="button secondary">${e(t("Search"))}</button><span>${e(records(total))}</span></form><div class="table-scroll"><table><thead><tr>${c.columns.map((name) => `<th><a href="${href(slug)}?sort=${encodeURIComponent(name)}&direction=${descending ? "asc" : "desc"}&q=${encodeURIComponent(search)}">${e(c.fields.find((field) => field.name === name).label)} ↕</a></th>`).join("")}<th class="sr-only">${e(t("Delete"))}</th></tr></thead><tbody>${rows.map((row) => `<tr class="record-row record-row-clickable">${c.columns.map((name, index) => `<td>${index === 0 ? `<a class="record-row-link" href="${href(slug, row.key)}" aria-label="${e(t("Open record") + ": " + store.label(slug, row))}">${e(display(c, name, row))}</a>` : e(display(c, name, row))}</td>`).join("")}<td class="delete-col">${button(href(slug, row.key, "/delete"), "Delete", "small danger-outline")}</td></tr>`).join("") || `<tr><td colspan="${c.columns.length + 1}">${e(t("No records"))}</td></tr>`}</tbody></table></div><div class="pagination">${page > 1 ? button(href(slug) + `?page=${page - 1}&q=${encodeURIComponent(search)}`, "Previous") : ""}<span>${page}</span>${page * limit < total ? button(href(slug) + `?page=${page + 1}&q=${encodeURIComponent(search)}`, "Next") : ""}</div></div>`;
+  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><span class="record-count">${e(records(total))}</span></div>${button(href(slug, "new"), "Create record", "primary")}</div>
+  <section class="record-list"><div class="toolbar list-toolbar"><form id="demo-search" class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"><button class="button secondary">${e(t("Search"))}</button></form></div>
+  ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
+  <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
+    const field = c.fields.find((field) => field.name === name), active = sort.name === name;
+    return `<th scope="col" class="${["integer", "number"].includes(field.kind) ? "numeric" : ""}" ${active ? `aria-sort="${descending ? "descending" : "ascending"}"` : ""}><a href="${e(queryUrl({ sort: name, direction: active && !descending ? "desc" : "asc", page: 1 }))}">${e(field.label)}<span class="sort-icon" aria-hidden="true">${active ? descending ? "↓" : "↑" : "↕"}</span></a></th>`;
+  }).join("")}<th scope="col" class="delete-col"><span class="sr-only">${e(t("Delete"))}</span></th></tr></thead><tbody>${rows.map((row) => `<tr class="record-row record-row-clickable">${c.columns.map((name, index) => {
+    const field = c.fields.find((field) => field.name === name), value = row.values[name];
+    const content = value == null ? '<span class="null-value">—</span>' : field.kind === "boolean"
+      ? `<span class="boolean-badge ${value === "true" ? "yes" : "no"}">${e(display(c, name, row))}</span>`
+      : `<span class="${field.primaryKey ? "record-id" : "cell-value"}">${e(display(c, name, row))}</span>`;
+    return `<td class="${["integer", "number"].includes(field.kind) ? "numeric" : field.name === primaryName ? "cell-primary" : ""}">${index === 0 ? `<a class="record-row-link" href="${href(slug, row.key)}" aria-label="${e(t("Open record") + ": " + store.label(slug, row))}">${content}</a>` : content}</td>`;
+  }).join("")}<td class="delete-col"><a class="button small danger-outline delete-action" href="${href(slug, row.key, "/delete")}" title="${e(t("Delete record") + ": " + store.label(slug, row))}"><span class="sr-only">${e(t("Delete"))}</span><svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></a></td></tr>`).join("") || `<tr><td colspan="${c.columns.length + 1}"><div class="empty-state"><h2>${e(t(search ? "No matching records" : "No records"))}</h2><p>${e(t(search ? "Try a different search." : "This collection has no records yet."))}</p>${button(search ? queryUrl({ q: "", page: 1 }) : href(slug, "new"), search ? "Clear" : "Create record")}</div></td></tr>`}</tbody></table></div>
+  <footer class="pagination"><span>${e(t("Page {number}").replace("{number}", page))}<span class="pagination-divider">·</span>${e(t("{count} per page").replace("{count}", limit))}</span><div>${page > 1 ? button(queryUrl({ page: page - 1 }), "Previous", "secondary small") : ""}${page * limit < total ? button(queryUrl({ page: page + 1 }), "Next", "secondary small") : ""}</div></footer></section>`;
 }
 function recordPage(slug, key) {
-  const c = store.collection(slug),
-    creating = key === "new";
+  const c = store.collection(slug), creating = key === "new";
   const row = creating ? { values: {}, links: {} } : store.record(slug, key);
   const managed = c.relations.flatMap((relation) => relation.sourceFields);
   const writable = c.writable[creating ? "create" : "edit"];
-  return `<a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading"><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1>${creating ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form"><div class="alert" role="alert" id="form-error" hidden></div><div class="form-grid">${c.fields
-    .filter(
-      (field) =>
-        !managed.includes(field.name) && (!creating || !field.generated),
-    )
-    .map((field) => {
-      const editable = writable.includes(field.name),
-        value = row.values[field.name] ?? "";
-      return `<div class="form-field ${field.kind === "json" ? "wide" : ""}"><label for="field-${e(field.name)}">${e(field.label)} ${editable ? "" : `<span class="field-tag">${e(t("Read only"))}</span>`}</label>${editable ? input(field, value) : `<div class="readonly-value">${e(value || "—")}</div>`}${creating && editable && field.hasDefault ? `<label class="checkbox-label"><input type="checkbox" name="__default__${e(field.name)}" checked>${e(t("Use model / database default"))}</label>` : ""}</div>`;
-    })
-    .join("")}${c.relations
-    .map((relation) => {
-      const selected = row.links[relation.name] || [],
-        multiple = ["one_to_many", "many_to_many"].includes(relation.kind);
-      return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><select id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" ${multiple ? 'multiple size="6"' : ""}>${multiple ? "" : '<option value="">—</option>'}${store
-        .collection(relation.target)
-        .records.map(
-          (other) =>
-            `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(store.label(relation.target, other))}</option>`,
-        )
-        .join(
-          "",
-        )}</select>${multiple ? `<p class="field-help">${e(t("Hold Ctrl or Command to select multiple records."))}</p>` : ""}</div>`;
-    })
-    .join(
-      "",
-    )}</div><div class="form-footer"><div class="button-group">${button(href(slug), "Cancel")}<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button></div></div></form>`;
+  const fields = c.fields.filter((field) => !managed.includes(field.name) && (!creating || !field.generated));
+  const renderField = (field) => {
+    const editable = writable.includes(field.name), value = row.values[field.name] ?? "";
+    return `<div class="form-field ${field.kind === "json" ? "wide" : ""}"><label for="field-${e(field.name)}">${e(field.label)} ${editable ? field.nullable ? `<span class="optional-label">${e(t("optional"))}</span>` : "" : `<span class="field-tag">${e(t("Read only"))}</span>`}</label>${editable ? input(field, value) : `<div class="readonly-value" id="field-${e(field.name)}">${e(display(c, field.name, row))}</div>`}${creating && editable && field.hasDefault ? `<label class="checkbox-label"><input type="checkbox" name="__default__${e(field.name)}" checked>${e(t("Use model / database default"))}</label>` : ""}</div>`;
+  };
+  const section = (title, content, id) => content ? `<section class="form-section" aria-labelledby="${id}"><h2 id="${id}">${e(t(title))}</h2><div class="form-grid">${content}</div></section>` : "";
+  const groups = [
+    ["Record fields", fields.filter((f) => writable.includes(f.name) && f.kind !== "json")],
+    ["Structured data", fields.filter((f) => writable.includes(f.name) && f.kind === "json")],
+    ["Read-only fields", fields.filter((f) => !writable.includes(f.name))],
+  ];
+  const relations = c.relations.map((relation) => {
+    const selected = row.links[relation.name] || [], multiple = ["one_to_many", "many_to_many"].includes(relation.kind);
+    return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><select id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" ${multiple ? `multiple size="6" aria-describedby="relation-help-${e(relation.name)}"` : ""}>${multiple ? "" : '<option value="">—</option>'}${store.collection(relation.target).records.map((other) => `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(store.label(relation.target, other))}</option>`).join("")}</select>${multiple ? `<p class="field-help" id="relation-help-${e(relation.name)}">${e(t("Hold Ctrl or Command to select multiple records."))}</p>` : ""}</div>`;
+  }).join("");
+  return `<a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading"><div><p class="eyebrow">${e(c.label)}</p><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1></div>${creating ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form"><div class="alert" role="alert" id="form-error" hidden></div>${groups.map(([heading, fields], index) => section(heading, fields.map(renderField).join(""), `section-${index}`)).join("")}${section("Relationships", relations, "section-relations")}<div class="form-footer"><div class="button-group">${button(href(slug), "Cancel")}<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button></div></div></form>`;
 }
 function deletion(slug, key) {
   const row = store.record(slug, key);
@@ -152,16 +143,16 @@ function deletion(slug, key) {
 function shell(content, slug, key) {
   const c = slug ? store.collection(slug) : null;
   const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
-  return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark">q.</span>${e(seed.title)}</a><a class="nav-link" href="#/">${e(t("Overview"))}</a><p class="nav-label">${e(t("COLLECTIONS"))}</p><nav>${Object.entries(
+  return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark">q.</span>${e(seed.title)}</a><a class="nav-link ${!slug && location.hash !== "#/report" ? "active" : ""}" href="#/">${e(t("Overview"))}</a><p class="nav-label">${e(t("COLLECTIONS"))}</p><nav>${Object.entries(
     store.state,
   )
     .map(
       ([name, c]) =>
-        `<a class="nav-link ${name === slug ? "active" : ""}" href="${href(name)}"><span class="nav-icon">▦</span>${e(c.label)}</a>`,
+        `<a class="nav-link ${name === slug ? "active" : ""}" href="${href(name)}">${e(c.label)}</a>`,
     )
     .join(
       "",
-    )}</nav><p class="nav-label">${e(t("PAGES"))}</p><a class="nav-link" href="#/report">Store report</a><div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
+    )}</nav><p class="nav-label">${e(t("PAGES"))}</p><a class="nav-link ${location.hash === "#/report" ? "active" : ""}" href="#/report">Store report</a><div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
 }
 function render() {
   document.documentElement.lang = language;
@@ -195,7 +186,7 @@ function render() {
       );
     } else if (parts[0] === "report")
       content = shell(
-        `<h1>Store report</h1><div class="panel">${store.collection("customers").records.length} customers · ${store.collection("orders").records.length} orders</div>`,
+        `<div class="page-heading"><h1>Store report</h1></div><div class="collection-grid">${["customers", "orders"].map((name) => `<div class="collection-card"><h2>${e(store.collection(name).label)}</h2><p class="report-value">${store.collection(name).records.length}</p><div class="card-footer"><a href="${href(name)}">${e(t("Open collection"))} →</a></div></div>`).join("")}</div>`,
       );
     else content = shell(dashboard());
   } catch (error) {
@@ -240,9 +231,10 @@ function render() {
   if (search)
     search.onsubmit = (event) => {
       event.preventDefault();
-      location.hash =
-        href(slug) +
-        `?q=${encodeURIComponent(new FormData(event.target).get("q"))}`;
+      const params = new URLSearchParams(query);
+      params.set("q", new FormData(event.target).get("q"));
+      params.set("page", "1");
+      location.hash = href(slug) + "?" + params;
     };
   const form = document.querySelector("#demo-record");
   if (form)

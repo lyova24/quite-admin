@@ -28,6 +28,14 @@
 
 ### Changed
 
+- Shared neutral interface tokens, clearer typography and borders, compact numeric-aligned
+  tables, explicit active search/sort states and quieter row delete links. Selecting a new
+  sort column starts ascending; clearing search preserves sorting and page size.
+- Record forms group writable, JSON, read-only and relationship fields, keep save/cancel
+  visible while scrolling and connect built-in hints/errors to controls for assistive technology.
+  Overview, login, confirmation, reports and the standalone demo use the same visual system.
+  Custom form overrides can adopt `.form-section`; see EN/RU appearance documentation.
+
 - Common credential fields are hidden and service/privilege fields are read-only by default.
   Use explicit `expose_sensitive_fields` / `writable_protected_fields` exceptions when required.
 - Records use one page for viewing and editing. Read-only users see the same page
