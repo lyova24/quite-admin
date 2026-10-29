@@ -4,6 +4,9 @@
 
 ### Added
 
+- Dedicated EN/RU interface customization guide covering theme colors, stylesheet loading,
+  density tokens, template overrides, accessibility and security boundaries.
+
 - List filters for booleans/enums, exact text, inclusive numeric/date ranges and SQL NULL.
   Active filter chips survive search, sorting and pagination. `ModelOptions.filter_fields`
   controls scalar filters; hidden fields are rejected. Related-record filters support 1:1,

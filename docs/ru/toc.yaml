@@ -23,6 +23,8 @@ items:
     href: relationships.md
   - name: Язык и оформление
     href: customization.md
+  - name: Кастомизация оформления
+    href: styling.md
   - name: Авторизация и права
     href: authentication.md
   - name: Логирование

@@ -46,3 +46,5 @@ See [development and compatibility](development.md) for the test matrix and curr
 
 These choices follow the documented integration approaches. Check the
 [ORM/database evidence](data-safety.md), including unverified combinations, before choosing.
+
+See [interface customization](styling.md) to adapt the palette, density and templates.

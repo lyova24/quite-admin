@@ -162,3 +162,6 @@ In Python, the same helpers are available as `admin.gettext(...)` and `admin.nge
 Use `var(--accent)`, `var(--paper)`, `var(--text)`, `var(--muted)`, `var(--line)` and
 `var(--danger)` in your own same-origin stylesheets to follow the selected palette.
 See [custom pages and templates](custom-pages.md) for template registration.
+
+For a complete CSS loading recipe, density examples and template boundaries, see
+[Customize the interface](styling.md).

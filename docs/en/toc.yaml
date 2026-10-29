@@ -23,6 +23,8 @@ items:
     href: relationships.md
   - name: Language and appearance
     href: customization.md
+  - name: Customize the interface
+    href: styling.md
   - name: Authentication and permissions
     href: authentication.md
   - name: Logging
