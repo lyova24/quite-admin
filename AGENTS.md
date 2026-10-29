@@ -15,7 +15,7 @@
 - `MAJOR`: incompatible public API or behavior changes, feature removal, or dropping Python / framework / ORM support. Before `1.0`, bump `MINOR` for these changes; moving to `1.0` requires a separate decision about API stability.
 - Reset `MINOR` and `PATCH` when bumping `MAJOR`; reset `PATCH` when bumping `MINOR`.
 - Documentation-only changes, tests, behavior-preserving refactoring and development tooling updates do not require a library version bump. A dependency upgrade alone does not imply `MAJOR`: assess the library's compatibility.
-- Plan the version relative to the latest released version, choosing the highest applicable bump. Bump once per batch of unreleased changes; retain the planned `0.1.0` until the first release.
+- Plan the version relative to the latest released version, choosing the highest applicable bump. If there is no release, use the previous recorded version. Bump once per batch of changes; the current planned version is `0.2.0`. Keep the version visible in README and record changes in CHANGELOG.md.
 - The source of truth is `project.version` in `pyproject.toml`. Update `src/quite_admin/__init__.py::__version__` in sync and regenerate `uv.lock` with `uv lock`; check version references in the UI and documentation.
 - `package.json` and `package-lock.json` belong to documentation tooling and need not match the Python package version. Update lockfiles through their package managers.
 - Document breaking changes and migration steps in EN/RU. Create release tags and publish only when explicitly requested by the user.

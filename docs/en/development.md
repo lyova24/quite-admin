@@ -1,5 +1,9 @@
 # Development and compatibility
 
+The planned library version is **0.2.0**. See the repository's `CHANGELOG.md` for changes
+since 0.1.0. The minor bump covers relationship editing, the unified record page and UI
+configuration additions. A version update does not create or publish a release.
+
 ## Python support
 
 The supported range is **CPython 3.11–3.15**.

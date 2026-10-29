@@ -1,5 +1,7 @@
 # quite-admin
 
+**Version: 0.2.0** · [Changelog](CHANGELOG.md)
+
 An embeddable, ORM-independent admin for **FastAPI** and **Litestar**.
 Supports **CPython 3.11–3.15**. MIT licensed.
 
