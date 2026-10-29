@@ -145,6 +145,8 @@ RUSSIAN.update(
         "Back": "Назад",
         "Breadcrumbs": "Навигационная цепочка",
         "No records": "Нет записей",
+        "Record": "Запись",
+        "Open record": "Открыть запись",
         "Unknown relationship.": "Связь не найдена.",
         "This relationship is read only.": "Эта связь доступна только для чтения.",
         "This relationship is not writable.": "Эта связь недоступна для записи.",

@@ -26,6 +26,9 @@ Each existing record has one page for viewing and editing. Its fields become rea
 the user cannot edit; the server also rejects direct POST requests. `edit_fields` orders and
 selects writable form fields; other visible fields remain on that page as read-only values.
 The old `/edit` GET URL redirects to the record page; POST remains a compatibility alias.
+Click a table row to open that page. Its link also supports keyboard navigation and opening a
+new tab. The only separate row action is deletion, which opens a confirmation page.
+Users without view/edit permission receive no record link; delete controls follow delete permission.
 With discovery enabled, `register()` overrides the settings for an existing model.
 For reflection, use `admin.configure("table_name", options=...)` without a model import.
 

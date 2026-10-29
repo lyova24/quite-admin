@@ -86,6 +86,9 @@ async def test_full_browser_flow(client):
     assert listing.status_code == 200, listing.text
     assert "&lt;script&gt;" in listing.text
     assert "<script>" not in listing.text
+    assert 'class="record-row-link"' in listing.text
+    assert 'class="button small danger-outline delete-action"' in listing.text
+    assert ">Actions<" not in listing.text
     assert "no-store" in listing.headers["cache-control"]
     assert "script-src 'none'" in listing.headers["content-security-policy"]
     confirm = await client.get(detail_url + "/delete")
@@ -190,6 +193,19 @@ async def test_one_record_page_handles_editing_and_read_only_access(client, admi
     assert (await adapter.get(model, adapter.describe(model).parse_key(key)))[
         "name"
     ] == "Updated in place"
+
+
+async def test_list_only_permission_does_not_offer_record_navigation(client, admin, backend):
+    adapter, model = backend
+    await adapter.create(model, {"name": "List only"})
+    admin.register(
+        model, options=ModelOptions(permission=lambda request, identity, action: action == "list")
+    )
+    await login(client)
+    page = await client.get("/admin/models/items/")
+    assert page.status_code == 200 and "List only" in page.text
+    assert 'class="record-row-link"' not in page.text
+    assert "delete-action" not in page.text
 
 
 async def test_custom_templates_pages_are_authenticated(client, admin, tmp_path):
