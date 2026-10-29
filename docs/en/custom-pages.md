@@ -31,9 +31,11 @@ Context callbacks may be synchronous or asynchronous; synchronous callbacks run 
 Custom pages currently support GET requests only.
 
 The shared context reserves `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
-`pages`, `title`, `description`, `language`, `theme`, `logo_url`, `t` and `tn`.
+`pages`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` and `tn`.
 Use `url("/models/orders/")` to generate a link with the correct mount prefix.
 The base template inherits your [language and appearance](customization.md) settings.
+Breadcrumbs link to the overview, collection and parent record, preserving mount/proxy prefixes.
+The current page is marked with `aria-current="page"`.
 
 ## Override built-in screens
 

@@ -523,10 +523,39 @@ class Admin:
             "pages": pages,
             "csrf": self._csrf(request),
             "url": lambda path="/": self._url(request, path),
+            "breadcrumbs": self._breadcrumbs(request, template, context),
         }
         return self.templates.TemplateResponse(
             request=request, name=template, context={**context, **shared}, status_code=status
         )
+
+    def _breadcrumbs(self, request, template, context):
+        items = [{"label": self.gettext("Overview"), "url": self._url(request, "/")}]
+        resource = context.get("resource")
+        if resource is not None:
+            items.append(
+                {"label": resource.label, "url": self._url(request, f"/models/{resource.slug}/")}
+            )
+            record = context.get("record")
+            if record:
+                items.append(
+                    {
+                        "label": resource.record_label(record),
+                        "url": self._url(
+                            request, f"/models/{resource.slug}/{resource.schema.record_key(record)}"
+                        ),
+                    }
+                )
+            if context.get("creating"):
+                items.append({"label": self.gettext("Create record"), "url": None})
+            elif template == "quite_admin/delete.html":
+                items.append({"label": self.gettext("Delete record"), "url": None})
+        elif context.get("page") is not None:
+            items.append({"label": context["page"].title, "url": None})
+        elif context.get("status_code"):
+            items.append({"label": str(context["status_code"]), "url": None})
+        items[-1]["url"] = None
+        return items
 
     async def _error(self, request: Request, exc: Exception) -> Response:
         if isinstance(exc, HTTPException) and exc.status_code == 303:

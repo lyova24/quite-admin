@@ -13,8 +13,9 @@ from .helpers import csrf, login
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])
-async def test_nested_mount_and_reverse_proxy_prefix(auth, framework):
-    admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False)
+async def test_nested_mount_and_reverse_proxy_prefix(auth, framework, backend):
+    adapter, model = backend
+    admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False, adapters=[adapter])
     if framework == "fastapi":
         host = FastAPI()
         child = FastAPI()
@@ -33,6 +34,18 @@ async def test_nested_mount_and_reverse_proxy_prefix(auth, framework):
         response = await client.get("/proxy/internal/control/")
         assert response.status_code == 200, response.text
         assert "/proxy/internal/control/assets/admin.css" in response.text
+        record = await adapter.create(model, {"name": "A nested record"})
+        key = adapter.describe(model).record_key(record)
+        page = await client.get(f"/proxy/internal/control/models/items/{key}")
+        assert '<nav class="breadcrumbs" aria-label="Breadcrumbs">' in page.text
+        assert '<a href="/proxy/internal/control/">Overview</a>' in page.text
+        assert '<a href="/proxy/internal/control/models/items/">Items</a>' in page.text
+        assert '<span aria-current="page">A nested record</span>' in page.text
+        confirmation = await client.get(f"/proxy/internal/control/models/items/{key}/delete")
+        assert (
+            f'<a href="/proxy/internal/control/models/items/{key}">A nested record</a>'
+            in confirmation.text
+        )
         result = await client.post(
             "/proxy/internal/control/logout", data={"__csrf": csrf(response)}
         )

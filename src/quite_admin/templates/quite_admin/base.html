@@ -30,7 +30,7 @@
   {% endif %}
     <main class="main">
     {% if identity %}
-      <header class="topbar"><span class="topbar-context">{{ t('Workspace') }} <span class="muted">/</span> {% if resource %}{{ resource.label }}{% elif page %}{{ page.title }}{% else %}{{ t('Overview') }}{% endif %}</span>
+      <header class="topbar"><nav class="breadcrumbs" aria-label="{{ t('Breadcrumbs') }}"><ol>{% for crumb in breadcrumbs %}<li>{% if not loop.first %}<span class="breadcrumb-divider" aria-hidden="true">/</span>{% endif %}{% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span aria-current="page">{{ crumb.label }}</span>{% endif %}</li>{% endfor %}</ol></nav>
         <div class="account"><span class="avatar">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><span>{{ identity.display_name or identity.subject }}</span>
         <form method="post" action="{{ url('/logout') }}"><input type="hidden" name="__csrf" value="{{ csrf }}"><button class="link-button" type="submit">{{ t('Sign out') }}</button></form></div>
       </header>

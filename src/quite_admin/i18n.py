@@ -143,6 +143,7 @@ RUSSIAN.update(
     {
         "Open": "Открыть",
         "Back": "Назад",
+        "Breadcrumbs": "Навигационная цепочка",
         "No records": "Нет записей",
         "Unknown relationship.": "Связь не найдена.",
         "This relationship is read only.": "Эта связь доступна только для чтения.",

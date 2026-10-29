@@ -193,3 +193,4 @@ h1{font-size:27px}
 .page-heading h1,.login-card h1,.subtitle{overflow-wrap:anywhere}
 .subtitle{white-space:pre-line}
 .brand-logo{display:block;flex-shrink:0;object-fit:contain}.brand-logo.large{width:48px;height:48px;margin-bottom:24px}.login-card .stack{margin-top:30px}
+.breadcrumbs{min-width:0;color:var(--muted)}.breadcrumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:8px;list-style:none;margin:0;padding:0}.breadcrumbs li{display:flex;align-items:center;gap:8px;min-width:0}.breadcrumbs a:hover{text-decoration:underline;color:var(--accent)}.breadcrumbs [aria-current=page]{overflow:hidden;text-overflow:ellipsis;max-width:32ch;white-space:nowrap}.breadcrumb-divider{color:var(--line)}
