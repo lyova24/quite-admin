@@ -9,6 +9,7 @@ Collections, fields and forms are discovered from existing SQL tables or ORM mod
 No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 
 - Authenticated CRUD, search, sorting and pagination.
+- Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
 - Editable, read-only and hidden fields, with server-side enforcement.
 - SQL reflection without model imports.
 - SQLAlchemy / SQLModel, Tortoise and Peewee adapters; an adapter protocol for other data sources.
@@ -49,6 +50,7 @@ The static HTML output is written to `build/docs`.
 CI checks both translations, builds the site and uploads it as an artifact.
 
 See [integration](docs/en/integration.md), [field configuration](docs/en/configuration.md),
+[relationships](docs/en/relationships.md),
 [language and appearance](docs/en/customization.md),
 [authentication](docs/en/authentication.md), [custom pages](docs/en/custom-pages.md),
 [logging](docs/en/logging.md),

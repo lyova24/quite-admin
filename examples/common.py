@@ -11,15 +11,17 @@ from pathlib import Path
 from sqlalchemy import (
     JSON,
     Boolean,
+    Column,
     DateTime,
     ForeignKey,
     Numeric,
     String,
+    Table,
     create_engine,
     func,
     select,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 from quite_admin import Admin, FieldOptions, ModelOptions, Page, PasswordAuth
 from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
@@ -29,6 +31,14 @@ class Base(DeclarativeBase):
     pass
 
 
+product_tags = Table(
+    "product_tags",
+    Base.metadata,
+    Column("product_id", ForeignKey("products.id"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id"), primary_key=True),
+)
+
+
 class Customer(Base):
     __tablename__ = "customers"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -36,6 +46,23 @@ class Customer(Base):
     email: Mapped[str] = mapped_column(String(180), unique=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    orders: Mapped[list[Order]] = relationship(back_populates="customer")
+    profile: Mapped[CustomerProfile | None] = relationship(back_populates="customer")
+
+
+class CustomerProfile(Base):
+    __tablename__ = "customer_profiles"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), unique=True)
+    address: Mapped[str] = mapped_column(String(200))
+    customer: Mapped[Customer | None] = relationship(back_populates="profile")
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60), unique=True)
+    products: Mapped[list[Product]] = relationship(secondary=product_tags, back_populates="tags")
 
 
 class Product(Base):
@@ -47,6 +74,7 @@ class Product(Base):
     stock: Mapped[int] = mapped_column(default=0)
     active: Mapped[bool] = mapped_column(default=True)
     attributes: Mapped[dict] = mapped_column(JSON, default=dict)
+    tags: Mapped[list[Tag]] = relationship(secondary=product_tags, back_populates="products")
 
 
 class Order(Base):
@@ -56,6 +84,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(40), default="pending")
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    customer: Mapped[Customer] = relationship(back_populates="orders")
 
 
 class Note(Base):
@@ -75,6 +104,8 @@ def make_demo():
         secret_key=os.getenv("QUITE_ADMIN_SECRET", secrets.token_urlsafe(48)),
         adapters=[SQLAlchemyAdapter(sessions, base=Base)],
         templates_dir=Path(__file__).parent / "templates",
+        title=os.getenv("QUITE_ADMIN_TITLE", "Quite Admin"),
+        language=os.getenv("QUITE_ADMIN_LANGUAGE", "en"),
         secure_cookies=False,  # This example runs over localhost HTTP.
     )
     admin.register(Customer, options=ModelOptions(readonly_fields=("joined_at",)))
@@ -107,6 +138,7 @@ def seed(engine, sessions):
     Base.metadata.create_all(engine)
     with sessions.begin() as session:
         if session.scalar(select(func.count()).select_from(Product)):
+            _seed_relationships(session)
             return
         session.add_all(
             [
@@ -163,3 +195,17 @@ def seed(engine, sessions):
         session.add(
             Note(title="Welcome to Quite Admin", body="Make yourself at home.", pinned=True)
         )
+        _seed_relationships(session)
+
+
+def _seed_relationships(session):
+    if not session.scalar(select(func.count()).select_from(Tag)):
+        tags = [Tag(name=name) for name in ("Popular", "New", "Gift", "Sale")]
+        session.add_all(tags)
+        for index, product in enumerate(session.scalars(select(Product).order_by(Product.id))):
+            product.tags = tags[index % len(tags) : index % len(tags) + 2]
+    if not session.scalar(select(func.count()).select_from(CustomerProfile)):
+        for index, customer in enumerate(
+            session.scalars(select(Customer).order_by(Customer.id).limit(3))
+        ):
+            session.add(CustomerProfile(customer=customer, address=f"Example street {index + 1}"))

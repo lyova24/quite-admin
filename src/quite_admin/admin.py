@@ -28,6 +28,7 @@ from .config import Action, ModelOptions, Permission
 from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
 from .logging import EventLogger, LoggerProtocol
+from .relations import RelationAdapter
 from .schema import ModelSchema, Query
 from .theme import Theme
 
@@ -56,6 +57,22 @@ class Resource:
     @property
     def label(self) -> str:
         return self.options.label or self.schema.label or self.slug
+
+    def record_label(self, record: Mapping[str, Any]) -> str:
+        visible = {item.name: item for item in self.options.visible_fields(self.schema)}
+        for name in (
+            self.options.record_label,
+            "name",
+            "title",
+            "label",
+            "display_name",
+            "username",
+        ):
+            if name in visible and record.get(name) is not None:
+                return visible[name].format(record[name])[:200]
+        return " · ".join(
+            field.format(record.get(field.name)) for field in self.schema.primary_keys
+        )
 
 
 @dataclass
@@ -420,7 +437,9 @@ class Admin:
             request.session["csrf"] = secrets.token_urlsafe(32)
         return request.session["csrf"]
 
-    async def _form(self, request: Request) -> FormData:
+    async def _form(
+        self, request: Request, *, multi_fields: frozenset[str] = frozenset()
+    ) -> FormData:
         # Only small URL-encoded forms. Avoid unbounded body buffering and file uploads.
         content_type = request.headers.get("content-type", "").split(";", 1)[0].strip()
         if content_type != "application/x-www-form-urlencoded":
@@ -434,7 +453,7 @@ class Admin:
             chunks.append(chunk)
         request._body = b"".join(chunks)
         form = await request.form()
-        if len(form.multi_items()) != len(form):
+        if any(len(form.getlist(name)) > 1 and name not in multi_fields for name in form):
             raise HTTPException(422, "Duplicate form fields are not accepted.")
         expected = request.session.get("csrf")
         supplied = form.get("__csrf")
@@ -639,13 +658,24 @@ class Admin:
 
     async def _edit_form(self, request: Request, resource: Resource, *, creating: bool) -> Response:
         record = {} if creating else await self._record(resource, request.path_params["key"])
-        fields = resource.options.form_fields(resource.schema, creating)
+        editors = await self._relation_editors(request, resource, record, creating=creating)
+        managed = frozenset(name for editor in editors for name in editor["relation"].source_fields)
+        fields = tuple(
+            item
+            for item in resource.options.form_fields(resource.schema, creating)
+            if item.name not in managed
+        )
         values = {item.name: item.format(record.get(item.name)) for item in fields}
         errors = {}
         defaults = {item.name for item in fields if creating and item.has_default}
         status = 200
         if request.method == "POST":
-            form = await self._form(request)
+            multi = frozenset(
+                "__relation__" + editor["relation"].name
+                for editor in editors
+                if editor["editable"] and editor["multiple"]
+            )
+            form = await self._form(request, multi_fields=multi)
             values.update({name: str(value) for name, value in form.items() if name in values})
             defaults = {
                 name.removeprefix("__default__")
@@ -653,8 +683,20 @@ class Admin:
                 if name.startswith("__default__") and form[name] == "true"
             }
             try:
-                changes = resource.options.parse_values(resource.schema, form, creating)
-                if creating:
+                selections, scalar = self._relation_selections(editors, form)
+                changes = resource.options.parse_values(
+                    resource.schema, scalar, creating, managed_fields=managed
+                )
+                if selections:
+                    saved = await resource.adapter.save_relations(
+                        resource.model,
+                        changes,
+                        selections,
+                        key=None
+                        if creating
+                        else resource.schema.parse_key(request.path_params["key"]),
+                    )
+                elif creating:
                     saved = await resource.adapter.create(resource.model, changes)
                 else:
                     saved = await resource.adapter.update(
@@ -700,7 +742,131 @@ class Admin:
             defaults=defaults,
             creating=creating,
             writable=resource.options.writable_fields(resource.schema, creating),
+            relation_editors=editors,
         )
+
+    async def _relation_editors(self, request, resource, record, *, creating):
+        if not isinstance(resource.adapter, RelationAdapter):
+            return []
+        relations = resource.adapter.relations(resource.model)
+        if inspect.isawaitable(relations):
+            relations = await relations
+        relations = tuple(relations)
+        names = {relation.name for relation in relations}
+        configured = set(resource.options.relations or ()) | set(
+            resource.options.readonly_relations
+        )
+        if configured - names:
+            raise ValueError(
+                "Unknown relationship configuration: " + ", ".join(sorted(configured - names))
+            )
+        resources = tuple((await self.resources()).values())
+        writable = resource.options.writable_fields(resource.schema, creating)
+        editors = []
+        for relation in relations:
+            if (
+                resource.options.relations is not None
+                and relation.name not in resource.options.relations
+            ):
+                continue
+            if set(relation.source_fields) & set(resource.options.exclude):
+                continue
+            target = next(
+                (
+                    item
+                    for item in resources
+                    if item.adapter is resource.adapter and item.model is relation.target
+                ),
+                None,
+            )
+            if (
+                target is None
+                or not await self._allowed(request, target, "list")
+                or not await self._allowed(request, target, "view")
+            ):
+                continue
+            if set(relation.target_fields) & set(target.options.exclude):
+                continue
+            editable = (
+                not relation.read_only and relation.name not in resource.options.readonly_relations
+            )
+            editable = editable and all(name in writable for name in relation.source_fields)
+            if relation.mutates_target:
+                editable = editable and await self._allowed(request, target, "edit")
+                target_writable = target.options.writable_fields(target.schema, False)
+                editable = editable and all(
+                    name in target_writable for name in relation.target_fields
+                )
+            linked = (
+                None
+                if creating
+                else await resource.adapter.related(
+                    resource.model,
+                    relation.name,
+                    resource.schema.parse_key(resource.schema.record_key(record)),
+                    Query(limit=1001),
+                )
+            )
+            selected = [] if linked is None else linked.records[:1000]
+            truncated = linked is not None and linked.total > 1000
+            editable = editable and not truncated
+            candidates = (
+                await target.adapter.list(target.model, Query(limit=1000)) if editable else None
+            )
+            records = {target.schema.record_key(item): item for item in selected}
+            if candidates is not None:
+                records.update(
+                    {target.schema.record_key(item): item for item in candidates.records}
+                )
+            editors.append(
+                {
+                    "relation": relation,
+                    "target": target,
+                    "editable": editable,
+                    "multiple": relation.kind in {"one_to_many", "many_to_many"},
+                    "selected": [target.schema.record_key(item) for item in selected],
+                    "choices": [(key, target.record_label(item)) for key, item in records.items()],
+                    "truncated": truncated or candidates is not None and candidates.total > 1000,
+                }
+            )
+        return editors
+
+    def _relation_selections(self, editors, form):
+        writable = {editor["relation"].name: editor for editor in editors if editor["editable"]}
+        selections = {}
+        errors = {}
+        scalar = {}
+        for name, value in form.items():
+            if not name.startswith(("__relation__", "__relation_present__")):
+                scalar[name] = value
+                continue
+            relation_name = name.removeprefix("__relation_present__").removeprefix("__relation__")
+            if relation_name not in writable:
+                errors[name] = "This relationship is not writable."
+                continue
+            if form.get("__relation_present__" + relation_name) != "true":
+                errors[name] = "Invalid relationship selection."
+                continue
+            editor = writable[relation_name]
+            tokens = [token for token in form.getlist("__relation__" + relation_name) if token]
+            editor["selected"] = tokens
+            if (
+                len(tokens) > 1000
+                or len(tokens) != len(set(tokens))
+                or not editor["multiple"]
+                and len(tokens) > 1
+            ):
+                errors["__relation__" + relation_name] = "Invalid relationship selection."
+                continue
+            try:
+                selections[relation_name] = [
+                    editor["target"].schema.parse_key(token) for token in tokens
+                ]
+            except NotFound:
+                errors["__relation__" + relation_name] = "Related record not found."
+        if errors:
+            raise ValidationError(errors)
+        return selections, scalar
 
     async def _delete(self, request: Request) -> Response:
         resource = await self._resource(request, "delete")

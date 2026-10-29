@@ -39,6 +39,9 @@ class ModelOptions:
     can_edit: bool = True
     can_delete: bool = True
     permission: Permission | None = None
+    relations: tuple[str, ...] | None = None
+    readonly_relations: tuple[str, ...] = ()
+    record_label: str | None = None
 
     def validate(self, schema: ModelSchema) -> None:
         names = set(schema.by_name)
@@ -50,6 +53,7 @@ class ModelOptions:
             self.exclude,
             self.search_fields,
             tuple(self.fields),
+            (self.record_label,) if self.record_label else (),
         ):
             unknown = set(option or ()) - names
             if unknown:
@@ -93,9 +97,15 @@ class ModelOptions:
         }
 
     def parse_values(
-        self, schema: ModelSchema, data: Mapping[str, Any], creating: bool
+        self,
+        schema: ModelSchema,
+        data: Mapping[str, Any],
+        creating: bool,
+        *,
+        managed_fields: frozenset[str] = frozenset(),
     ) -> dict[str, Any]:
         writable = self.writable_fields(schema, creating)
+        writable = {name: item for name, item in writable.items() if name not in managed_fields}
         errors: dict[str, str] = {}
         values: dict[str, Any] = {}
         for name in data:

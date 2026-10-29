@@ -25,6 +25,21 @@
     {% if errors.get(field.name) %}<p class="field-error">{{ t(errors[field.name]) }}</p>{% endif %}
   </div>
   {% endfor %}
+  {% for editor in relation_editors %}{% set relation = editor.relation %}
+  <div class="form-field wide">
+    <label for="relation-{{ relation.name }}">{{ relation.label }}{% if not editor.editable %} <span class="field-tag">{{ t('Read only') }}</span>{% endif %}</label>
+    {% if editor.editable %}
+    <input type="hidden" name="__relation_present__{{ relation.name }}" value="true">
+    <select id="relation-{{ relation.name }}" name="__relation__{{ relation.name }}" {% if editor.multiple %}multiple size="6"{% endif %} {% if errors.get('__relation__' ~ relation.name) %}aria-invalid="true"{% endif %}>
+      {% if not editor.multiple %}<option value="">— {{ t('None') }} —</option>{% endif %}
+      {% for key, label in editor.choices %}<option value="{{ key }}" {% if key in editor.selected %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    {% if editor.multiple %}<p class="field-help">{{ t('Hold Ctrl or Command to select multiple records.') }}</p>{% endif %}
+    {% else %}<div class="readonly-value">{% for key, label in editor.choices if key in editor.selected %}<a href="{{ url('/models/' ~ editor.target.slug ~ '/' ~ key) }}">{{ label }}</a>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</div>{% endif %}
+    {% if editor.truncated %}<p class="field-help">{{ t('The relationship picker is limited to 1000 records. Existing selections are preserved.') }}</p>{% endif %}
+    {% if errors.get('__relation__' ~ relation.name) %}<p class="field-error">{{ t(errors['__relation__' ~ relation.name]) }}</p>{% endif %}
+  </div>
+  {% endfor %}
   </div>
   <div class="form-footer"><span class="muted">{% if creating %}{{ t('Generated values are filled automatically.') }}{% else %}{{ t('Primary keys and generated fields are read only.') }}{% endif %}</span><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Cancel') }}</a><button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }} →</button></div></div>
 </form>

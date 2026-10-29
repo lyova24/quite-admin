@@ -12,8 +12,10 @@ from sqlalchemy.orm import Session
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._sqlalchemy_relations import SQLAlchemyRelations
 
-class SQLAlchemyAdapter:
+
+class SQLAlchemyAdapter(SQLAlchemyRelations):
     """SQLAlchemy 2.x / SQLModel, sync or async. Pass a session *factory*, not a session."""
 
     def __init__(

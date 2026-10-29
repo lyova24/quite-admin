@@ -2,6 +2,7 @@ from .admin import Admin, Page
 from .auth import AuthBackend, Identity, PasswordAuth, hash_password, verify_password
 from .config import FieldOptions, ModelOptions
 from .logging import LoggerProtocol
+from .relations import Relation, RelationAdapter
 from .schema import Field, ModelSchema, Query, RecordPage
 from .theme import Theme
 
@@ -20,6 +21,8 @@ __all__ = [
     "PasswordAuth",
     "Query",
     "RecordPage",
+    "Relation",
+    "RelationAdapter",
     "Theme",
     "hash_password",
     "verify_password",

@@ -13,6 +13,8 @@ items:
     href: integration.md
   - name: Collections and fields
     href: configuration.md
+  - name: Relationships
+    href: relationships.md
   - name: Language and appearance
     href: customization.md
   - name: Authentication and permissions

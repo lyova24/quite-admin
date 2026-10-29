@@ -13,6 +13,8 @@ items:
     href: integration.md
   - name: Регистрация и поля
     href: configuration.md
+  - name: Связи
+    href: relationships.md
   - name: Язык и оформление
     href: customization.md
   - name: Авторизация и права

@@ -12,8 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._sql_relations import SQLRelations
 
-class SQLAdapter:
+
+class SQLAdapter(SQLRelations):
     """Reflect SQL tables without importing any ORM models.
 
     Works with any ORM's database, using a separate SQLAlchemy Engine for access.

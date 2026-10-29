@@ -13,8 +13,10 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._tortoise_relations import TortoiseRelations
 
-class TortoiseAdapter:
+
+class TortoiseAdapter(TortoiseRelations):
     """Discovery happens after host startup, when Tortoise has initialized raw FK fields."""
 
     def __init__(self, *, models: Iterable[type] = (), apps: Iterable[str] | None = None) -> None:

@@ -75,8 +75,9 @@ examples synchronized between translations.
 
 ## Current limitations
 
-This is the first working library release. Relation pickers, a many-to-many editor,
-file uploads, bulk actions, an audit log and a row-level permission API are not implemented.
+This is the first working library release. File uploads, bulk actions, an audit log
+and a row-level permission API are not implemented. See [relationships](relationships.md)
+for supported editors and their limits.
 Concurrent edits use last-write-wins; there is no UI-level conflict detection.
 Custom pages currently support GET only.
 

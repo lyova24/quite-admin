@@ -139,6 +139,25 @@ RUSSIAN_PLURALS = {
     "field": ("поле", "поля", "полей"),
 }
 
+RUSSIAN.update(
+    {
+        "Unknown relationship.": "Связь не найдена.",
+        "This relationship is read only.": "Эта связь доступна только для чтения.",
+        "This relationship is not writable.": "Эта связь недоступна для записи.",
+        "Choose a single related record.": "Выберите одну связанную запись.",
+        "Related record not found.": "Связанная запись не найдена.",
+        "This relationship cannot be detached.": "Эту связь нельзя удалить.",
+        "A related record is required.": "Выберите связанную запись.",
+        "Invalid relationship selection.": "Некорректный выбор связанных записей.",
+        "Hold Ctrl or Command to select multiple records.": (
+            "Удерживайте Ctrl или Command для выбора нескольких записей."
+        ),
+        "The relationship picker is limited to 1000 records. Existing selections are preserved.": (
+            "В списке доступно до 1000 записей. Текущий выбор сохраняется."
+        ),
+    }
+)
+
 
 class Translator:
     def __init__(self, language: Language) -> None:

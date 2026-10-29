@@ -14,8 +14,10 @@ from anyio import to_thread
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._peewee_relations import PeeweeRelations
 
-class PeeweeAdapter:
+
+class PeeweeAdapter(PeeweeRelations):
     """Pass models explicitly or a project-specific base. Never scans unrelated global models."""
 
     def __init__(self, *, models: Iterable[type] = (), base: type | None = None) -> None:
