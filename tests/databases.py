@@ -2,6 +2,7 @@
 
 import os
 
+from peewee import MySQLDatabase
 from sqlalchemy import Boolean, MetaData, create_engine
 from sqlalchemy.engine import make_url
 
@@ -39,13 +40,28 @@ def reflected_types():
     return {"items": {"active": Boolean()}} if url and url.get_backend_name() == "mysql" else {}
 
 
+class PyMySQLTestDatabase(MySQLDatabase):
+    """Peewee 3.x connection bridge using PyMySQL's current parameter names."""
+
+    def _connect(self):
+        import pymysql
+
+        params = dict(self.connect_params)
+        if "passwd" in params:
+            params["password"] = params.pop("passwd")
+        return pymysql.connect(database=self.database, autocommit=True, **params)
+
+
 def peewee_database(sqlite_database):
     url = server_url()
     if url is None:
         return sqlite_database
-    from playhouse.db_url import connect
+    from playhouse.db_url import connect, parse
 
-    return connect(url.render_as_string(hide_password=False))
+    rendered = url.render_as_string(hide_password=False)
+    if url.get_backend_name() == "mysql":
+        return PyMySQLTestDatabase(**parse(rendered, unquote_password=True, unquote_user=True))
+    return connect(rendered)
 
 
 def tortoise_url():

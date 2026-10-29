@@ -64,8 +64,16 @@ ORM и БД. Отвязка связи не удаляет связанную з
 | СУБД | Адаптеры и режимы | Подтверждение |
 |---|---|---|
 | SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Полный набор, CI CPython 3.11–3.15 |
-| PostgreSQL 17 | Те же шесть режимов | Локально прошли 141 проверки CRUD, безопасности запросов и связей; отдельный CI job |
-| MySQL 8.4 | Те же шесть режимов | CI job настроен; локальный запуск пока невозможен из-за тайм-аутов загрузки образа |
+| PostgreSQL 17 | Те же шесть режимов | Локально прошли 280 проверок CRUD, безопасности запросов, связей и типов reflection; отдельный CI job |
+| MySQL 8.4 | Те же шесть режимов | Те же 280 проверок прошли локально на 8.4.13; отдельный CI job |
+
+MySQL reflection не различает `BOOLEAN` и обычные колонки `TINYINT(1)`.
+Контрактная фикстура явно указывает Boolean через [`column_types`](integration.md);
+обычные маленькие целые числа остаются числами.
+Peewee 3.19 передаёт PyMySQL 1.2 устаревшие аргументы `db` / `passwd`. Тестовый подкласс
+базы передаёт `database` / `password`, не подавляя предупреждений и не изменяя объекты
+базы приложения. Запросы и транзакции по-прежнему выполняют Peewee и PyMySQL;
+именно эта конфигурация подключения проверена серверной матрицей.
 
 Матрица находится в `.github/workflows/databases.yml` и использует временные базы
 сервисов. Для локальной проверки создайте **одноразовую** базу `quite_admin_test`:
@@ -73,7 +81,7 @@ ORM и БД. Отвязка связи не удаляет связанную з
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py -q
 ```
 
 Для MySQL нужен URL `mysql://`. Тесты создают и удаляют свои таблицы; запускайте их

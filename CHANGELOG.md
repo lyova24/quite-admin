@@ -32,6 +32,8 @@
 
 ### Fixed
 
+- Peewee's MySQL contract fixtures use current PyMySQL connection parameter names
+  instead of deprecated `db` / `passwd` aliases; deprecation warnings remain errors.
 - SQL relationship discovery recognizes full unique indexes, including MySQL's
   reflected one-to-one foreign keys, without treating partial indexes as globally unique.
 - High-severity documentation-tool dependency advisories, with a tested Node 24

@@ -65,8 +65,16 @@ not a guarantee for every version in the permitted ranges.
 | Database | Adapters / paths | Evidence |
 |---|---|---|
 | SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Full suite, CPython 3.11–3.15 CI |
-| PostgreSQL 17 | The same six paths | 141 CRUD, query-safety and relationship checks passed locally; dedicated CI job |
-| MySQL 8.4 | The same six paths | Dedicated CI job configured; local run pending because image downloads timed out |
+| PostgreSQL 17 | The same six paths | 280 CRUD, query-safety, relationship and reflection-type checks passed locally; dedicated CI job |
+| MySQL 8.4 | The same six paths | The same 280 checks passed locally on 8.4.13; dedicated CI job |
+
+MySQL reflection cannot distinguish `BOOLEAN` from ordinary `TINYINT(1)` columns.
+The contract fixture explicitly declares the intended Boolean type through
+[`column_types`](integration.md); ordinary tiny integers remain numeric.
+Peewee 3.19 passes deprecated `db` / `passwd` arguments to PyMySQL 1.2. The test database
+subclass passes `database` / `password` instead, without suppressing warnings or changing
+the application's database objects. Its real queries and transactions still use
+Peewee and PyMySQL; this is the connection configuration tested by the server matrix.
 
 The server matrix is `.github/workflows/databases.yml`. It uses disposable service
 databases, not a developer's application database. To run the same suite locally, create
@@ -75,7 +83,7 @@ a **disposable** local database named `quite_admin_test`, then:
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py -q
 ```
 
 Use a `mysql://` URL for MySQL. Tests create and drop their tables; run them serially.
