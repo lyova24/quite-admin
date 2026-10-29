@@ -2,7 +2,7 @@
 
 import os
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import Boolean, MetaData, create_engine
 from sqlalchemy.engine import make_url
 
 
@@ -31,6 +31,12 @@ def sqlalchemy_url(sqlite_url, *, asynchronous=False):
         else ("aiomysql" if asynchronous else "pymysql")
     )
     return url.set(drivername=f"{dialect}+{driver}")
+
+
+def reflected_types():
+    # MySQL stores BOOLEAN as TINYINT(1), losing the original application's intent.
+    url = server_url()
+    return {"items": {"active": Boolean()}} if url and url.get_backend_name() == "mysql" else {}
 
 
 def peewee_database(sqlite_database):

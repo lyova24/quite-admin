@@ -34,6 +34,21 @@ Reflection runs lazily after authentication and caches metadata.
 Call `await adapter.refresh()` after a host-managed migration to replace the cached schema.
 The library never creates tables or runs migrations itself.
 
+MySQL [stores `BOOLEAN` as `TINYINT(1)`](https://dev.mysql.com/doc/refman/8.4/en/numeric-type-syntax.html).
+Reflection cannot distinguish it from an ordinary `TINYINT(1)`, so integer
+columns remain integers by default. Supply the intended SQLAlchemy type for ambiguous
+columns when needed; this also controls parsing, typed filters and returned values:
+
+```python
+from sqlalchemy import Boolean
+
+adapter = SQLAdapter(engine, column_types={"users": {"active": Boolean()}})
+```
+
+Use the full table key, such as `app.users`, when selecting a named schema. Overrides
+must reference discovered tables and columns and contain SQLAlchemy type instances.
+`refresh()` reapplies them. Native ORM adapters retain their declared Boolean types.
+
 {% note warning %}
 
 Reflection executes SQL directly. Database constraints, server defaults and triggers apply.

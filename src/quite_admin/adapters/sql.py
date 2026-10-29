@@ -8,6 +8,7 @@ from sqlalchemy import JSON, MetaData, Table, and_, delete, func, insert, or_, s
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.types import TypeEngine
 
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
@@ -31,11 +32,19 @@ class SQLAdapter(SQLRelations):
         include_tables: Iterable[str] | None = None,
         exclude_tables: Iterable[str] = (),
         schema: str | None = None,
+        column_types: Mapping[str, Mapping[str, TypeEngine[Any]]] | None = None,
     ) -> None:
         self.engine = engine
         self.include_tables = tuple(include_tables) if include_tables is not None else None
         self.exclude_tables = frozenset(exclude_tables)
         self.schema = schema
+        self.column_types = {name: dict(columns) for name, columns in (column_types or {}).items()}
+        if any(
+            not isinstance(type_, TypeEngine)
+            for columns in self.column_types.values()
+            for type_ in columns.values()
+        ):
+            raise TypeError("column_types values must be SQLAlchemy type instances.")
         self._metadata: MetaData | None = None
         self._lock = Lock()
 
@@ -73,6 +82,14 @@ class SQLAdapter(SQLRelations):
             )
 
         await self._run(reflect)
+        for name, columns in self.column_types.items():
+            if name not in metadata.tables:
+                raise ValueError(f"Unknown table in column_types: {name}")
+            table = metadata.tables[name]
+            for column, type_ in columns.items():
+                if column not in table.c:
+                    raise ValueError(f"Unknown column in column_types: {name}.{column}")
+                table.c[column].type = type_
         self._metadata = metadata
 
     async def discover(self) -> Iterable[Table]:

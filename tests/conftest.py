@@ -16,7 +16,13 @@ from quite_admin.adapters.sql import SQLAdapter
 from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 from quite_admin.adapters.tortoise import TortoiseAdapter
 
-from .databases import drop_tortoise_tables, peewee_database, sqlalchemy_url, tortoise_url
+from .databases import (
+    drop_tortoise_tables,
+    peewee_database,
+    reflected_types,
+    sqlalchemy_url,
+    tortoise_url,
+)
 
 
 @pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
@@ -50,7 +56,7 @@ async def backend(request, tmp_path):
             Base.metadata.create_all(engine)
             factory = sessionmaker(engine)
         if name in {"sql", "sql_async"}:
-            adapter = SQLAdapter(engine)
+            adapter = SQLAdapter(engine, column_types=reflected_types())
             table = next(iter(await adapter.discover()))
             yield adapter, table
         else:

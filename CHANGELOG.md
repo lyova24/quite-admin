@@ -4,6 +4,8 @@
 
 ### Added
 
+- Optional SQL reflection type overrides for ambiguous physical types such as MySQL
+  `TINYINT(1)` booleans; ordinary integer columns retain their full numeric values.
 - A standalone EN/RU browser demo, exported from fictional example metadata, with
   local CRUD/relationship changes and a reset button in the documentation-site artifact.
 - Dependency vulnerability checks, validated draft releases with changelog, and tokenless PyPI publishing after maintainer publication.

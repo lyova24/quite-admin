@@ -37,6 +37,21 @@ admin.mount_fastapi(app, "/admin")
 авторизованном запросе и кешируется; после миграции можно вызвать `await adapter.refresh()`.
 Доступны `Engine` и `AsyncEngine`, параметр `schema` для схем БД.
 
+MySQL [хранит `BOOLEAN` как `TINYINT(1)`](https://dev.mysql.com/doc/refman/8.4/en/numeric-type-syntax.html).
+Reflection не различает его и обычный `TINYINT(1)`, поэтому целочисленные
+колонки по умолчанию остаются числами. Для неоднозначных колонок можно явно указать
+тип SQLAlchemy: он определяет разбор значений, типизированные фильтры и возвращаемые значения:
+
+```python
+from sqlalchemy import Boolean
+
+adapter = SQLAdapter(engine, column_types={"users": {"active": Boolean()}})
+```
+
+Для именованной схемы используйте полный ключ таблицы, например `app.users`. Переопределения
+должны ссылаться на обнаруженные таблицы и колонки и содержать экземпляры типов SQLAlchemy.
+`refresh()` применяет их повторно. ORM-адаптеры сохраняют объявленные типы Boolean.
+
 Этот режим выполняет SQL напрямую. Работают **DB constraints, server defaults и триггеры**.
 Python defaults, ORM events, model validators, service-layer permissions и soft-delete
 логика автоматически не выполняются. Если они необходимы, используйте ORM-адаптер
