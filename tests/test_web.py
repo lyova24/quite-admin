@@ -91,7 +91,8 @@ async def test_full_browser_flow(client):
     assert 'class="button small danger-outline delete-action"' in listing.text
     assert ">Actions<" not in listing.text
     assert "no-store" in listing.headers["cache-control"]
-    assert "script-src 'none'" in listing.headers["content-security-policy"]
+    assert "script-src 'sha256-" in listing.headers["content-security-policy"]
+    assert "/assets/filters.js" in listing.text
     confirm = await client.get(detail_url + "/delete")
     assert confirm.status_code == 200
     assert (await client.get(detail_url)).status_code == 200  # GET never deletes.

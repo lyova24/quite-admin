@@ -1,20 +1,29 @@
 # List filters
 
-Open **Filters** above a table, set the conditions and press **Apply filters**.
+Use **+ Add filter** beside search, find a field, then choose its condition and value.
+Press **Apply filter** to add it. Click an active chip to edit; × removes the condition.
+Only the condition being edited opens in a compact popover; unused fields stay out of the way.
 All conditions combine with AND and run in the database before counting or pagination.
-Active chips show every condition; × removes one, **Clear all** resets filters and search
+Active chips show every condition; **Clear all** resets filters and search
 while preserving sorting and page size. Search, sorting and page links retain active filters.
 The resulting URL can be bookmarked or shared with another authorized user.
 
 | Field | Control |
 |---|---|
-| Boolean, enum, choices | Any value or one exact value |
-| Integer, Decimal, float, date, time, datetime | Inclusive From / To bounds; either can be omitted |
+| Boolean, enum, choices | One exact value |
+| Integer, Decimal, float, date, time, datetime | **Equals** by default; >, ≥, <, ≤ or **Between** |
 | String, UUID | Exact value; use the main search for substring matches |
-| Nullable field | Is NULL / Is not NULL, separately from the scalar condition |
+| Nullable field | Is NULL / Is not NULL in the same condition menu; no value input |
 | JSON, binary, unsupported | NULL condition only, when nullable |
 
-NULL means SQL NULL, not an empty string or JSON null. A blank control adds no condition.
+**Equals** takes one value, including `0`. **Between** takes two inclusive bounds;
+use **At least** or **At most** for a one-sided range. A range appears as one chip,
+and removing it clears both bounds. Switching to equality replaces the bounds.
+
+NULL means SQL NULL, not an empty string or JSON null. The editor requires a value
+unless a NULL condition is selected. Without JavaScript (or on browsers without the
+Popover API), an expandable form remains available; blank fallback controls add no condition.
+Existing filter URLs, including one-sided ranges, remain supported.
 Datetime/time inputs accept ISO values; timezone handling and string comparison follow
 the database's column types and collation. Decimal values are parsed without converting
 them through JavaScript numbers. Invalid values and reversed ranges keep the controls
@@ -40,15 +49,15 @@ At most 50 scalar conditions and 10 relationship conditions may be active.
 ## Related records
 
 Registered relationships appear alongside scalar filters when the adapter supports
-`Query.related`. Use **Choose records** to search the target collection and select one
-existing record. The list then includes records linked to that target: 1:1, N:1, 1:N
+`Query.related`. Choose the relationship in **+ Add filter**, search the target collection
+and select one existing record in the same editor. The list then includes records linked to that target: 1:1, N:1, 1:N
 and M:N are supported. Multiple different relationships combine with AND.
 
 Both ends must be registered with the same adapter. Parent list permission and target
 list/view permission are required; edit permission is unnecessary. Relationship and
 field visibility rules still apply. `ModelOptions.relations` controls which relations
-appear. Every lookup request repeats these permission checks. The shared picker uses
-an integrity-checked script under the same narrow CSP as [relationship forms](relationships.md).
+appear. Every lookup request repeats these permission checks. The filter editor uses its own integrity-checked script with a per-page CSP hash;
+inline and arbitrary scripts remain blocked. [Relationship forms](relationships.md) use a separate picker.
 
 ## Adapter queries
 

@@ -21,6 +21,25 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Add filter": "Добавить фильтр",
+    "Find a field…": "Найти поле…",
+    "Back": "Назад",
+    "Condition": "Условие",
+    "Value": "Значение",
+    "Greater than": "Больше",
+    "At least": "Не меньше",
+    "Less than": "Меньше",
+    "At most": "Не больше",
+    "Between": "Между",
+    "Apply filter": "Применить",
+    "No matching fields.": "Подходящих полей нет.",
+    "This condition already exists. Edit the existing filter.": (
+        "Такое условие уже есть. Измените существующий фильтр."
+    ),
+    "All conditions must match.": "Все условия должны выполняться.",
+    "Use an ISO date or time, including a timezone if needed.": (
+        "Дата или время в формате ISO; при необходимости укажите часовой пояс."
+    ),
     "Filters": "Фильтры",
     "Active filters": "Активные фильтры",
     "Apply filters": "Применить фильтры",

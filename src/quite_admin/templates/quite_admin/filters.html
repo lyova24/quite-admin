@@ -1,3 +1,4 @@
+<fieldset class="filter-fallback" data-filter-fallback>
 <details class="filter-disclosure"{% if filter_errors %} open{% endif %}>
   <summary class="button secondary">{{ t('Filters') }}{% if active_filters %} <span class="muted">· {{ active_filters|length }}</span>{% endif %}</summary>
   <div class="filter-panel">
@@ -7,7 +8,7 @@
   <fieldset class="filter-field"><legend>{{ field.label }}</legend>
     {% set prefix = 'f.' ~ field.name ~ '.' %}
     {% if field.kind in ('integer', 'number', 'date', 'datetime', 'time') %}
-    <div class="filter-range">{% for operator, label in [('gte', 'From'), ('lte', 'To')] %}{% set name = prefix ~ operator %}
+    <div class="filter-range">{% for operator, label in [('eq', 'Equals'), ('gt', 'Greater than'), ('gte', 'At least'), ('lt', 'Less than'), ('lte', 'At most')] %}{% set name = prefix ~ operator %}
     <div><label for="{{ name }}">{{ t(label) }}</label><input id="{{ name }}" name="{{ name }}" type="{{ 'number' if field.kind in ('integer', 'number') else 'date' if field.kind == 'date' else 'text' }}"{% if field.kind in ('integer', 'number') %} step="{{ '1' if field.kind == 'integer' else 'any' }}"{% endif %} value="{{ filter_values.get(name, '') }}"{% if filter_errors.get(name) %} aria-invalid="true" aria-describedby="error-{{ name }}"{% endif %}></div>
     {% endfor %}</div>
     {% elif field.kind not in ('json', 'binary', 'unsupported') %}{% set name = prefix ~ 'eq' %}
@@ -16,7 +17,7 @@
     {% else %}<input id="{{ name }}" name="{{ name }}" value="{{ filter_values.get(name, '') }}" placeholder="{{ t('Equals') }}" maxlength="500"{% if filter_errors.get(name) %} aria-invalid="true" aria-describedby="error-{{ name }}"{% endif %}>{% endif %}
     {% endif %}
     {% if field.nullable %}{% set name = prefix ~ 'is_null' %}<label class="sr-only" for="{{ name }}">{{ field.label }} · {{ t('Empty values') }}</label><select class="filter-null" id="{{ name }}" name="{{ name }}"><option value="">{{ t('Any empty value state') }}</option><option value="true"{% if filter_values.get(name) == 'true' %} selected{% endif %}>{{ t('Is NULL') }}</option><option value="false"{% if filter_values.get(name) == 'false' %} selected{% endif %}>{{ t('Is not NULL') }}</option></select>{% endif %}
-    {% for operator in ['eq', 'gte', 'lte', 'is_null'] %}{% set name = prefix ~ operator %}{% if filter_errors.get(name) %}<p class="field-error" id="error-{{ name }}">{{ t(filter_errors[name]) }}</p>{% endif %}{% endfor %}
+    {% for operator in ['eq', 'gt', 'gte', 'lt', 'lte', 'is_null'] %}{% set name = prefix ~ operator %}{% if filter_errors.get(name) %}<p class="field-error" id="error-{{ name }}">{{ t(filter_errors[name]) }}</p>{% endif %}{% endfor %}
   </fieldset>
   {% endfor %}
   {% for editor in relation_filters %}{% set name = editor.relation.name %}
@@ -30,3 +31,5 @@
   <div class="button-group filter-footer"><button class="button primary" type="submit">{{ t('Apply filters') }}</button><a class="button secondary" href="{{ clear_filters_url }}">{{ t('Clear all') }}</a></div>
   </div>
 </details>
+
+</fieldset>

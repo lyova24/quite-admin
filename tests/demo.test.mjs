@@ -109,3 +109,16 @@ test("list filters combine scalar ranges and related membership before paging", 
   const first = store.collection("products").records.find((row) => row.links.tags?.length);
   assert.ok(store.filter("products", new URLSearchParams({"r.tags":first.links.tags[0]})).every((row) => row.links.tags.includes(first.links.tags[0])));
 });
+
+
+test("numeric equality, zero and strict comparisons filter the demo correctly", () => {
+  const store = new Store(seed);
+  const exact = store.filter("products", new URLSearchParams("f.price.eq=18.00"));
+  assert.equal(exact.length, 1);
+  assert.equal(exact[0].values.name, "Everyday notebook");
+  const zero = store.filter("products", new URLSearchParams("f.stock.eq=0"));
+  assert.equal(zero.length, 1);
+  assert.equal(zero[0].values.name, "Brass bookmark");
+  const rows = store.filter("products", new URLSearchParams("f.price.gt=18&f.price.lt=28"));
+  assert.equal(rows.length, 2);
+});

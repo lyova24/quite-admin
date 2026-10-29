@@ -145,7 +145,7 @@ export class Store {
       if (!raw) return true;
       if (name.startsWith("r.")) return (row.links[name.slice(2)] || []).includes(raw);
       if (!name.startsWith("f.")) return true;
-      const match = /^f\.(.+)\.(eq|gte|lte|is_null)$/.exec(name);
+      const match = /^f\.(.+)\.(eq|gt|gte|lt|lte|is_null)$/.exec(name);
       if (!match) return false;
       const field = collection.fields.find((item) => item.name === match[1]);
       if (!field) return false;
@@ -154,7 +154,7 @@ export class Store {
       if (value == null) return false;
       const numeric = ["integer", "number"].includes(field.kind);
       const a = numeric ? Number(value) : String(value), b = numeric ? Number(raw) : raw;
-      return operator === "gte" ? a >= b : operator === "lte" ? a <= b : a === b;
+      return operator === "gt" ? a > b : operator === "gte" ? a >= b : operator === "lt" ? a < b : operator === "lte" ? a <= b : a === b;
     }));
   }
 

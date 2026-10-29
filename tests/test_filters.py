@@ -55,7 +55,7 @@ def test_filter_controls_preserve_decimal_date_enum_and_null_types():
     assert filters[0].value == Decimal("123456789012345678.123456789")
     assert filters[1].value == date(2026, 10, 30)
     assert filters[2].value is Status.DONE and filters[3].value is True
-    for params in ({"f.password_hash.eq": "secret"}, {"f.amount.gt": "10"}):
+    for params in ({"f.password_hash.eq": "secret"}, {"f.amount.ne": "10"}):
         with pytest.raises(ValueError):
             ui_filters.parse(resource, fields, QueryParams(params))
     _, errors, _ = ui_filters.parse(resource, fields, QueryParams({"f.day.gte": "bad"}))
@@ -99,7 +99,29 @@ async def test_list_filters_combine_and_survive_navigation(admin, backend, frame
         invalid = await client.get(path, params={"f.count.gte": "20", "f.count.lte": "10"})
         assert invalid.status_code == 422 and 'value="10"' in invalid.text
         assert "upper bound" in invalid.text and 'aria-invalid="true"' in invalid.text
-        for bad in ({"f.internal.eq": "hidden"}, {"f.name__contains.eq": "x"}, {"f.count.gt": "0"}):
+        # Inclusive bounds form one editable condition; removing it removes both bounds.
+        assert result.text.count("data-filter-edit=") == 3
+        range_remove = next(
+            url
+            for url in links
+            if "f.active.eq=false" in url
+            and "f.note.is_null=true" in url
+            and "page=1" in url
+            and "f.count.gte" not in url
+            and "f.count.lte" not in url
+        )
+        assert "sort=count" in range_remove and "limit=1" in range_remove
+        for operator, value, expected in (
+            ("eq", "15", 1),
+            ("gt", "15", 2),
+            ("lt", "16", 1),
+            ("gte", "16", 2),
+            ("lte", "15", 1),
+        ):
+            response = await client.get(path, params={"q": "Row", "f.count." + operator: value})
+            assert response.status_code == 200
+            assert f"{expected} " + ("record" if expected == 1 else "records") in response.text
+        for bad in ({"f.internal.eq": "hidden"}, {"f.name__contains.eq": "x"}, {"f.count.ne": "0"}):
             assert (await client.get(path, params=bad)).status_code == 400
         duplicate = await client.get(path + "?f.active.eq=true&f.active.eq=false")
         assert duplicate.status_code == 400
@@ -107,3 +129,50 @@ async def test_list_filters_combine_and_survive_navigation(admin, backend, frame
             "items", options=ModelOptions(filter_fields=("active",), exclude=("internal",))
         )
         assert (await client.get(path, params={"f.count.gte": "0"})).status_code == 400
+
+
+def test_exact_decimal_and_comparison_parameters_do_not_lose_precision():
+    resource = SimpleNamespace(
+        options=ModelOptions(),
+        schema=ModelSchema(
+            "items",
+            (
+                Field("id", int, primary_key=True),
+                Field("amount", Decimal),
+            ),
+        ),
+    )
+    for operator in ("eq", "gt", "gte", "lt", "lte"):
+        parsed, errors, active = ui_filters.parse(
+            resource,
+            ui_filters.controls(resource),
+            QueryParams({f"f.amount.{operator}": "123456789012345678.123456789"}),
+        )
+        assert not errors
+        assert parsed[0].value == Decimal("123456789012345678.123456789")
+        assert active[0]["value"] == "123456789012345678.123456789"
+
+
+async def test_filter_assets_are_integrity_checked_and_metadata_is_safe(admin):
+    host = FastAPI()
+    admin.mount_fastapi(host)
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        await login(client)
+        response = await client.get("/admin/models/items/", params={"f.name.eq": "<script>'&"})
+    assert response.status_code == 200
+    import base64
+    import hashlib
+    from pathlib import Path
+
+    digest = base64.b64encode(
+        hashlib.sha256(
+            (Path(__file__).parents[1] / "src/quite_admin/static/filters.js").read_bytes()
+        ).digest()
+    ).decode()
+    csp = response.headers["content-security-policy"]
+    assert f"script-src 'sha256-{digest}'" in csp
+    assert "unsafe-inline" not in csp and "unsafe-eval" not in csp
+    assert f'integrity="sha256-{digest}"' in response.text
+    assert "data-filter-builder" in response.text
+    assert "<script>'&" not in response.text
+    assert "\\u003cscript\\u003e" in response.text
