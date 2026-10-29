@@ -49,6 +49,19 @@ composite primary/foreign keys and continued operation after failures.
 
 ## Database contract checks
 
+| ORM / integration | Automatic checks | Limits |
+|---|---|---|
+| SQL reflection | Sync/async CRUD, query filters/projection, composite PK/FK, relationship writes | Physical schema only; no Python hooks; pure M:N junctions only |
+| SQLAlchemy 2.x | Sync/async CRUD, query contract, native hooks, relationship writes | Imported mapped classes; dynamic/write-only/view-only relations are read-only |
+| SQLModel | Uses the SQLAlchemy adapter and registry | No separate SQLModel model suite yet; SQLAlchemy compatibility is not independent SQLModel verification |
+| Peewee | Worker-thread CRUD, composite keys, raw FK, M:N and 1:N/1:1 | No async Peewee API; host-owned database |
+| Tortoise | Native async CRUD, raw FK, UUID, JSON and relationships | Must initialize in host lifespan; no composite PK contract |
+| Custom adapters | A dependency-free example and structural protocol checks | Application author verifies storage, transactions and optional capabilities |
+
+FastAPI and Litestar integration suites exercise authentication, CRUD, relationships,
+field restrictions and proxy prefixes. The lockfile is the tested dependency set,
+not a guarantee for every version in the permitted ranges.
+
 | Database | Adapters / paths | Evidence |
 |---|---|---|
 | SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Full suite, CPython 3.11–3.15 CI |

@@ -6,6 +6,10 @@ No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT li
 
 [Русский](../ru/index.md) · [Quick start](quickstart.md)
 
+![Record list](../assets/screenshots/products.png)
+
+[12-second interface walkthrough](../assets/walkthrough.mp4)
+
 ## Choose a data source
 
 | Mode | Schema source | Use it when |
@@ -31,3 +35,14 @@ an arbitrary Python ORM API still needs an adapter.
 Start with the [demo](quickstart.md) or [integration guide](integration.md).
 Configure [language and appearance](customization.md) for your application.
 See [development and compatibility](development.md) for the test matrix and current limitations.
+
+## Compare integration choices
+
+| Project | Suitable integration |
+|---|---|
+| quite-admin | Automatic SQL/schema discovery, FastAPI/Litestar, Peewee or mixed/service adapters; early development with explicit compatibility limits |
+| [SQLAdmin](https://github.com/smithyhq/sqladmin) | SQLAlchemy/SQLModel views, sync/async engines and WTForms with FastAPI/Starlette |
+| [Starlette Admin](https://github.com/jowilf/starlette-admin) | Contrib model views, MongoDB backends, bulk actions, files and import/export |
+
+These choices follow the documented integration approaches. Check the
+[ORM/database evidence](data-safety.md), including unverified combinations, before choosing.

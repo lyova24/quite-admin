@@ -17,6 +17,10 @@ DTO и классы `ModelAdmin` не нужны. MIT License.
 
 [English](../en/index.md) · [Быстрый старт](quickstart.md)
 
+![Список записей](../assets/screenshots/products.png)
+
+[12-секундный обзор интерфейса](../assets/walkthrough.mp4)
+
 ## Возможности
 
 - Просмотр, создание, редактирование и удаление записей.
@@ -28,3 +32,14 @@ DTO и классы `ModelAdmin` не нужны. MIT License.
 
 Начните с [подключения](integration.md) или [демо](quickstart.md).
 Настройте [язык и оформление](customization.md) для своего приложения.
+
+## Выбор интеграции
+
+| Проект | Подходящий сценарий |
+|---|---|
+| quite-admin | Автообнаружение SQL-схемы, FastAPI/Litestar, Peewee, несколько ORM или сервисный адаптер; ранняя разработка с явно указанными ограничениями |
+| [SQLAdmin](https://github.com/smithyhq/sqladmin) | SQLAlchemy/SQLModel views, sync/async engine и WTForms с FastAPI/Starlette |
+| [Starlette Admin](https://github.com/jowilf/starlette-admin) | Contrib model views, MongoDB, bulk actions, файлы и import/export |
+
+Выбор основан на документированных способах подключения. Перед использованием
+проверьте [матрицу ORM/СУБД](data-safety.md), включая ещё не подтверждённые сочетания.

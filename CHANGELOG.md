@@ -4,6 +4,7 @@
 
 ### Added
 
+- Existing-application quick starts, screenshots, a short interface video and compatibility evidence.
 - Public write lifecycle hooks and request-scoped operation context for application services.
 - Custom field parsers/formatters/templates and permission-checked POST record actions.
 - Typed adapter filters, scalar projections and a shared relationship-query contract.
