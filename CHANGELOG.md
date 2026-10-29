@@ -4,6 +4,8 @@
 
 ### Added
 
+- A standalone EN/RU browser demo, exported from fictional example metadata, with
+  local CRUD/relationship changes and a reset button in the documentation-site artifact.
 - Dependency vulnerability checks, validated draft releases with changelog, and tokenless PyPI publishing after maintainer publication.
 - Existing-application quick starts, screenshots, a short interface video and compatibility evidence.
 - Public write lifecycle hooks and request-scoped operation context for application services.

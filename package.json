@@ -10,7 +10,9 @@
   "scripts": {
     "docs:check": "node scripts/check-docs.mjs",
     "docs:build": "node scripts/check-docs.mjs && node scripts/diplodoc.cjs build -i docs -o build/docs --strict && node scripts/prepare-pages.mjs",
-    "docs:serve": "uv run python -m http.server 8001 --bind 127.0.0.1 --directory build/docs"
+    "docs:serve": "uv run python -m http.server 8001 --bind 127.0.0.1 --directory build/docs",
+    "demo:build": "uv run --no-sync python scripts/build_demo.py",
+    "demo:test": "node --check demo/app.js && uv run --no-sync python scripts/build_demo.py && node --test tests/demo.test.mjs"
   },
   "devDependencies": {
     "@diplodoc/cli": "5.64.0"

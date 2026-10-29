@@ -9,6 +9,8 @@ items:
     href: index.md
   - name: Quick start
     href: quickstart.md
+  - name: Browser demo
+    href: browser-demo.md
   - name: Integration and adapters
     href: integration.md
   - name: Collections and fields

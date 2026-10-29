@@ -7,6 +7,10 @@ Supports **CPython 3.11–3.15**. MIT licensed.
 
 [English documentation](docs/en/index.md) · [Документация на русском](docs/ru/index.md)
 
+[Browser demo](https://lyova24.github.io/quite-admin/demo/) — `admin` / `admin`.
+Its fictional records stay in browser storage; **Reset demo** restores the examples.
+The site workflow publishes this standalone demo alongside the documentation.
+
 [Add to an existing app in two minutes](docs/en/quickstart.md)
 
 ![quite-admin record list](docs/assets/screenshots/products.png)

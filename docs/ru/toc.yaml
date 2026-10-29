@@ -9,6 +9,8 @@ items:
     href: index.md
   - name: Быстрый старт
     href: quickstart.md
+  - name: Демо в браузере
+    href: browser-demo.md
   - name: Подключение и адаптеры
     href: integration.md
   - name: Регистрация и поля
