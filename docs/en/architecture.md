@@ -29,7 +29,7 @@ implement an adapter around your application service.
 - `ModelSchema`: collection name, scalar fields and one or more primary keys.
 - `Field`: type, nullable/default/generated/read-only flags, choices and foreign-key metadata.
 - `ModelOptions`: ORM-independent display and write policy.
-- `Query`: validated pagination, sorting and text search.
+- `Query`: validated pagination, sorting, text search, typed filters and scalar projection.
 - `RecordPage`: scalar mappings and a total count.
 - `Adapter`: discovery, introspection and five CRUD operations.
 - `AuthBackend`: credential verification and identity revalidation.

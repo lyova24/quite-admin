@@ -4,6 +4,8 @@
 
 ### Added
 
+- Typed adapter filters, scalar projections and a shared relationship-query contract.
+- `ADAPTER_API_VERSION` and `DelegatingAdapter` for application-service write policies.
 - Inline one-to-one, one-to-many and many-to-many editors across SQL reflection,
   SQLAlchemy, Tortoise and Peewee. Scalar and relationship changes save atomically.
 - Demo data for each relationship kind.

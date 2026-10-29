@@ -15,6 +15,7 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Editable, read-only and hidden fields, with server-side enforcement.
 - SQL reflection without model imports.
 - SQLAlchemy / SQLModel, Tortoise and Peewee adapters; an adapter protocol for other data sources.
+- Typed adapter filters/projections and delegation to application services for writes.
 - Custom pages and Jinja2 template overrides.
 - English/Russian UI, configurable colors, admin name and description.
 - Application-owned logging with stdlib, structlog, Loguru and Litestar backends.

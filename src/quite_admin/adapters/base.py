@@ -5,6 +5,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from quite_admin.schema import ModelSchema, Query, RecordPage
 
+ADAPTER_API_VERSION = 1
+
 
 @runtime_checkable
 class Adapter(Protocol):

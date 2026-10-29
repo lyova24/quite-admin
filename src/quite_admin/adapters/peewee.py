@@ -16,6 +16,8 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
 from ._peewee_relations import PeeweeRelations
+from ._queries import ordering as order_expressions
+from ._queries import predicates
 
 
 class PeeweeAdapter(PeeweeRelations):
@@ -111,6 +113,10 @@ class PeeweeAdapter(PeeweeRelations):
 
         def operation() -> RecordPage:
             statement = model.select()
+            if query.filters:
+                statement = statement.where(
+                    *predicates(query, lambda name: getattr(model, name), peewee=True)
+                )
             if query.search and query.search_fields:
                 # Peewee contains() escapes LIKE wildcards internally.
                 statement = statement.where(
@@ -123,13 +129,11 @@ class PeeweeAdapter(PeeweeRelations):
                     )
                 )
             total = statement.count()
-            keys = [field.name for field in self.describe(model).primary_keys]
-            order = query.order_by or keys[0]
-            column = getattr(model, order)
-            ordering = [column.desc() if query.descending else column.asc()]
-            ordering.extend(getattr(model, name).asc() for name in keys if name != order)
+            ordering = tuple(
+                order_expressions(query, self.describe(model), lambda name: getattr(model, name))
+            )
             items = statement.order_by(*ordering).offset(query.offset).limit(query.limit)
-            return RecordPage([self._record(model, item) for item in items], total)
+            return RecordPage([query.project(self._record(model, item)) for item in items], total)
 
         return await self._run(model, operation)
 

@@ -12,6 +12,9 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import Query, RecordPage
 
+from ._queries import ordering as order_expressions
+from ._queries import predicates
+
 
 @dataclass(frozen=True)
 class _Link:
@@ -173,6 +176,7 @@ class SQLRelations:
             if parent is None:
                 raise NotFound("Record not found.")
             statement = self._linked_statement(link, parent)
+            statement = statement.where(*predicates(query, target.c.__getitem__))
             if query.search and query.search_fields:
                 statement = statement.where(
                     or_(
@@ -184,11 +188,13 @@ class SQLRelations:
                 )
             total = connection.scalar(select(func.count()).select_from(statement.subquery())) or 0
             rows = connection.execute(
-                statement.order_by(*target.primary_key.columns)
+                statement.order_by(
+                    *order_expressions(query, self.describe(target), target.c.__getitem__)
+                )
                 .offset(query.offset)
                 .limit(query.limit)
             ).mappings()
-            return RecordPage([dict(row) for row in rows], total)
+            return RecordPage([query.project(row) for row in rows], total)
 
         return await self._run(operation)
 

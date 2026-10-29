@@ -7,6 +7,8 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import RecordPage
 
+from ._queries import tortoise_filters
+
 
 class TortoiseRelations:
     def relations(self, model):
@@ -65,7 +67,7 @@ class TortoiseRelations:
         parent = await model.get_or_none(**key)
         if parent is None:
             raise NotFound("Record not found.")
-        statement = self._related_query(parent, name)
+        statement = tortoise_filters(self._related_query(parent, name), query)
         if query.search and query.search_fields:
             statement = statement.filter(
                 Q(
@@ -74,12 +76,15 @@ class TortoiseRelations:
                 )
             )
         total = await statement.count()
-        rows = (
-            await statement.order_by(relation.target._meta.pk_attr)
-            .offset(query.offset)
-            .limit(query.limit)
+        pk = relation.target._meta.pk_attr
+        order = query.order_by or pk
+        ordering = [("-" if query.descending else "") + order]
+        if order != pk:
+            ordering.append(pk)
+        rows = await statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+        return RecordPage(
+            [query.project(self._record(relation.target, item)) for item in rows], total
         )
-        return RecordPage([self._record(relation.target, item) for item in rows], total)
 
     async def save_relations(self, model, values, selections, *, key=None):
         self.describe(model).validate_values(values, creating=key is None)

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from enum import Enum
-from typing import Any, get_origin
+from typing import Any, Literal, get_origin
 from uuid import UUID
 
 from .errors import NotFound
@@ -179,6 +179,43 @@ class ModelSchema:
 
 
 @dataclass(frozen=True)
+class Filter:
+    field: str
+    operator: Literal["eq", "lt", "lte", "gt", "gte", "in", "is_null"] = "eq"
+    value: Any = None
+
+    def validate(self, schema: ModelSchema) -> None:
+        if self.field not in schema.by_name:
+            raise ValueError("Unknown filter field.")
+        if self.operator not in {"eq", "lt", "lte", "gt", "gte", "in", "is_null"}:
+            raise ValueError("Unknown filter operator.")
+        if self.operator == "is_null":
+            if type(self.value) is not bool:
+                raise ValueError("is_null requires a boolean value.")
+            return
+        field = schema.by_name[self.field]
+        if field.kind in {"json", "binary", "unsupported"}:
+            raise ValueError("This field supports only is_null filters.")
+        if self.operator == "in":
+            if not isinstance(self.value, (tuple, list)) or len(self.value) > 1000:
+                raise ValueError("in requires a sequence of at most 1000 scalar values.")
+            values = self.value
+        else:
+            values = (self.value,)
+        for value in values:
+            if value is None:
+                if self.operator != "eq":
+                    raise ValueError("Use is_null to filter NULL values.")
+                continue
+            expected = (int, float, Decimal) if field.kind == "number" else (field.python_type,)
+            if not isinstance(value, expected) or (
+                isinstance(value, bool) and field.kind != "boolean"
+            ):
+                raise ValueError("Filter values must use the field's Python type.")
+            field.parse(field.format(value))
+
+
+@dataclass(frozen=True)
 class Query:
     offset: int = 0
     limit: int = 25
@@ -186,6 +223,8 @@ class Query:
     search_fields: tuple[str, ...] = ()
     order_by: str | None = None
     descending: bool = False
+    filters: tuple[Filter, ...] = ()
+    columns: tuple[str, ...] | None = None
 
     def validate(self, schema: ModelSchema) -> None:
         if type(self.offset) is not int or self.offset < 0:
@@ -203,6 +242,21 @@ class Query:
             for name in self.search_fields
         ):
             raise ValueError("search_fields must contain known string fields.")
+        if len(self.filters) > 50:
+            raise ValueError("At most 50 filters are supported.")
+        for item in self.filters:
+            if not isinstance(item, Filter):
+                raise ValueError("filters must contain Filter objects.")
+            item.validate(schema)
+        if self.columns is not None and (
+            not self.columns
+            or len(set(self.columns)) != len(self.columns)
+            or set(self.columns) - schema.by_name.keys()
+        ):
+            raise ValueError("columns must contain unique known scalar field names.")
+
+    def project(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        return {name: record[name] for name in self.columns} if self.columns else dict(record)
 
 
 @dataclass(frozen=True)

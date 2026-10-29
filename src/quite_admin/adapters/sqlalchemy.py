@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._queries import ordering as order_expressions
+from ._queries import predicates
 from ._sqlalchemy_relations import SQLAlchemyRelations
 
 
@@ -125,6 +127,7 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
 
         def operation(session: Session) -> RecordPage:
             statement = select(model)
+            statement = statement.where(*predicates(query, lambda name: getattr(model, name)))
             if query.search and query.search_fields:
                 # autoescape makes '%' and '_' literal search text.
                 statement = statement.where(
@@ -138,17 +141,16 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
                     )
                 )
             count = session.scalar(select(func.count()).select_from(statement.subquery()))
-            keys = [field.name for field in self.describe(model).primary_keys]
-            order = query.order_by or keys[0]
-            column = getattr(model, order)
-            statement = statement.order_by(column.desc() if query.descending else column.asc())
-            for name in keys:
-                if name != order:
-                    statement = statement.order_by(getattr(model, name).asc())
+            ordering = tuple(
+                order_expressions(query, self.describe(model), lambda name: getattr(model, name))
+            )
+            statement = statement.order_by(*ordering)
             items = (
                 session.scalars(statement.offset(query.offset).limit(query.limit)).unique().all()
             )
-            return RecordPage([self._record(model, item) for item in items], count or 0)
+            return RecordPage(
+                [query.project(self._record(model, item)) for item in items], count or 0
+            )
 
         return await self._run(operation)
 

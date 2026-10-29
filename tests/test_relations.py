@@ -11,7 +11,7 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, session
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 
-from quite_admin import Admin, ModelOptions, Query, RelationAdapter
+from quite_admin import Admin, Filter, ModelOptions, Query, RelationAdapter
 from quite_admin.adapters.peewee import PeeweeAdapter
 from quite_admin.adapters.sql import SQLAdapter
 from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
@@ -286,6 +286,33 @@ async def test_create_with_forward_and_collection_relationships(related_backend)
         child_model, forward.name, key(adapter, child_model, new_child), Query()
     )
     assert related.records[0]["id"] == created["id"]
+
+
+async def test_related_queries_share_filter_sort_and_projection_contract(related_backend):
+    adapter, models = related_backend
+    parent, child, profile, tags = await seed(adapter, models)
+    model = models["parents"]
+    relation = relation_to(adapter, model, models["tags"], "many_to_many")
+    parent_key = key(adapter, model, parent)
+    await adapter.save_relations(
+        model,
+        {},
+        {relation.name: [key(adapter, models["tags"], tag) for tag in tags]},
+        key=parent_key,
+    )
+    result = await adapter.related(
+        model, relation.name, parent_key, Query(order_by="name", columns=("name",), limit=1)
+    )
+    assert result.total == 2
+    assert result.records == [{"name": "Blue"}]
+    result = await adapter.related(
+        model,
+        relation.name,
+        parent_key,
+        Query(filters=(Filter("name", "eq", "Red"),), columns=("name",)),
+    )
+    assert result.total == 1
+    assert result.records == [{"name": "Red"}]
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])

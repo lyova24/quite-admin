@@ -10,6 +10,9 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import Query, RecordPage
 
+from ._queries import ordering as order_expressions
+from ._queries import predicates
+
 
 class SQLAlchemyRelations:
     def relations(self, model: type) -> tuple[Relation, ...]:
@@ -82,6 +85,7 @@ class SQLAlchemyRelations:
             if parent is None:
                 raise NotFound("Record not found.")
             statement = select(target).where(with_parent(parent, getattr(model, name)))
+            statement = statement.where(*predicates(query, lambda field: getattr(target, field)))
             if query.search and query.search_fields:
                 statement = statement.where(
                     or_(
@@ -95,10 +99,12 @@ class SQLAlchemyRelations:
                 )
             total = session.scalar(select(func.count()).select_from(statement.subquery())) or 0
             statement = statement.order_by(
-                *(getattr(target, field.name) for field in self.describe(target).primary_keys)
+                *order_expressions(
+                    query, self.describe(target), lambda field: getattr(target, field)
+                )
             )
             rows = session.scalars(statement.offset(query.offset).limit(query.limit)).unique().all()
-            return RecordPage([self._record(target, row) for row in rows], total)
+            return RecordPage([query.project(self._record(target, row)) for row in rows], total)
 
         return await self._run(operation)
 

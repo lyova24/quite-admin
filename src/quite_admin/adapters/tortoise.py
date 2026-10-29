@@ -13,6 +13,7 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._queries import tortoise_filters
 from ._tortoise_relations import TortoiseRelations
 
 
@@ -72,7 +73,7 @@ class TortoiseAdapter(TortoiseRelations):
 
     async def list(self, model: type, query: Query) -> RecordPage:
         query.validate(self.describe(model))
-        statement = model.all()
+        statement = tortoise_filters(model.all(), query)
         if query.search and query.search_fields:
             statement = statement.filter(
                 Q(
@@ -87,7 +88,7 @@ class TortoiseAdapter(TortoiseRelations):
         if order != pk:
             ordering.append(pk)
         items = await statement.order_by(*ordering).offset(query.offset).limit(query.limit)
-        return RecordPage([self._record(model, item) for item in items], total)
+        return RecordPage([query.project(self._record(model, item)) for item in items], total)
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:
         self.describe(model).validate_key(key)

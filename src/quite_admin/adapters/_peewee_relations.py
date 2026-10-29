@@ -7,6 +7,9 @@ from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import RecordPage
 
+from ._queries import ordering as order_expressions
+from ._queries import predicates
+
 
 class PeeweeRelations:
     def _relation_fields(self, model):
@@ -64,6 +67,10 @@ class PeeweeRelations:
             if parent is None:
                 raise NotFound("Record not found.")
             statement = self._related_query(parent, name)
+            if query.filters:
+                statement = statement.where(
+                    *predicates(query, lambda field: getattr(relation.target, field), peewee=True)
+                )
             if query.search and query.search_fields:
                 statement = statement.where(
                     reduce(
@@ -76,14 +83,15 @@ class PeeweeRelations:
                 )
             total = statement.count()
             statement = statement.order_by(
-                *(
-                    getattr(relation.target, f.name)
-                    for f in self.describe(relation.target).primary_keys
+                *order_expressions(
+                    query,
+                    self.describe(relation.target),
+                    lambda field: getattr(relation.target, field),
                 )
             )
             return RecordPage(
                 [
-                    self._record(relation.target, row)
+                    query.project(self._record(relation.target, row))
                     for row in statement.offset(query.offset).limit(query.limit)
                 ],
                 total,

@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
+from ._queries import ordering as order_expressions
+from ._queries import predicates
 from ._sql_relations import SQLRelations
 
 
@@ -131,6 +133,7 @@ class SQLAdapter(SQLRelations):
 
         def operation(connection: Connection) -> RecordPage:
             statement = select(model)
+            statement = statement.where(*predicates(query, model.c.__getitem__))
             if query.search and query.search_fields:
                 statement = statement.where(
                     or_(
@@ -141,15 +144,11 @@ class SQLAdapter(SQLRelations):
                     )
                 )
             total = connection.scalar(select(func.count()).select_from(statement.subquery()))
-            keys = [column.name for column in model.primary_key.columns]
-            order = query.order_by or keys[0]
-            column = model.c[order]
-            ordering = [column.desc() if query.descending else column.asc()]
-            ordering.extend(model.c[name].asc() for name in keys if name != order)
+            ordering = tuple(order_expressions(query, self.describe(model), model.c.__getitem__))
             rows = connection.execute(
                 statement.order_by(*ordering).offset(query.offset).limit(query.limit)
             ).mappings()
-            return RecordPage([dict(row) for row in rows], total or 0)
+            return RecordPage([query.project(row) for row in rows], total or 0)
 
         return await self._run(operation)
 
