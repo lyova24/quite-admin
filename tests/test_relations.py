@@ -18,6 +18,7 @@ from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 from quite_admin.adapters.tortoise import TortoiseAdapter
 from quite_admin.errors import Conflict
 
+from .databases import drop_tortoise_tables, peewee_database, sqlalchemy_url, tortoise_url
 from .helpers import csrf, login
 
 
@@ -70,12 +71,14 @@ async def related_backend(request, tmp_path):
             name = mapped_column(String(100))
 
         if mode.endswith("async"):
-            engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path}/relations.db")
+            engine = create_async_engine(
+                sqlalchemy_url(f"sqlite+aiosqlite:///{tmp_path}/relations.db", asynchronous=True)
+            )
             async with engine.begin() as connection:
                 await connection.run_sync(Base.metadata.create_all)
             factory = async_sessionmaker(engine)
         else:
-            engine = create_engine(f"sqlite:///{tmp_path}/relations.db")
+            engine = create_engine(sqlalchemy_url(f"sqlite:///{tmp_path}/relations.db"))
             Base.metadata.create_all(engine)
             factory = sessionmaker(engine)
         if mode in {"sql", "sql_async"}:
@@ -86,11 +89,16 @@ async def related_backend(request, tmp_path):
             models = {model.__tablename__: model for model in adapter.discover()}
         yield adapter, models
         if mode.endswith("async"):
+            async with engine.begin() as connection:
+                await connection.run_sync(Base.metadata.drop_all)
             await engine.dispose()
         else:
+            Base.metadata.drop_all(engine)
             engine.dispose()
     elif mode == "peewee":
-        db = pw.SqliteDatabase(str(tmp_path / "relations.db"), pragmas={"foreign_keys": 1})
+        db = peewee_database(
+            pw.SqliteDatabase(str(tmp_path / "relations.db"), pragmas={"foreign_keys": 1})
+        )
 
         class Base(pw.Model):
             class Meta:
@@ -134,6 +142,8 @@ async def related_backend(request, tmp_path):
         db.create_tables(all_models)
         db.close()
         yield PeeweeAdapter(models=all_models), {m._meta.table_name: m for m in all_models}
+        with db.connection_context():
+            db.drop_tables(all_models)
     else:
 
         class Parent(Model):
@@ -172,12 +182,13 @@ async def related_backend(request, tmp_path):
 
         module = ModuleType("related_models")
         module.__models__ = [Parent, Child, Tag, Profile, StrictChild]
-        await Tortoise.init(db_url="sqlite://:memory:", modules={"models": [module]})
+        await Tortoise.init(db_url=tortoise_url(), modules={"models": [module]})
         await Tortoise.generate_schemas()
         try:
             yield TortoiseAdapter(), {m._meta.db_table: m for m in module.__models__}
         finally:
             await Tortoise.close_connections()
+            drop_tortoise_tables(module.__models__)
 
 
 def key(adapter, model, row):

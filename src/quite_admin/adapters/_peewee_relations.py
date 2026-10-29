@@ -56,6 +56,8 @@ class PeeweeRelations:
 
     async def related(self, model, name, key, query):
         relation = next(item for item in self.relations(model) if item.name == name)
+        self.describe(model).validate_key(key)
+        query.validate(self.describe(relation.target))
 
         def operation():
             parent = model.get_or_none(self._where(model, key))
@@ -90,6 +92,15 @@ class PeeweeRelations:
         return await self._run(model, operation)
 
     async def save_relations(self, model, values, selections, *, key=None):
+        self.describe(model).validate_values(values, creating=key is None)
+        if key is not None:
+            self.describe(model).validate_key(key)
+        available_targets = {item.name: item.target for item in self.relations(model)}
+        for relation_name, selected_keys in selections.items():
+            if relation_name in available_targets:
+                target_schema = self.describe(available_targets[relation_name])
+                for selected_key in selected_keys:
+                    target_schema.validate_key(selected_key)
         available = {item.name: item for item in self.relations(model)}
         fields = self._relation_fields(model)
         if set(selections) - available.keys():
@@ -145,4 +156,4 @@ class PeeweeRelations:
                         item.save(only=[field])
             return self._record(model, parent)
 
-        return await self._run(model, operation)
+        return await self._run(model, operation, write=True)

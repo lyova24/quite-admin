@@ -1,0 +1,49 @@
+name: database contracts
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: postgresql
+            image: postgres:17
+            port: 5432
+            health: pg_isready -U quite_admin -d quite_admin_test
+          - database: mysql
+            image: mysql:8.4
+            port: 3306
+            health: mysqladmin ping -h 127.0.0.1 --silent
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          POSTGRES_USER: quite_admin
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: quite_admin_test
+          MYSQL_ROOT_PASSWORD: ci-root-test-only
+          MYSQL_USER: quite_admin
+          MYSQL_PASSWORD: ci-test-only
+          MYSQL_DATABASE: quite_admin_test
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        options: >-
+          --health-cmd "${{ matrix.health }}"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      QUITE_ADMIN_TEST_DATABASE_URL: ${{ matrix.database }}://quite_admin:ci-test-only@127.0.0.1:${{ matrix.port }}/quite_admin_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+          enable-cache: true
+      - run: uv sync --locked --group database-check
+      - run: uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py -q

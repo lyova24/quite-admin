@@ -74,6 +74,8 @@ class SQLAlchemyRelations:
     ) -> RecordPage:
         prop = inspect(model).relationships[name]
         target = prop.mapper.class_
+        self.describe(model).validate_key(key)
+        query.validate(self.describe(target))
 
         def operation(session):
             parent = session.get(model, dict(key))
@@ -108,6 +110,15 @@ class SQLAlchemyRelations:
         *,
         key: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
+        self.describe(model).validate_values(values, creating=key is None)
+        if key is not None:
+            self.describe(model).validate_key(key)
+        available_targets = {item.name: item.target for item in self.relations(model)}
+        for relation_name, selected_keys in selections.items():
+            if relation_name in available_targets:
+                target_schema = self.describe(available_targets[relation_name])
+                for selected_key in selected_keys:
+                    target_schema.validate_key(selected_key)
         available = {item.name: item for item in self.relations(model)}
         if set(selections) - available.keys():
             raise Conflict("Unknown relationship.")

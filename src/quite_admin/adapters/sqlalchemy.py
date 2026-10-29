@@ -121,6 +121,8 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
         return {field.name: getattr(instance, field.name) for field in self.describe(model).fields}
 
     async def list(self, model: type, query: Query) -> RecordPage:
+        query.validate(self.describe(model))
+
         def operation(session: Session) -> RecordPage:
             statement = select(model)
             if query.search and query.search_fields:
@@ -151,6 +153,8 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
         return await self._run(operation)
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:
+        self.describe(model).validate_key(key)
+
         def operation(session: Session) -> dict[str, Any] | None:
             item = session.get(model, dict(key))
             return self._record(model, item) if item is not None else None
@@ -158,6 +162,8 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
         return await self._run(operation)
 
     async def create(self, model: type, values: Mapping[str, Any]) -> dict[str, Any]:
+        self.describe(model).validate_values(values, creating=True)
+
         def operation(session: Session) -> dict[str, Any]:
             with session.begin():
                 item = model(**values)
@@ -171,6 +177,9 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
     async def update(
         self, model: type, key: Mapping[str, Any], values: Mapping[str, Any]
     ) -> dict[str, Any]:
+        self.describe(model).validate_key(key)
+        self.describe(model).validate_values(values, creating=False)
+
         def operation(session: Session) -> dict[str, Any]:
             with session.begin():
                 item = session.get(model, dict(key), with_for_update=True)
@@ -185,6 +194,8 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
         return await self._run(operation)
 
     async def delete(self, model: type, key: Mapping[str, Any]) -> None:
+        self.describe(model).validate_key(key)
+
         def operation(session: Session) -> None:
             with session.begin():
                 item = session.get(model, dict(key), with_for_update=True)

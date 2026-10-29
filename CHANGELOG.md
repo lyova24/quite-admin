@@ -20,6 +20,10 @@
 
 ### Fixed
 
+- Adapter queries validate scalar field names and pagination, writes reject unknown attributes,
+  and record operations require complete primary keys. Reads do not commit write transactions.
+- Finite Decimal values retain precision without a float conversion.
+- Hidden primary-key values are omitted from generated record labels.
 - The Litestar queue logging test connects its configured console sink on Python 3.11.
 - Documentation deployment publishes generated Diplodoc HTML through GitHub Pages
   Actions instead of passing Jinja examples to Jekyll/Liquid.

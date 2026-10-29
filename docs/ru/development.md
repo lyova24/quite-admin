@@ -29,7 +29,8 @@ uv build
 sync/async SQLAlchemy, Tortoise и Peewee под FastAPI и Litestar. Проверяются
 CSRF, mass assignment, read-only поля, XSS, права, rollback, шаблоны и proxy prefixes.
 PostgreSQL/MySQL используют соответствующие драйверы адаптеров, но в этом репозитории
-пока не проверяются интеграционными тестами.
+теперь имеют отдельные [контрактные CI jobs](data-safety.md).
+PostgreSQL 17 также проверен локально; локальный запуск MySQL 8.4 ждёт доступности образа.
 
 Это первая рабочая версия библиотеки. Пока нет загрузки файлов, bulk actions, audit log,
 row-level permission API и защиты от

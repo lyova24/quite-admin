@@ -27,5 +27,7 @@ items:
     href: custom-adapters.md
   - name: Архитектура
     href: architecture.md
+  - name: Доступ к данным и совместимость
+    href: data-safety.md
   - name: Разработка и совместимость
     href: development.md

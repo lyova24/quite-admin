@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import nullcontext
 from datetime import date, datetime, time
 from decimal import Decimal
 from functools import reduce
@@ -89,12 +90,12 @@ class PeeweeAdapter(PeeweeRelations):
     def _record(self, model: type, item: Any) -> dict[str, Any]:
         return {field.name: item.__data__.get(field.name) for field in self.describe(model).fields}
 
-    async def _run(self, model: type, operation: Callable[[], Any]) -> Any:
+    async def _run(self, model: type, operation: Callable[[], Any], *, write: bool = False) -> Any:
         def run() -> Any:
             database = model._meta.database
             # Open and close in the SAME worker; Peewee connections are thread-local.
             with database.connection_context():
-                with database.atomic():
+                with database.atomic() if write else nullcontext():
                     return operation()
 
         try:
@@ -106,6 +107,8 @@ class PeeweeAdapter(PeeweeRelations):
         return reduce(operator.and_, (getattr(model, name) == value for name, value in key.items()))
 
     async def list(self, model: type, query: Query) -> RecordPage:
+        query.validate(self.describe(model))
+
         def operation() -> RecordPage:
             statement = model.select()
             if query.search and query.search_fields:
@@ -131,6 +134,8 @@ class PeeweeAdapter(PeeweeRelations):
         return await self._run(model, operation)
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:
+        self.describe(model).validate_key(key)
+
         def operation() -> dict[str, Any] | None:
             item = model.get_or_none(self._where(model, key))
             return self._record(model, item) if item is not None else None
@@ -138,15 +143,20 @@ class PeeweeAdapter(PeeweeRelations):
         return await self._run(model, operation)
 
     async def create(self, model: type, values: Mapping[str, Any]) -> dict[str, Any]:
+        self.describe(model).validate_values(values, creating=True)
+
         def operation() -> dict[str, Any]:
             item = model.create(**values)
             return self._record(model, item)
 
-        return await self._run(model, operation)
+        return await self._run(model, operation, write=True)
 
     async def update(
         self, model: type, key: Mapping[str, Any], values: Mapping[str, Any]
     ) -> dict[str, Any]:
+        self.describe(model).validate_key(key)
+        self.describe(model).validate_values(values, creating=False)
+
         def operation() -> dict[str, Any]:
             item = model.get_or_none(self._where(model, key))
             if item is None:
@@ -157,13 +167,15 @@ class PeeweeAdapter(PeeweeRelations):
                 item.save(only=[getattr(model, name) for name in values])
             return self._record(model, item)
 
-        return await self._run(model, operation)
+        return await self._run(model, operation, write=True)
 
     async def delete(self, model: type, key: Mapping[str, Any]) -> None:
+        self.describe(model).validate_key(key)
+
         def operation() -> None:
             item = model.get_or_none(self._where(model, key))
             if item is None:
                 raise NotFound("Record not found.")
             item.delete_instance()
 
-        await self._run(model, operation)
+        await self._run(model, operation, write=True)

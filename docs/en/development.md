@@ -45,8 +45,9 @@ synchronous and asynchronous SQLAlchemy, Tortoise and Peewee under FastAPI and L
 They also cover CSRF, mass assignment, read-only fields, XSS escaping, permissions,
 rollback, templates, host sessions, composite keys and proxy prefixes.
 
-PostgreSQL and MySQL use the adapters' appropriate drivers, but currently have no integration
-test matrix in this repository. The lockfile verifies the pinned dependency versions;
+PostgreSQL 17 and MySQL 8.4 have dedicated [contract jobs](data-safety.md).
+PostgreSQL has also passed a local run; MySQL's local run is pending image availability.
+The lockfile verifies the pinned dependency versions;
 it is not a test of every version permitted by the dependency ranges.
 
 ## Build the Diplodoc documentation

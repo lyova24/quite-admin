@@ -78,8 +78,13 @@ class Resource:
         ):
             if name in visible and record.get(name) is not None:
                 return visible[name].format(record[name])[:200]
-        return " · ".join(
-            field.format(record.get(field.name)) for field in self.schema.primary_keys
+        return (
+            " · ".join(
+                field.format(record.get(field.name))
+                for field in self.schema.primary_keys
+                if field.name in visible
+            )[:200]
+            or self.label
         )
 
 

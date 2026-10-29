@@ -71,6 +71,7 @@ class TortoiseAdapter(TortoiseRelations):
         return {field.name: getattr(item, field.name) for field in self.describe(model).fields}
 
     async def list(self, model: type, query: Query) -> RecordPage:
+        query.validate(self.describe(model))
         statement = model.all()
         if query.search and query.search_fields:
             statement = statement.filter(
@@ -89,6 +90,7 @@ class TortoiseAdapter(TortoiseRelations):
         return RecordPage([self._record(model, item) for item in items], total)
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:
+        self.describe(model).validate_key(key)
         item = await model.get_or_none(**key)
         return self._record(model, item) if item is not None else None
 
@@ -124,12 +126,16 @@ class TortoiseAdapter(TortoiseRelations):
             raise AdminValidationError({"__all__": "The model rejected these values."}) from exc
 
     async def create(self, model: type, values: Mapping[str, Any]) -> dict[str, Any]:
+        self.describe(model).validate_values(values, creating=True)
         return await self._write(model, "create", values)
 
     async def update(
         self, model: type, key: Mapping[str, Any], values: Mapping[str, Any]
     ) -> dict[str, Any]:
+        self.describe(model).validate_key(key)
+        self.describe(model).validate_values(values, creating=False)
         return await self._write(model, "update", values, key)
 
     async def delete(self, model: type, key: Mapping[str, Any]) -> None:
+        self.describe(model).validate_key(key)
         await self._write(model, "delete", {}, key)

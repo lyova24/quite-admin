@@ -4,7 +4,7 @@ from types import ModuleType
 
 import peewee as pw
 import pytest
-from sqlalchemy import Boolean, Integer, String, create_engine
+from sqlalchemy import BigInteger, Boolean, String, create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from tortoise import Tortoise, fields
@@ -15,6 +15,8 @@ from quite_admin.adapters.peewee import PeeweeAdapter
 from quite_admin.adapters.sql import SQLAdapter
 from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 from quite_admin.adapters.tortoise import TortoiseAdapter
+
+from .databases import drop_tortoise_tables, peewee_database, sqlalchemy_url, tortoise_url
 
 
 @pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
@@ -34,15 +36,17 @@ async def backend(request, tmp_path):
             internal: Mapped[str] = mapped_column(
                 String(100), default="hidden", server_default="hidden"
             )
-            count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+            count: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
 
         if name.endswith("async"):
-            engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path}/db.sqlite3")
+            engine = create_async_engine(
+                sqlalchemy_url(f"sqlite+aiosqlite:///{tmp_path}/db.sqlite3", asynchronous=True)
+            )
             async with engine.begin() as connection:
                 await connection.run_sync(Base.metadata.create_all)
             factory = async_sessionmaker(engine)
         else:
-            engine = create_engine(f"sqlite:///{tmp_path}/db.sqlite3")
+            engine = create_engine(sqlalchemy_url(f"sqlite:///{tmp_path}/db.sqlite3"))
             Base.metadata.create_all(engine)
             factory = sessionmaker(engine)
         if name in {"sql", "sql_async"}:
@@ -53,11 +57,16 @@ async def backend(request, tmp_path):
             adapter = SQLAlchemyAdapter(factory, base=Base)
             yield adapter, Item
         if name.endswith("async"):
+            async with engine.begin() as connection:
+                await connection.run_sync(Base.metadata.drop_all)
             await engine.dispose()
         else:
+            Base.metadata.drop_all(engine)
             engine.dispose()
     elif name == "peewee":
-        database = pw.SqliteDatabase(str(tmp_path / "db.sqlite3"), pragmas={"foreign_keys": 1})
+        database = peewee_database(
+            pw.SqliteDatabase(str(tmp_path / "db.sqlite3"), pragmas={"foreign_keys": 1})
+        )
 
         class Base(pw.Model):
             class Meta:
@@ -68,7 +77,7 @@ async def backend(request, tmp_path):
             active = pw.BooleanField(default=True)
             note = pw.CharField(max_length=200, null=True)
             internal = pw.CharField(max_length=100, default="hidden")
-            count = pw.IntegerField(default=0)
+            count = pw.BigIntegerField(default=0)
 
             class Meta:
                 table_name = "items"
@@ -77,6 +86,8 @@ async def backend(request, tmp_path):
         database.create_tables([Item])
         database.close()
         yield PeeweeAdapter(base=Base), Item
+        with database.connection_context():
+            database.drop_tables([Item])
     else:
 
         class Item(Model):
@@ -84,17 +95,18 @@ async def backend(request, tmp_path):
             active = fields.BooleanField(default=True)
             note = fields.CharField(max_length=200, null=True)
             internal = fields.CharField(max_length=100, default="hidden")
-            count = fields.IntField(default=0)
+            count = fields.BigIntField(default=0)
 
             class Meta:
                 table = "items"
 
         module = ModuleType("quite_test_models")
         module.__models__ = [Item]
-        await Tortoise.init(db_url="sqlite://:memory:", modules={"models": [module]})
+        await Tortoise.init(db_url=tortoise_url(), modules={"models": [module]})
         await Tortoise.generate_schemas()
         yield TortoiseAdapter(), Item
         await Tortoise.close_connections()
+        drop_tortoise_tables(module.__models__)
 
 
 @pytest.fixture(scope="session")

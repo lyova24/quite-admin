@@ -68,6 +68,9 @@ uv build
 ```
 
 CI tests CPython 3.11, 3.12, 3.13, 3.14 and 3.15 with the pinned dependencies.
-Integration tests currently use SQLite. SQL reflection executes database rules and triggers;
+The full test suite uses SQLite; PostgreSQL 17 and MySQL 8.4 have dedicated contract jobs.
+PostgreSQL also passed locally; the local MySQL run is pending image availability.
+See the [compatibility matrix](docs/en/data-safety.md) for evidence and limits.
+SQL reflection executes database rules and triggers;
 Python ORM hooks require an ORM or application-service adapter.
 See [current limitations](docs/en/development.md#current-limitations) before choosing an integration mode.

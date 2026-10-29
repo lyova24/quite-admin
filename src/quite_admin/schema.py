@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
@@ -87,7 +88,9 @@ class Field:
                 result = next(item for item in self.python_type if str(item.value) == raw)
             else:
                 result = self.python_type(raw)
-                if isinstance(result, (float, Decimal)) and not math.isfinite(result):
+                if (isinstance(result, Decimal) and not result.is_finite()) or (
+                    isinstance(result, float) and not math.isfinite(result)
+                ):
                     raise ValueError(Message("Enter a finite number."))
             if self.kind != "enum" and self.max_length is not None and len(raw) > self.max_length:
                 raise ValueError(Message("Use at most {count} characters.", count=self.max_length))
@@ -136,6 +139,7 @@ class ModelSchema:
 
     def record_key(self, record: dict[str, Any]) -> str:
         # One URL-safe format for string, UUID and composite identities, including slashes.
+        self.validate_key({field.name: record[field.name] for field in self.primary_keys})
         values = [field.format(record[field.name]) for field in self.primary_keys]
         raw = json.dumps(values, separators=(",", ":")).encode()
         return base64.urlsafe_b64encode(raw).decode().rstrip("=")
@@ -151,12 +155,27 @@ class ModelSchema:
                 raise ValueError("Invalid key")
             if any(not isinstance(value, str) for value in values):
                 raise ValueError("Invalid key")
-            return {
+            key = {
                 field.name: field.parse(value)
                 for field, value in zip(self.primary_keys, values, strict=True)
             }
+            self.validate_key(key)
+            return key
         except (ValueError, TypeError, KeyError) as exc:
             raise NotFound("Record not found.") from exc
+
+    def validate_key(self, key: Mapping[str, Any]) -> None:
+        if set(key) != {field.name for field in self.primary_keys} or any(
+            value is None for value in key.values()
+        ):
+            raise ValueError("A complete, non-null primary key is required.")
+
+    def validate_values(self, values: Mapping[str, Any], *, creating: bool) -> None:
+        unknown = set(values) - self.by_name.keys()
+        if unknown:
+            raise ValueError(f"Unknown fields: {', '.join(sorted(unknown))}")
+        if not creating and set(values) & {field.name for field in self.primary_keys}:
+            raise ValueError("Primary keys cannot be changed.")
 
 
 @dataclass(frozen=True)
@@ -167,6 +186,23 @@ class Query:
     search_fields: tuple[str, ...] = ()
     order_by: str | None = None
     descending: bool = False
+
+    def validate(self, schema: ModelSchema) -> None:
+        if type(self.offset) is not int or self.offset < 0:
+            raise ValueError("offset must be a nonnegative integer.")
+        if type(self.limit) is not int or not 1 <= self.limit <= 10000:
+            raise ValueError("limit must be between 1 and 10000.")
+        if not isinstance(self.search, str) or len(self.search) > 4096:
+            raise ValueError("search must contain at most 4096 characters.")
+        if type(self.descending) is not bool:
+            raise ValueError("descending must be a boolean.")
+        if self.order_by is not None and self.order_by not in schema.by_name:
+            raise ValueError("Unknown sort field.")
+        if any(
+            name not in schema.by_name or schema.by_name[name].kind != "string"
+            for name in self.search_fields
+        ):
+            raise ValueError("search_fields must contain known string fields.")
 
 
 @dataclass(frozen=True)

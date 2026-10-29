@@ -59,10 +59,12 @@ class TortoiseRelations:
     async def related(self, model, name, key, query):
         from tortoise.expressions import Q
 
+        relation = next(item for item in self.relations(model) if item.name == name)
+        self.describe(model).validate_key(key)
+        query.validate(self.describe(relation.target))
         parent = await model.get_or_none(**key)
         if parent is None:
             raise NotFound("Record not found.")
-        relation = next(item for item in self.relations(model) if item.name == name)
         statement = self._related_query(parent, name)
         if query.search and query.search_fields:
             statement = statement.filter(
@@ -80,6 +82,15 @@ class TortoiseRelations:
         return RecordPage([self._record(relation.target, item) for item in rows], total)
 
     async def save_relations(self, model, values, selections, *, key=None):
+        self.describe(model).validate_values(values, creating=key is None)
+        if key is not None:
+            self.describe(model).validate_key(key)
+        available_targets = {item.name: item.target for item in self.relations(model)}
+        for relation_name, selected_keys in selections.items():
+            if relation_name in available_targets:
+                target_schema = self.describe(available_targets[relation_name])
+                for selected_key in selected_keys:
+                    target_schema.validate_key(selected_key)
         available = {item.name: item for item in self.relations(model)}
         if set(selections) - available.keys():
             raise Conflict("Unknown relationship.")

@@ -37,14 +37,14 @@ class SQLAdapter(SQLRelations):
         self._metadata: MetaData | None = None
         self._lock = Lock()
 
-    async def _run(self, operation: Callable[[Connection], Any]) -> Any:
+    async def _run(self, operation: Callable[[Connection], Any], *, write: bool = False) -> Any:
         try:
             if isinstance(self.engine, AsyncEngine):
-                async with self.engine.begin() as connection:
+                async with self.engine.begin() if write else self.engine.connect() as connection:
                     return await connection.run_sync(operation)
 
             def run() -> Any:
-                with self.engine.begin() as connection:
+                with self.engine.begin() if write else self.engine.connect() as connection:
                     return operation(connection)
 
             return await to_thread.run_sync(run)
@@ -127,6 +127,8 @@ class SQLAdapter(SQLRelations):
         return and_(*(model.c[name] == value for name, value in key.items()))
 
     async def list(self, model: Table, query: Query) -> RecordPage:
+        query.validate(self.describe(model))
+
         def operation(connection: Connection) -> RecordPage:
             statement = select(model)
             if query.search and query.search_fields:
@@ -152,6 +154,8 @@ class SQLAdapter(SQLRelations):
         return await self._run(operation)
 
     async def get(self, model: Table, key: Mapping[str, Any]) -> dict[str, Any] | None:
+        self.describe(model).validate_key(key)
+
         def operation(connection: Connection) -> dict[str, Any] | None:
             row = (
                 connection.execute(select(model).where(self._where(model, key))).mappings().first()
@@ -161,6 +165,8 @@ class SQLAdapter(SQLRelations):
         return await self._run(operation)
 
     async def create(self, model: Table, values: Mapping[str, Any]) -> dict[str, Any]:
+        self.describe(model).validate_values(values, creating=True)
+
         def operation(connection: Connection) -> dict[str, Any]:
             result = connection.execute(insert(model).values(**values))
             key = dict(
@@ -173,11 +179,14 @@ class SQLAdapter(SQLRelations):
             row = connection.execute(select(model).where(self._where(model, key))).mappings().one()
             return dict(row)
 
-        return await self._run(operation)
+        return await self._run(operation, write=True)
 
     async def update(
         self, model: Table, key: Mapping[str, Any], values: Mapping[str, Any]
     ) -> dict[str, Any]:
+        self.describe(model).validate_key(key)
+        self.describe(model).validate_values(values, creating=False)
+
         def operation(connection: Connection) -> dict[str, Any]:
             statement = select(model).where(self._where(model, key))
             if connection.execute(statement.with_for_update()).first() is None:
@@ -186,9 +195,11 @@ class SQLAdapter(SQLRelations):
                 connection.execute(update(model).where(self._where(model, key)).values(**values))
             return dict(connection.execute(statement).mappings().one())
 
-        return await self._run(operation)
+        return await self._run(operation, write=True)
 
     async def delete(self, model: Table, key: Mapping[str, Any]) -> None:
+        self.describe(model).validate_key(key)
+
         def operation(connection: Connection) -> None:
             found = connection.execute(
                 select(model).where(self._where(model, key)).with_for_update()
@@ -197,4 +208,4 @@ class SQLAdapter(SQLRelations):
                 raise NotFound("Record not found.")
             connection.execute(delete(model).where(self._where(model, key)))
 
-        await self._run(operation)
+        await self._run(operation, write=True)
