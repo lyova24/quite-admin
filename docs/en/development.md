@@ -63,7 +63,12 @@ Open [localhost:8001](http://localhost:8001/): the root URL opens the English ve
 Russian is available under `/ru/`.
 
 The build checks translation page coverage, internal links and Diplodoc warnings.
-CI builds both languages and uploads the HTML as an artifact. It does not publish a website.
+CI builds both languages and uploads the HTML as an artifact.
+The separate `pages` workflow publishes the generated `build/docs` directory from `master`
+using GitHub Pages Actions. In repository Settings → Pages, select **GitHub Actions** as the source.
+Do not select the repository root or source `docs` folder for a Jekyll build: Liquid treats Jinja
+examples such as `{% extends %}` as its own tags. The generated artifact contains `.nojekyll`
+and retains Diplodoc's `_bundle` assets. The Faraday retry notice is unrelated to this build failure.
 Configuration lives in `docs/.yfm`; `package-lock.json` pins the CLI and its dependencies.
 Add new pages to both language directories and both navigation files, and keep API
 examples synchronized between translations.
