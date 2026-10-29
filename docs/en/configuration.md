@@ -22,6 +22,10 @@ admin.register(User, options=ModelOptions(
 ```
 
 `ModelOptions` works with every adapter.
+Each existing record has one page for viewing and editing. Its fields become read-only when
+the user cannot edit; the server also rejects direct POST requests. `edit_fields` orders and
+selects writable form fields; other visible fields remain on that page as read-only values.
+The old `/edit` GET URL redirects to the record page; POST remains a compatibility alias.
 With discovery enabled, `register()` overrides the settings for an existing model.
 For reflection, use `admin.configure("table_name", options=...)` without a model import.
 

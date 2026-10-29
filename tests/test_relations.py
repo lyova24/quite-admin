@@ -293,7 +293,7 @@ async def test_inline_relationship_fields_share_the_record_save(auth, related_ba
     async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
         await login(client)
         token = adapter.describe(model).record_key(parent)
-        path = f"/admin/models/parents/{token}/edit"
+        path = f"/admin/models/parents/{token}"
         form = await client.get(path)
         assert form.status_code == 200, form.text
         assert f'name="__relation__{tag_relation.name}"' in form.text

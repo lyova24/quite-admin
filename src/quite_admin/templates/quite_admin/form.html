@@ -1,8 +1,8 @@
 {% extends "quite_admin/base.html" %}
 {% block content %}
 <a class="back-link" href="{{ url('/models/' ~ resource.slug ~ '/') }}">← {{ resource.label }}</a>
-<div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record' if creating else 'Edit record') }}</h1><p class="subtitle">{{ t('A new addition to your collection.' if creating else 'Make a change. Keep everything in order.') }}</p></div></div>
-<form method="post" class="panel record-form">
+<div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record') if creating else resource.record_label(record) }}</h1></div>{% if can_delete %}<a class="button danger-outline" href="{{ url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/delete') }}">{{ t('Delete record') }}</a>{% endif %}</div>
+<form method="post" action="{{ form_action }}" class="panel record-form">
   <input type="hidden" name="__csrf" value="{{ csrf }}">
   {% if errors %}<div class="alert" role="alert">{{ t(errors.get('__all__', 'Please correct the highlighted fields.')) }}{% for name, message in errors.items() if name not in values and name != '__all__' %}<p>{{ name }}: {{ t(message) }}</p>{% endfor %}</div>{% endif %}
   <div class="form-grid">
@@ -41,6 +41,6 @@
   </div>
   {% endfor %}
   </div>
-  <div class="form-footer"><span class="muted">{% if creating %}{{ t('Generated values are filled automatically.') }}{% else %}{{ t('Primary keys and generated fields are read only.') }}{% endif %}</span><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Cancel') }}</a><button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }} →</button></div></div>
+  <div class="form-footer"><div class="button-group"><a class="button secondary" href="{{ url('/models/' ~ resource.slug ~ '/') }}">{{ t('Cancel') if editable else t('Back') }}</a>{% if editable %}<button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }}</button>{% endif %}</div></div>
 </form>
 {% endblock %}

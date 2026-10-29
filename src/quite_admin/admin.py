@@ -169,7 +169,7 @@ class Admin:
             Route("/models/{slug}/new", self._create, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/edit", self._edit, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/delete", self._delete, methods=["GET", "POST"]),
-            Route("/models/{slug}/{key}", self._detail),
+            Route("/models/{slug}/{key}", self._record_page, methods=["GET", "POST"]),
         ]
         self.app = Starlette(
             routes=routes,
@@ -416,12 +416,19 @@ class Admin:
         result = page.permission(request, request.state.identity, "view")
         return bool(await result if inspect.isawaitable(result) else result)
 
-    async def _resource(self, request: Request, action: Action) -> Resource:
+    async def _resource(
+        self, request: Request, action: Action, *, alternatives: tuple[Action, ...] = ()
+    ) -> Resource:
         await self._identity(request)
         resource = (await self.resources()).get(request.path_params["slug"])
         if resource is None:
             raise NotFound("Table not found.")
-        if not await self._allowed(request, resource, action):
+        allowed = False
+        for candidate in (action, *alternatives):
+            if await self._allowed(request, resource, candidate):
+                allowed = True
+                break
+        if not allowed:
             await self._logging.emit(
                 "warning",
                 "quite_admin.permission_denied",
@@ -635,17 +642,17 @@ class Admin:
             raise NotFound("Record not found.")
         return record
 
-    async def _detail(self, request: Request) -> Response:
-        resource = await self._resource(request, "view")
-        record = await self._record(resource, request.path_params["key"])
-        return await self._render(
+    async def _record_page(self, request: Request) -> Response:
+        resource = await self._resource(
             request,
-            "quite_admin/detail.html",
-            resource=resource,
-            record=record,
-            fields=resource.options.visible_fields(resource.schema),
-            can_edit=await self._allowed(request, resource, "edit"),
-            can_delete=await self._allowed(request, resource, "delete"),
+            "edit" if request.method == "POST" else "view",
+            alternatives=() if request.method == "POST" else ("edit",),
+        )
+        return await self._edit_form(
+            request,
+            resource,
+            creating=False,
+            editable=await self._allowed(request, resource, "edit"),
         )
 
     async def _create(self, request: Request) -> Response:
@@ -654,22 +661,34 @@ class Admin:
 
     async def _edit(self, request: Request) -> Response:
         resource = await self._resource(request, "edit")
-        return await self._edit_form(request, resource, creating=False)
+        if request.method == "POST":
+            return await self._edit_form(request, resource, creating=False)
+        return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
 
-    async def _edit_form(self, request: Request, resource: Resource, *, creating: bool) -> Response:
+    async def _edit_form(
+        self, request: Request, resource: Resource, *, creating: bool, editable: bool = True
+    ) -> Response:
         record = {} if creating else await self._record(resource, request.path_params["key"])
-        editors = await self._relation_editors(request, resource, record, creating=creating)
-        managed = frozenset(name for editor in editors for name in editor["relation"].source_fields)
-        fields = tuple(
-            item
-            for item in resource.options.form_fields(resource.schema, creating)
-            if item.name not in managed
+        editors = await self._relation_editors(
+            request, resource, record, creating=creating, allow_edit=editable
         )
+        managed = frozenset(name for editor in editors for name in editor["relation"].source_fields)
+        ordered = resource.options.form_fields(resource.schema, creating)
+        if not creating:
+            selected = {item.name for item in ordered}
+            ordered += tuple(
+                item
+                for item in resource.options.visible_fields(resource.schema)
+                if item.name not in selected
+            )
+        fields = tuple(item for item in ordered if item.name not in managed)
         values = {item.name: item.format(record.get(item.name)) for item in fields}
         errors = {}
         defaults = {item.name for item in fields if creating and item.has_default}
         status = 200
         if request.method == "POST":
+            if not editable:
+                raise HTTPException(403, "You do not have permission to perform this action.")
             multi = frozenset(
                 "__relation__" + editor["relation"].name
                 for editor in editors
@@ -710,7 +729,9 @@ class Admin:
                     collection=resource.slug,
                     status_code=303,
                 )
-                if await self._allowed(request, resource, "view"):
+                if await self._allowed(request, resource, "view") or await self._allowed(
+                    request, resource, "edit"
+                ):
                     return self._redirect(
                         request, f"/models/{resource.slug}/" + resource.schema.record_key(saved)
                     )
@@ -741,11 +762,22 @@ class Admin:
             errors=errors,
             defaults=defaults,
             creating=creating,
-            writable=resource.options.writable_fields(resource.schema, creating),
+            writable=resource.options.writable_fields(resource.schema, creating)
+            if editable
+            else {},
             relation_editors=editors,
+            editable=editable,
+            record=record,
+            can_delete=not creating and await self._allowed(request, resource, "delete"),
+            form_action=self._url(
+                request,
+                f"/models/{resource.slug}/new"
+                if creating
+                else f"/models/{resource.slug}/{resource.schema.record_key(record)}",
+            ),
         )
 
-    async def _relation_editors(self, request, resource, record, *, creating):
+    async def _relation_editors(self, request, resource, record, *, creating, allow_edit=True):
         if not isinstance(resource.adapter, RelationAdapter):
             return []
         relations = resource.adapter.relations(resource.model)
@@ -787,7 +819,7 @@ class Admin:
                 continue
             if set(relation.target_fields) & set(target.options.exclude):
                 continue
-            editable = (
+            editable = allow_edit and (
                 not relation.read_only and relation.name not in resource.options.readonly_relations
             )
             editable = editable and all(name in writable for name in relation.source_fields)

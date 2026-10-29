@@ -1,6 +1,0 @@
-{% extends "quite_admin/base.html" %}
-{% block content %}{% set key = resource.schema.record_key(record) %}
-<a class="back-link" href="{{ url('/models/' ~ resource.slug ~ '/') }}">← {{ resource.label }}</a>
-<div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Record details') }}</h1></div><div class="button-group">{% if can_delete %}<a class="button danger-outline" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key ~ '/delete') }}">{{ t('Delete record') }}</a>{% endif %}{% if can_edit %}<a class="button primary" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key ~ '/edit') }}">{{ t('Edit record') }} →</a>{% endif %}</div></div>
-<dl class="panel detail-grid">{% for field in fields %}<div class="detail-field"><dt>{{ field.label }}{% if field.primary_key %} <span class="field-tag">{{ t('Primary key') }}</span>{% endif %}</dt><dd>{% if record[field.name] is none %}<span class="null-value">{{ t('None') }}</span>{% elif field.kind == 'boolean' %}<pre>{{ t('True' if record[field.name] else 'False') }}</pre>{% else %}<pre>{{ field.format(record[field.name]) }}</pre>{% endif %}</dd></div>{% endfor %}</dl>
-{% endblock %}

@@ -1,8 +1,10 @@
 # Relationships
 
-Relationships appear inside the record's create and edit forms and share the **Save** button
+Relationships appear inside the record's create form and unified record page and share the **Save** button
 with scalar fields. One-to-one and many-to-one relations use a single selector; one-to-many
 and many-to-many relations use a multiple selector. Targets must already exist.
+The record page displays values and allows editing immediately when permitted. Users with only
+view permission see the same page with read-only fields and relationships.
 
 Supported backends: synchronous/asynchronous SQLAlchemy, synchronous/asynchronous SQL reflection,
 Peewee and Tortoise. ORM adapters use native ORM operations; SQL reflection uses database constraints.

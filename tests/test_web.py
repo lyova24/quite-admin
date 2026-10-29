@@ -70,10 +70,10 @@ async def test_full_browser_flow(client):
     detail = await client.get(detail_url)
     assert detail.status_code == 200, detail.text
     assert "A cup of tea" in detail.text
-    edit = await client.get(detail_url + "/edit")
+    edit = await client.get(detail_url)
     assert edit.status_code == 200
     result = await client.post(
-        detail_url + "/edit",
+        detail_url,
         data={
             "__csrf": csrf(edit),
             "name": "<script>alert(1)</script>",
@@ -161,6 +161,35 @@ async def test_permissions_checked_for_direct_requests(client, admin, backend):
     assert (await client.get(f"/admin/models/items/{key}/edit")).status_code == 403
     assert (await client.post(f"/admin/models/items/{key}/delete", data={})).status_code == 403
     assert (await client.get(f"/admin/models/items/{key}")).status_code == 200
+
+
+async def test_one_record_page_handles_editing_and_read_only_access(client, admin, backend):
+    adapter, model = backend
+    record = await adapter.create(model, {"name": "A single record page"})
+    key = adapter.describe(model).record_key(record)
+    path = f"/admin/models/items/{key}"
+    await login(client)
+    page = await client.get(path)
+    assert page.status_code == 200
+    assert f'action="{path}"' in page.text
+    assert 'name="name"' in page.text and "Save changes" in page.text
+    legacy = await client.get(path + "/edit")
+    assert legacy.status_code == 303 and legacy.headers["location"] == path
+    saved = await client.post(path, data={"__csrf": csrf(page), "name": "Updated in place"})
+    assert saved.status_code == 303 and saved.headers["location"] == path
+    admin.register(
+        model, options=ModelOptions(can_edit=False, can_delete=False, exclude=("internal",))
+    )
+    readonly = await client.get(path)
+    assert readonly.status_code == 200
+    assert "Updated in place" in readonly.text
+    assert 'name="name"' not in readonly.text
+    assert "Save changes" not in readonly.text
+    rejected = await client.post(path, data={"__csrf": csrf(readonly), "name": "Not allowed"})
+    assert rejected.status_code == 403
+    assert (await adapter.get(model, adapter.describe(model).parse_key(key)))[
+        "name"
+    ] == "Updated in place"
 
 
 async def test_custom_templates_pages_are_authenticated(client, admin, tmp_path):

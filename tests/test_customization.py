@@ -121,9 +121,9 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, backend, framew
         assert created.status_code == 303, created.text
         detail_url = created.headers["location"]
         detail = await client.get(detail_url)
-        assert "Просмотр записи" in detail.text
+        assert "Сохранить изменения" in detail.text
         assert "Search" in detail.text  # Application values do not pass through the catalog.
-        assert "Нет значения" in detail.text
+        assert 'name="note" value=""' in detail.text
         assert ">Да<" in detail.text
         listing = await client.get(prefix + "/models/items/")
         assert "1 запись" in listing.text
@@ -132,15 +132,15 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, backend, framew
         assert conflict.status_code == 409
         assert "Операция нарушает ограничение базы данных." in conflict.text
 
-        edit = await client.get(detail_url + "/edit")
-        assert "Редактировать запись" in edit.text
+        edit = await client.get(detail_url)
+        assert "Сохранить изменения" in edit.text
         edited = await client.post(
-            detail_url + "/edit",
+            detail_url,
             data={**data, "__csrf": csrf(edit), "active": "false", "note": "Изменено"},
         )
         assert edited.status_code == 303
         assert "Изменено" in (await client.get(detail_url)).text
-        denied = await client.post(detail_url + "/edit", data={**data, "__csrf": "wrong"})
+        denied = await client.post(detail_url, data={**data, "__csrf": "wrong"})
         assert denied.status_code == 403
         assert "Недействительный CSRF-токен." in denied.text
         confirmation = await client.get(detail_url + "/delete")
