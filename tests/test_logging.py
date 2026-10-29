@@ -246,13 +246,21 @@ async def test_logger_adapter_preserves_context_and_event_fields(auth):
 
 async def test_litestar_queue_listener_backend(auth):
     output = io.StringIO()
+    handlers = {
+        "console": {"class": "logging.StreamHandler", "stream": output, "formatter": "standard"}
+    }
+    if sys.version_info < (3, 12):
+        # Litestar's legacy handler defaults to its own stderr StreamHandler.
+        # Unlike Python 3.12's QueueHandler config, it needs an explicit cfg:// reference.
+        handlers["queue_listener"] = {
+            "class": "litestar.logging.standard.QueueListenerHandler",
+            "handlers": ["cfg://handlers.console"],
+        }
     config = LoggingConfig(
         logging_module="logging",
         configure_root_logger=False,
-        handlers={
-            "console": {"class": "logging.StreamHandler", "stream": output, "formatter": "standard"}
-        },
-        formatters={"standard": {"format": "%(message)s"}},
+        handlers=handlers,
+        formatters={"standard": {"format": "%(message)s %(quite_admin)s"}},
         loggers={
             "quite_admin.queue": {
                 "handlers": ["queue_listener"],
@@ -263,6 +271,7 @@ async def test_litestar_queue_listener_backend(auth):
     )
     host = Litestar(logging_config=config)
     logger = host.get_logger("quite_admin.queue")
+    assert logger.handlers[0].listener.handlers[0].stream is output
     admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False, logger=logger)
     admin.mount_litestar(host)
     async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
@@ -270,6 +279,7 @@ async def test_litestar_queue_listener_backend(auth):
     # Wait for the real queue listener, not a synchronous replacement handler.
     await to_thread.run_sync(logger.handlers[0].queue.join)
     assert output.getvalue().count("quite_admin.login_succeeded") == 1
+    assert "'status_code': 303" in output.getvalue()
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar_plugin"])

@@ -88,6 +88,10 @@ admin.mount_litestar(app)
 ```
 
 The application's queue listener, formatter and levels remain in control.
+When replacing the console sink on Python 3.11, also configure `queue_listener` with
+`class="litestar.logging.standard.QueueListenerHandler"` and
+`handlers=["cfg://handlers.console"]`. That legacy handler otherwise creates its own
+stderr sink. Python 3.12+ uses the stdlib queue configuration and references `console` by default.
 For picologging, select `logging_module="picologging"` and pass `app.get_logger(...)`
 in the same way. Without an explicit module, Litestar 2 selects picologging when installed.
 Calling stdlib `logging.getLogger()` does not select a picologging logger.
