@@ -9,6 +9,7 @@ from tortoise.expressions import Q
 from tortoise.fields import JSONField
 from tortoise.transactions import in_transaction
 
+from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
@@ -17,7 +18,7 @@ from ._queries import tortoise_filters
 from ._tortoise_relations import TortoiseRelations
 
 
-class TortoiseAdapter(TortoiseRelations):
+class TortoiseAdapter(CheckedWrites, TortoiseRelations):
     """Discovery happens after host startup, when Tortoise has initialized raw FK fields."""
 
     def __init__(self, *, models: Iterable[type] = (), apps: Iterable[str] | None = None) -> None:
@@ -115,6 +116,7 @@ class TortoiseAdapter(TortoiseRelations):
                     if action == "delete":
                         await item.delete(using_db=connection)
                         return None
+                    check_record(model, self._record(model, item))
                     for name, value in values.items():
                         setattr(item, name, value)
                     if values:

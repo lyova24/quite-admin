@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy import String, and_, delete, false, func, insert, or_, select, update
 
+from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Query, RecordPage
 
@@ -105,6 +106,29 @@ class SQLRelations(SQLRelationMetadata):
             raise Conflict("Unknown relationship.")
 
         def operation(connection):
+            if key is not None and guarded():
+                original = (
+                    connection.execute(
+                        select(model).where(self._where(model, key)).with_for_update()
+                    )
+                    .mappings()
+                    .first()
+                )
+                if original is None:
+                    raise NotFound("Record not found.")
+                check_record(model, original)
+                for relation_name in selections:
+                    rows = list(
+                        connection.execute(
+                            self._linked_statement(links[relation_name], original).with_for_update()
+                        ).mappings()
+                    )
+                    check_relation(
+                        model,
+                        relation_name,
+                        self.describe(links[relation_name].relation.target),
+                        rows,
+                    )
             changes = dict(values)
             targets = {}
             for name, keys in selections.items():

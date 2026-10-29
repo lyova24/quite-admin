@@ -112,3 +112,27 @@ admin.add_adapter(tortoise_adapter, namespace="catalog")
 
 When several adapters are configured, pass `adapter=adapter` to `register()`.
 Conflicting collection names require a namespace or `ModelOptions(slug=...)`.
+
+## Concurrent edits
+
+Built-in adapters reject stale edit forms atomically: if a record or an edited
+relationship changed after opening the page, saving returns **409**. Entered values
+remain on the form. Use **Reload record** to load the latest version before editing
+again. No database migration or extra version column is required. Revision tokens
+expire with the configured session lifetime and are bound to the user, collection
+and complete primary key. They contain keyed fingerprints, not field values.
+
+The standard template includes the token automatically. When upgrading a custom
+`form.html`, include this inside the edit form alongside the CSRF input:
+
+```jinja
+{% if revision_token %}
+<input type="hidden" name="__revision" value="{{ revision_token }}">
+{% endif %}
+```
+
+HTTP clients must GET the form and echo its `__revision` on each edit. A missing,
+invalid or expired revision also returns 409. Do not replace the old revision with
+a new one after a conflict without reviewing the latest record. This applies to
+form edits, not delete requests or custom actions. Custom adapters opt in through
+[`CheckedAdapter`](custom-adapters.md#concurrent-edits); others retain their own write policy.

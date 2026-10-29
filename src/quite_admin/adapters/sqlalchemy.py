@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
+from quite_admin.concurrency import CheckedWrites, check_record, sqlite_session_lock
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
@@ -17,7 +18,7 @@ from ._queries import predicates
 from ._sqlalchemy_relations import SQLAlchemyRelations
 
 
-class SQLAlchemyAdapter(SQLAlchemyRelations):
+class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
     """SQLAlchemy 2.x / SQLModel, sync or async. Pass a session *factory*, not a session."""
 
     def __init__(
@@ -184,9 +185,11 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
 
         def operation(session: Session) -> dict[str, Any]:
             with session.begin():
+                sqlite_session_lock(session)
                 item = session.get(model, dict(key), with_for_update=True)
                 if item is None:
                     raise NotFound("Record not found.")
+                check_record(model, self._record(model, item))
                 for name, value in values.items():
                     setattr(item, name, value)
                 session.flush()
@@ -200,6 +203,7 @@ class SQLAlchemyAdapter(SQLAlchemyRelations):
 
         def operation(session: Session) -> None:
             with session.begin():
+                sqlite_session_lock(session)
                 item = session.get(model, dict(key), with_for_update=True)
                 if item is None:
                     raise NotFound("Record not found.")

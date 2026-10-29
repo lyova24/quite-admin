@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import inspect
 import re
 import secrets
@@ -11,6 +13,7 @@ from types import MappingProxyType
 from typing import Any
 
 from anyio import to_thread
+from itsdangerous import BadData, URLSafeTimedSerializer
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, select_autoescape
 from starlette.applications import Starlette
 from starlette.datastructures import FormData
@@ -26,6 +29,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
+from .concurrency import CheckedAdapter, StaleRecord, WriteGuard, canonical
 from .config import Action, ModelOptions, Permission
 from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
@@ -153,6 +157,11 @@ class Admin:
             raise ValueError("secret_key must contain at least 32 bytes of random secret material.")
         if session_max_age <= 0:
             raise ValueError("session_max_age must be positive.")
+        self._revision_signer = URLSafeTimedSerializer(
+            secret_key, salt="quite-admin-record-revision"
+        )
+        self._revision_secret = secret_key.encode()
+        self._revision_max_age = session_max_age
         self.auth = auth
         self.title = title
         self.description = description
@@ -726,6 +735,54 @@ class Admin:
             return await self._edit_form(request, resource, creating=False)
         return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
 
+    def _fingerprint(self, value):
+        return hmac.new(
+            self._revision_secret, canonical(value).encode(), hashlib.sha256
+        ).hexdigest()
+
+    def _revision_fields(self, resource):
+        return tuple(f.name for f in resource.schema.fields if f.kind != "unsupported")
+
+    def _revision_token(self, request, resource, record, editors):
+        if not record or not isinstance(resource.adapter, CheckedAdapter):
+            return ""
+        return self._revision_signer.dumps(
+            {
+                "resource": resource.slug,
+                "subject": request.state.identity.subject,
+                "key": resource.schema.record_key(record),
+                "record": self._fingerprint(
+                    {name: record.get(name) for name in self._revision_fields(resource)}
+                ),
+                "relations": {
+                    editor["relation"].name: self._fingerprint(sorted(editor["selected"]))
+                    for editor in editors
+                    if editor["editable"]
+                },
+            }
+        )
+
+    def _write_guard(self, request, resource, token, selections):
+        try:
+            if not token or len(token) > 65536:
+                raise StaleRecord()
+            data = self._revision_signer.loads(token, max_age=self._revision_max_age)
+            if (
+                data["resource"] != resource.slug
+                or data["subject"] != request.state.identity.subject
+                or data["key"] != request.path_params["key"]
+                or set(selections) - data["relations"].keys()
+            ):
+                raise StaleRecord()
+            return WriteGuard(
+                data["record"],
+                {name: data["relations"][name] for name in selections},
+                self._revision_fields(resource),
+                self._fingerprint,
+            )
+        except (BadData, KeyError, TypeError, AttributeError) as exc:
+            raise StaleRecord() from exc
+
     async def _edit_form(
         self, request: Request, resource: Resource, *, creating: bool, editable: bool = True
     ) -> Response:
@@ -747,6 +804,8 @@ class Admin:
         errors = {}
         defaults = {item.name for item in fields if creating and item.has_default}
         status = 200
+        revision_token = self._revision_token(request, resource, record, editors)
+        stale = False
         if request.method == "POST":
             if not editable:
                 raise HTTPException(403, "You do not have permission to perform this action.")
@@ -756,6 +815,11 @@ class Admin:
                 if editor["editable"] and editor["multiple"]
             )
             form = await self._form(request, multi_fields=multi)
+            if not creating:
+                revision_token = str(form.get("__revision", ""))
+            form = FormData(
+                (name, value) for name, value in form.multi_items() if name != "__revision"
+            )
             values.update({name: str(value) for name, value in form.items() if name in values})
             defaults = {
                 name.removeprefix("__default__")
@@ -769,7 +833,17 @@ class Admin:
                 )
                 key = None if creating else resource.schema.parse_key(request.path_params["key"])
 
+                guard = (
+                    self._write_guard(request, resource, revision_token, selections)
+                    if not creating and isinstance(resource.adapter, CheckedAdapter)
+                    else None
+                )
+
                 async def execute():
+                    if guard is not None:
+                        return await resource.adapter.save_checked(
+                            resource.model, key, changes, selections, guard=guard
+                        )
                     if selections:
                         return await resource.adapter.save_relations(
                             resource.model, changes, selections, key=key
@@ -817,6 +891,7 @@ class Admin:
                     status_code=409,
                 )
                 errors, status = {"__all__": str(exc)}, 409
+                stale = isinstance(exc, StaleRecord)
         return await self._render(
             request,
             "quite_admin/form.html",
@@ -831,6 +906,8 @@ class Admin:
             if editable
             else {},
             relation_editors=editors,
+            revision_token=revision_token,
+            stale=stale,
             editable=editable,
             record=record,
             can_delete=not creating and await self._allowed(request, resource, "delete"),

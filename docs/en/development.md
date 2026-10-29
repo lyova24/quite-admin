@@ -46,7 +46,7 @@ They also cover CSRF, mass assignment, read-only fields, XSS escaping, permissio
 rollback, templates, host sessions, composite keys and proxy prefixes.
 
 PostgreSQL 17 and MySQL 8.4 have dedicated [contract jobs](data-safety.md).
-PostgreSQL has also passed a local run; MySQL's local run is pending image availability.
+Both databases have passed local contract runs.
 The lockfile verifies the pinned dependency versions;
 it is not a test of every version permitted by the dependency ranges.
 
@@ -83,7 +83,8 @@ examples synchronized between translations.
 This is the first working library release. File uploads, bulk actions, an audit log
 and a row-level permission API are not implemented. See [relationships](relationships.md)
 for supported editors and their limits.
-Concurrent edits use last-write-wins; there is no UI-level conflict detection.
+Built-in edit forms detect stale records atomically; custom adapters opt in through
+`CheckedAdapter`. See [concurrent edits](configuration.md#concurrent-edits).
 Custom pages currently support GET only.
 
 Reflection cannot recover logical types lost in the SQL schema: a SQLite UUID may be

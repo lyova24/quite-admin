@@ -3,6 +3,7 @@ from __future__ import annotations
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
+from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import RecordPage
@@ -108,6 +109,21 @@ class TortoiseRelations:
                 )
                 if parent is None:
                     raise NotFound("Record not found.")
+                if key is not None and guarded():
+                    check_record(model, self._record(model, parent))
+                    for relation_name in selections:
+                        target = available[relation_name].target
+                        previous = (
+                            await self._related_query(parent, relation_name)
+                            .using_db(connection)
+                            .select_for_update()
+                        )
+                        check_relation(
+                            model,
+                            relation_name,
+                            self.describe(target),
+                            [self._record(target, row) for row in previous],
+                        )
                 for name, value in values.items():
                     setattr(parent, name, value)
                 selected = {}

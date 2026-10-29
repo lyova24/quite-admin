@@ -139,7 +139,13 @@ export class Store {
           }
       }
   }
-  save(slug, key, values, selections) {
+  revision(slug, key) {
+    const row = this.record(slug, key);
+    return JSON.stringify({ values: row.values, links: Object.fromEntries(Object.entries(row.links).sort().map(([name, keys]) => [name, [...keys].sort()])) });
+  }
+  save(slug, key, values, selections, expectedRevision = null) {
+    if (key != null && expectedRevision != null && this.revision(slug, key) !== expectedRevision)
+      throw new Error("This record changed after you opened it. Your changes have not been saved. Reload the record and review the latest values.");
     const state = structuredClone(this.state);
     const collection = this.collection(slug, state);
     const creating = key == null;

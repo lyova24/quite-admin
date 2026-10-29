@@ -48,6 +48,14 @@ RUSSIAN = {
     ),
     "Keep record": "Оставить запись",
     "Delete permanently": "Удалить навсегда",
+    "Reload record": "Перечитать запись",
+    (
+        "This record changed after you opened it. Your changes have not been saved. "
+        "Reload the record and review the latest values."
+    ): (
+        "Запись изменилась после открытия. Ваши изменения не сохранены. "
+        "Перечитайте запись и проверьте актуальные значения."
+    ),
     "Record fields": "Поля записи",
     "Structured data": "Структурированные данные",
     "Read-only fields": "Неизменяемые поля",

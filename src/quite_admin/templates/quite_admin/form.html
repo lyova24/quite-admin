@@ -26,7 +26,9 @@
 <div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record') if creating else resource.record_label(record) }}</h1></div>{% if can_delete %}<a class="button danger-outline" href="{{ url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/delete') }}">{{ t('Delete record') }}</a>{% endif %}</div>
 <form method="post" action="{{ form_action }}" class="panel record-form">
   <input type="hidden" name="__csrf" value="{{ csrf }}">
+  {% if revision_token %}<input type="hidden" name="__revision" value="{{ revision_token }}">{% endif %}
   {% if errors %}<div class="alert" role="alert">{{ t(errors.get('__all__', 'Please correct the highlighted fields.')) }}{% for name, message in errors.items() if name not in values and name != '__all__' %}<p>{{ name }}: {{ t(message) }}</p>{% endfor %}</div>{% endif %}
+  {% if stale %}<p class="conflict-reload"><a class="button secondary" href="{{ form_action }}">{{ t('Reload record') }}</a></p>{% endif %}
   {% set writable_fields = fields|selectattr('name', 'in', writable)|list %}
   {% set readonly_fields = fields|rejectattr('name', 'in', writable)|list %}
   {% for heading, group_fields in [

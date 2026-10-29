@@ -22,7 +22,7 @@ from uvicorn.logging import DefaultFormatter
 
 from quite_admin import Admin, ModelOptions, Page, Query
 
-from .helpers import csrf, login
+from .helpers import csrf, login, revision
 
 
 class RecordingHandler(logging.Handler):
@@ -201,10 +201,12 @@ async def test_events_with_uvicorn_formatter_and_litestar_logging(backend, auth,
             )
             assert saved.status_code == 303, saved.text
             detail = saved.headers["location"]
+            edit_form = await client.get(detail)
             edited = await client.post(
                 detail + "/edit",
                 data={
                     "__csrf": token,
+                    "__revision": revision(edit_form),
                     "note": "PRIVATE_EDIT_VALUE",
                 },
             )

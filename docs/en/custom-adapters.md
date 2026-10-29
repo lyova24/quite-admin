@@ -119,3 +119,38 @@ package release. Before 1.0, breaking changes increase the package MINOR version
 The common suite is `tests/test_adapters.py`, `tests/test_adapter_safety.py` and
 `tests/test_relations.py`. It runs across six adapter modes and the dedicated server
 matrix. See [actual verification and limits](data-safety.md).
+
+## Concurrent edits
+
+`CheckedAdapter` is an optional structural protocol; the required `Adapter` API stays
+at version 1. All built-in adapters implement it. Add this method to a custom adapter
+when its service can enforce edit preconditions in the same transaction as the write:
+
+```python
+async def save_checked(self, model, key, values, selections, *, guard):
+    # One transaction: lock the record and relevant relation membership first.
+    # Return mappings with the same scalar types as get().
+    async with self.service.edit_transaction(model, key) as edit:
+        guard.check_record(await edit.read_locked())
+        for name in selections:
+            rows = await edit.read_relation_locked(name)
+            schema = self.describe(self.relation_target(model, name))
+            guard.check_relation(name, [schema.record_key(row) for row in rows])
+        return await edit.save(values, selections)
+```
+
+This is a service-boundary example: `edit_transaction` and its methods belong to the
+application. `guard` is a public `WriteGuard`. A failed check raises
+`quite_admin.concurrency.StaleRecord` (a `Conflict`); rollback the whole operation.
+Reading and checking before a separate update is insufficient: another writer could
+change the record between them. A row lock, serialized transaction or equivalent
+atomic compare-and-swap is required. Native adapters lock the parent and current
+related rows; SQLite uses a write transaction before reading.
+
+`DelegatingAdapter` does not forward `save_checked` automatically, since doing so could
+bypass a service's write policy. Implement it explicitly with service transactions.
+Adapters without this optional method continue to work, with their existing
+concurrency policy. Direct calls to `update()` / `save_relations()` are unconditional;
+only `save_checked()` enforces the supplied guard. Deletes and actions have their
+own application policy. No persistent version history is maintained: changes that
+return exactly to the original values cannot be distinguished from an unchanged row.

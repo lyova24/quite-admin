@@ -86,3 +86,16 @@ test("create, validation failure and deletion keep coherent local data", () => {
   store.delete("notes", key);
   assert.throws(() => store.record("notes", key), /not found/);
 });
+
+
+test("stale record and relationship edits preserve the latest data", () => {
+  const store = new Store(seed), row = store.collection("products").records[0];
+  const revision = store.revision("products", row.key);
+  store.save("products", row.key, { name: "New name" }, {}, revision);
+  const before = structuredClone(store.state);
+  assert.throws(() => store.save("products", row.key, { name: "Stale name" }, {}, revision), /record changed/);
+  assert.deepEqual(store.state, before);
+  const latest = store.revision("products", row.key);
+  store.save("products", row.key, {}, { tags: [] }, latest);
+  assert.throws(() => store.save("products", row.key, { name: "Stale relations" }, {}, latest), /record changed/);
+});

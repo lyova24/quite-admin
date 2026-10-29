@@ -134,7 +134,7 @@ function recordPage(slug, key) {
     const selected = row.links[relation.name] || [], multiple = ["one_to_many", "many_to_many"].includes(relation.kind);
     return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><select id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" ${multiple ? `multiple size="6" aria-describedby="relation-help-${e(relation.name)}"` : ""}>${multiple ? "" : '<option value="">—</option>'}${store.collection(relation.target).records.map((other) => `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(store.label(relation.target, other))}</option>`).join("")}</select>${multiple ? `<p class="field-help" id="relation-help-${e(relation.name)}">${e(t("Hold Ctrl or Command to select multiple records."))}</p>` : ""}</div>`;
   }).join("");
-  return `<a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading"><div><p class="eyebrow">${e(c.label)}</p><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1></div>${creating ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form"><div class="alert" role="alert" id="form-error" hidden></div>${groups.map(([heading, fields], index) => section(heading, fields.map(renderField).join(""), `section-${index}`)).join("")}${section("Relationships", relations, "section-relations")}<div class="form-footer"><div class="button-group">${button(href(slug), "Cancel")}<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button></div></div></form>`;
+  return `<a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading"><div><p class="eyebrow">${e(c.label)}</p><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1></div>${creating ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form">${creating ? "" : `<input type="hidden" name="__revision" value="${e(store.revision(slug, key))}">`}<div class="alert" role="alert" id="form-error" hidden></div><button id="demo-reload" class="button secondary conflict-reload" type="button" hidden>${e(t("Reload record"))}</button>${groups.map(([heading, fields], index) => section(heading, fields.map(renderField).join(""), `section-${index}`)).join("")}${section("Relationships", relations, "section-relations")}<div class="form-footer"><div class="button-group">${button(href(slug), "Cancel")}<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button></div></div></form>`;
 }
 function deletion(slug, key) {
   const row = store.record(slug, key);
@@ -238,9 +238,9 @@ function render() {
     };
   const form = document.querySelector("#demo-record");
   if (form)
-    form.onsubmit = (event) => {
+    form.onsubmit = async (event) => {
       event.preventDefault();
-      try {
+      const save = () => { try {
         const c = store.collection(slug),
           data = new FormData(form),
           values = {},
@@ -255,11 +255,14 @@ function render() {
           selections[relation.name] = data
             .getAll("__relation__" + relation.name)
             .filter(Boolean);
+        const restored = read("localStorage", storageKey);
+        if (restored) store = new Store(seed, JSON.parse(restored));
         const saved = store.save(
           slug,
           key === "new" ? null : key,
           values,
           selections,
+          key === "new" ? null : data.get("__revision"),
         );
         persist();
         if (location.hash === href(slug, saved)) render();
@@ -268,8 +271,13 @@ function render() {
         const alert = document.querySelector("#form-error");
         alert.hidden = false;
         alert.textContent = t(error.message);
-      }
+        if (error.message.startsWith("This record changed")) document.querySelector("#demo-reload").hidden = false;
+      }};
+      if (navigator.locks) await navigator.locks.request(storageKey, save);
+      else save();
     };
+  const reload = document.querySelector("#demo-reload");
+  if (reload) reload.onclick = () => render();
   const remove = document.querySelector("#demo-delete");
   if (remove)
     remove.onsubmit = (event) => {

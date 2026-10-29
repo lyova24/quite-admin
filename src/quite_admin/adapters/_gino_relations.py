@@ -4,6 +4,7 @@ from dataclasses import replace
 
 from sqlalchemy import and_, exists, false, select
 
+from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
 
 from ._sql_metadata import SQLRelationMetadata
@@ -96,6 +97,27 @@ class GinoRelations:
                 self.describe(link.relation.target).validate_key(target_key)
 
         async with self._transaction() as connection:
+            if key is not None and guarded():
+                original = await connection.first(
+                    model.query.where(self._where(model, key)).with_for_update()
+                )
+                if original is None:
+                    raise NotFound("Record not found.")
+                check_record(model, self._record(model, original))
+                for relation_name in selections:
+                    link = links[relation_name]
+                    target = link.relation.target
+                    previous = await connection.all(
+                        target.query.where(
+                            self._condition(link, self._record(model, original))
+                        ).with_for_update()
+                    )
+                    check_relation(
+                        model,
+                        relation_name,
+                        self.describe(target),
+                        [self._record(target, row) for row in previous],
+                    )
             changes = dict(values)
             targets = {}
             for name, keys in selections.items():

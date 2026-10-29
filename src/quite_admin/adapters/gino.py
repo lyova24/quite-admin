@@ -11,6 +11,7 @@ from sqlalchemy import JSON, String, and_, func, or_, select
 from sqlalchemy.dialects import registry
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
+from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
@@ -23,7 +24,7 @@ from ._queries import ordering, predicates
 registry.register("postgresql.asyncpg", "gino.dialects.asyncpg", "AsyncpgDialect")
 
 
-class GinoAdapter(GinoRelations):
+class GinoAdapter(CheckedWrites, GinoRelations):
     """GINO 1.0 / SQLAlchemy 1.3 / PostgreSQL, using the host-owned Gino pool.
 
     Install quite-admin[gino-legacy]. Discover imported subclasses of db.Model,
@@ -183,6 +184,7 @@ class GinoAdapter(GinoRelations):
             )
             if item is None:
                 raise NotFound("Record not found.")
+            check_record(model, self._record(model, item))
             if values:
                 await item.update(**values).apply(bind=connection)
         # Reload all scalar columns, including database-triggered/default values.

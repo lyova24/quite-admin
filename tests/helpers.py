@@ -22,3 +22,8 @@ async def login(client, prefix="/admin"):
     assert result.status_code == 303, result.text
     assert result.headers["location"] == prefix + "/"
     return result
+
+
+def revision(response) -> str:
+    token = re.search(r'name="__revision" value="([^"]+)"', response.text)
+    return html.unescape(token.group(1)) if token else ""

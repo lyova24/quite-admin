@@ -6,7 +6,7 @@ from litestar import Litestar
 from quite_admin import Admin, Filter, ModelOptions, Query, RelationAdapter
 from quite_admin.errors import Conflict
 
-from .helpers import csrf, login
+from .helpers import csrf, login, revision
 
 
 @pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
@@ -382,6 +382,7 @@ async def test_inline_relationship_fields_share_the_record_save(auth, related_ba
             path,
             data={
                 "__csrf": csrf(form),
+                "__revision": revision(form),
                 "name": "Changed together",
                 "__relation_present__" + children.name: "true",
                 "__relation__" + children.name: adapter.describe(models["children"]).record_key(
@@ -424,3 +425,48 @@ async def test_inline_relationship_fields_share_the_record_save(auth, related_ba
         )
         assert rejected.status_code == 422
         assert (await adapter.get(model, key(adapter, model, parent)))["name"] == "Changed together"
+
+
+@pytest.mark.parametrize(
+    "kind,target_name",
+    [("one_to_many", "children"), ("one_to_one", "profiles"), ("many_to_many", "tags")],
+)
+async def test_checked_relationship_changes_are_atomic(related_backend, kind, target_name):
+    from quite_admin import WriteGuard
+    from quite_admin.concurrency import StaleRecord
+    from tests.test_concurrency import fingerprint
+
+    adapter, models = related_backend
+    parent, child, profile, tags = await seed(adapter, models)
+    model, target = models["parents"], models[target_name]
+    relation = relation_to(adapter, model, target, kind)
+    parent_key = key(adapter, model, parent)
+    fields = tuple(f.name for f in adapter.describe(model).fields if f.kind != "unsupported")
+    guard = WriteGuard(
+        fingerprint({name: parent[name] for name in fields}),
+        {relation.name: fingerprint([])},
+        fields,
+        fingerprint,
+    )
+    selected = {"children": child, "profiles": profile, "tags": tags[0]}[target_name]
+    await adapter.save_relations(
+        model, {}, {relation.name: [key(adapter, target, selected)]}, key=parent_key
+    )
+    with pytest.raises(StaleRecord):
+        await adapter.save_checked(
+            model, parent_key, {"name": "Must roll back"}, {relation.name: []}, guard=guard
+        )
+    assert (await adapter.get(model, parent_key))["name"] == parent["name"]
+    assert (await adapter.related(model, relation.name, parent_key, Query())).total == 1
+    current = await adapter.get(model, parent_key)
+    guard = WriteGuard(
+        fingerprint({name: current[name] for name in fields}),
+        {relation.name: fingerprint([adapter.describe(target).record_key(selected)])},
+        fields,
+        fingerprint,
+    )
+    saved = await adapter.save_checked(
+        model, parent_key, {"name": "Accepted"}, {relation.name: []}, guard=guard
+    )
+    assert saved["name"] == "Accepted"
+    assert (await adapter.related(model, relation.name, parent_key, Query())).total == 0

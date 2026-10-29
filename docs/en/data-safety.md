@@ -47,6 +47,11 @@ blocked where detected. Use an application-service adapter for business rules an
 Tests check rollback after constraint and hook errors, trigger-refreshed values, cascades,
 composite primary/foreign keys and continued operation after failures.
 
+Built-in form edits use [signed revisions](configuration.md#concurrent-edits) and atomic
+precondition checks, including selected relationship membership. Stale writes roll
+back with 409; application adapters opt in explicitly. This is edit conflict detection,
+not a persistent audit/version history.
+
 ## Database contract checks
 
 | ORM / integration | Automatic checks | Limits |
@@ -84,7 +89,7 @@ a **disposable** local database named `quite_admin_test`, then:
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py -q
 ```
 
 Use a `mysql://` URL for MySQL. Tests create and drop their tables; run them serially.

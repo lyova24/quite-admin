@@ -4,6 +4,10 @@
 
 ### Added
 
+- Atomic stale-edit detection for built-in adapters. Forms carry a signed revision;
+  competing saves return HTTP 409 with the entered values preserved and a reload link.
+  Optional `CheckedAdapter` / `WriteGuard` lets application services enforce the same rule.
+
 - A native GINO 1.0.x / PostgreSQL adapter with automatic model discovery, CRUD,
   typed queries, composite keys and atomic 1:1, 1:N and pure-junction M:N editing.
   The isolated `gino-legacy` extra preserves SQLAlchemy 1.3 compatibility; `all` keeps
@@ -27,6 +31,10 @@
 - Clickable record rows with a separate delete confirmation action.
 
 ### Changed
+
+- Custom edit-form overrides and HTTP clients must echo the hidden `__revision` value
+  when using built-in adapters. Create, delete and action requests are unchanged.
+  See the EN/RU configuration and adapter guides for migration and optional support.
 
 - Shared neutral interface tokens, clearer typography and borders, compact numeric-aligned
   tables, explicit active search/sort states and quieter row delete links. Selecting a new

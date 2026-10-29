@@ -7,7 +7,7 @@ from litestar.middleware.logging import LoggingMiddlewareConfig
 
 from quite_admin import ModelOptions, Page
 
-from .helpers import csrf, login
+from .helpers import csrf, login, revision
 
 
 @pytest.fixture(params=["fastapi", "litestar", "litestar_logging"])
@@ -76,6 +76,7 @@ async def test_full_browser_flow(client):
         detail_url,
         data={
             "__csrf": csrf(edit),
+            "__revision": revision(edit),
             "name": "<script>alert(1)</script>",
             "active": "false",
             "note": "ok",
@@ -178,7 +179,9 @@ async def test_one_record_page_handles_editing_and_read_only_access(client, admi
     assert 'name="name"' in page.text and "Save changes" in page.text
     legacy = await client.get(path + "/edit")
     assert legacy.status_code == 303 and legacy.headers["location"] == path
-    saved = await client.post(path, data={"__csrf": csrf(page), "name": "Updated in place"})
+    saved = await client.post(
+        path, data={"__csrf": csrf(page), "__revision": revision(page), "name": "Updated in place"}
+    )
     assert saved.status_code == 303 and saved.headers["location"] == path
     admin.register(
         model, options=ModelOptions(can_edit=False, can_delete=False, exclude=("internal",))

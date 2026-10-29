@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy import String, func, inspect, or_, select
 from sqlalchemy.orm import with_parent
 
+from quite_admin.concurrency import check_record, check_relation, guarded, sqlite_session_lock
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import Query, RecordPage
@@ -128,6 +129,7 @@ class SQLAlchemyRelations:
 
         def operation(session):
             with session.begin():
+                sqlite_session_lock(session)
                 parent = (
                     session.get(model, dict(key), with_for_update=True)
                     if key is not None
@@ -135,6 +137,32 @@ class SQLAlchemyRelations:
                 )
                 if parent is None:
                     raise NotFound("Record not found.")
+                if key is not None and guarded():
+                    check_record(model, self._record(model, parent))
+                    for relation_name in selections:
+                        prop = inspect(model).relationships[relation_name]
+                        linked = getattr(parent, relation_name)
+                        previous = (
+                            list(linked) if prop.uselist else [linked] if linked is not None else []
+                        )
+                        target = available[relation_name].target
+                        locked = [
+                            session.get(
+                                target,
+                                {
+                                    f.name: getattr(row, f.name)
+                                    for f in self.describe(target).primary_keys
+                                },
+                                with_for_update=True,
+                            )
+                            for row in previous
+                        ]
+                        check_relation(
+                            model,
+                            relation_name,
+                            self.describe(target),
+                            [self._record(target, row) for row in locked if row is not None],
+                        )
                 session.add(parent)
                 with session.no_autoflush:
                     for name, value in values.items():

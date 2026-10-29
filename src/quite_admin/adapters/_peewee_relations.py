@@ -3,6 +3,9 @@ from __future__ import annotations
 from functools import reduce
 from operator import or_
 
+import peewee as pw
+
+from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.relations import Relation
 from quite_admin.schema import RecordPage
@@ -115,9 +118,22 @@ class PeeweeRelations:
             raise Conflict("Unknown relationship.")
 
         def operation():
-            parent = model.get_or_none(self._where(model, key)) if key is not None else model()
+            parent = self._locked_get(model, key) if key is not None else model()
             if parent is None:
                 raise NotFound("Record not found.")
+            if key is not None and guarded():
+                check_record(model, self._record(model, parent))
+                for relation_name in selections:
+                    target = available[relation_name].target
+                    query = self._related_query(parent, relation_name)
+                    if guarded() and not isinstance(model._meta.database, pw.SqliteDatabase):
+                        query = query.for_update()
+                    check_relation(
+                        model,
+                        relation_name,
+                        self.describe(target),
+                        [self._record(target, row) for row in query],
+                    )
             for name, value in values.items():
                 setattr(parent, name, value)
             selected = {}

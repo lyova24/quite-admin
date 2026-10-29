@@ -12,6 +12,7 @@ from uuid import UUID
 import peewee as pw
 from anyio import to_thread
 
+from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
@@ -20,7 +21,7 @@ from ._queries import ordering as order_expressions
 from ._queries import predicates
 
 
-class PeeweeAdapter(PeeweeRelations):
+class PeeweeAdapter(CheckedWrites, PeeweeRelations):
     """Pass models explicitly or a project-specific base. Never scans unrelated global models."""
 
     def __init__(self, *, models: Iterable[type] = (), base: type | None = None) -> None:
@@ -97,7 +98,15 @@ class PeeweeAdapter(PeeweeRelations):
             database = model._meta.database
             # Open and close in the SAME worker; Peewee connections are thread-local.
             with database.connection_context():
-                with database.atomic() if write else nullcontext():
+                with (
+                    (
+                        database.atomic("IMMEDIATE")
+                        if guarded() and isinstance(database, pw.SqliteDatabase)
+                        else database.atomic()
+                    )
+                    if write
+                    else nullcontext()
+                ):
                     return operation()
 
         try:
@@ -107,6 +116,12 @@ class PeeweeAdapter(PeeweeRelations):
 
     def _where(self, model: type, key: Mapping[str, Any]) -> Any:
         return reduce(operator.and_, (getattr(model, name) == value for name, value in key.items()))
+
+    def _locked_get(self, model, key):
+        query = model.select().where(self._where(model, key))
+        if guarded() and not isinstance(model._meta.database, pw.SqliteDatabase):
+            query = query.for_update()
+        return query.first()
 
     async def list(self, model: type, query: Query) -> RecordPage:
         query.validate(self.describe(model))
@@ -162,9 +177,10 @@ class PeeweeAdapter(PeeweeRelations):
         self.describe(model).validate_values(values, creating=False)
 
         def operation() -> dict[str, Any]:
-            item = model.get_or_none(self._where(model, key))
+            item = self._locked_get(model, key)
             if item is None:
                 raise NotFound("Record not found.")
+            check_record(model, self._record(model, item))
             if values:
                 for name, value in values.items():
                     setattr(item, name, value)
@@ -177,7 +193,7 @@ class PeeweeAdapter(PeeweeRelations):
         self.describe(model).validate_key(key)
 
         def operation() -> None:
-            item = model.get_or_none(self._where(model, key))
+            item = self._locked_get(model, key)
             if item is None:
                 raise NotFound("Record not found.")
             item.delete_instance()

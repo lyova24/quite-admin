@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.types import TypeEngine
 
+from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Field, ModelSchema, Query, RecordPage
 
@@ -18,7 +19,7 @@ from ._queries import predicates
 from ._sql_relations import SQLRelations
 
 
-class SQLAdapter(SQLRelations):
+class SQLAdapter(CheckedWrites, SQLRelations):
     """Reflect SQL tables without importing any ORM models.
 
     Works with any ORM's database, using a separate SQLAlchemy Engine for access.
@@ -52,10 +53,18 @@ class SQLAdapter(SQLRelations):
         try:
             if isinstance(self.engine, AsyncEngine):
                 async with self.engine.begin() if write else self.engine.connect() as connection:
-                    return await connection.run_sync(operation)
+
+                    def execute(sync_connection):
+                        if write and guarded() and sync_connection.dialect.name == "sqlite":
+                            sync_connection.exec_driver_sql("BEGIN IMMEDIATE")
+                        return operation(sync_connection)
+
+                    return await connection.run_sync(execute)
 
             def run() -> Any:
                 with self.engine.begin() if write else self.engine.connect() as connection:
+                    if write and guarded() and connection.dialect.name == "sqlite":
+                        connection.exec_driver_sql("BEGIN IMMEDIATE")
                     return operation(connection)
 
             return await to_thread.run_sync(run)
@@ -205,8 +214,10 @@ class SQLAdapter(SQLRelations):
 
         def operation(connection: Connection) -> dict[str, Any]:
             statement = select(model).where(self._where(model, key))
-            if connection.execute(statement.with_for_update()).first() is None:
+            current = connection.execute(statement.with_for_update()).mappings().first()
+            if current is None:
                 raise NotFound("Record not found.")
+            check_record(model, current)
             if values:
                 connection.execute(update(model).where(self._where(model, key)).values(**values))
             return dict(connection.execute(statement).mappings().one())

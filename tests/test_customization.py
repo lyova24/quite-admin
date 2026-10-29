@@ -8,7 +8,7 @@ from litestar import Litestar, Router
 from quite_admin import Admin, Field, ModelOptions, ModelSchema, Page, Theme
 from quite_admin.errors import ValidationError
 
-from .helpers import csrf, login
+from .helpers import csrf, login, revision
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])
@@ -138,7 +138,13 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, backend, framew
         assert "Сохранить изменения" in edit.text
         edited = await client.post(
             detail_url,
-            data={**data, "__csrf": csrf(edit), "active": "false", "note": "Изменено"},
+            data={
+                **data,
+                "__csrf": csrf(edit),
+                "__revision": revision(edit),
+                "active": "false",
+                "note": "Изменено",
+            },
         )
         assert edited.status_code == 303
         assert "Изменено" in (await client.get(detail_url)).text

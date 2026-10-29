@@ -18,7 +18,7 @@ from quite_admin import (
 )
 from quite_admin.errors import ValidationError
 
-from .helpers import csrf, login
+from .helpers import csrf, login, revision
 
 
 @pytest.fixture(params=["fastapi", "litestar"])
@@ -80,17 +80,23 @@ async def test_write_lifecycle_order_veto_and_post_commit_failure(extension_app,
         form = await client.get(path)
         assert (await client.post(path, data={"__csrf": "wrong", "name": "bad"})).status_code == 403
         assert events == []
-        rejected = await client.post(path, data={"__csrf": csrf(form), "name": "blocked"})
+        rejected = await client.post(
+            path, data={"__csrf": csrf(form), "__revision": revision(form), "name": "blocked"}
+        )
         assert rejected.status_code == 422
         assert events == ["before"]
         assert (await adapter.get(model, key))["name"] == "original"
         events.clear()
-        conflict = await client.post(path, data={"__csrf": csrf(form), "name": "duplicate"})
+        conflict = await client.post(
+            path, data={"__csrf": csrf(form), "__revision": revision(form), "name": "duplicate"}
+        )
         assert conflict.status_code == 409
         assert events == ["before", "adapter"]
         assert (await adapter.get(model, key))["name"] == "original"
         events.clear()
-        saved = await client.post(path, data={"__csrf": csrf(form), "name": "accepted"})
+        saved = await client.post(
+            path, data={"__csrf": csrf(form), "__revision": revision(form), "name": "accepted"}
+        )
         assert saved.status_code == 303
         assert events == ["before", "adapter", "after"]
         assert (await adapter.get(model, key))["name"] == "accepted"
@@ -134,7 +140,9 @@ async def test_field_codec_template_and_record_action(extension_app, tmp_path):
         assert 'class="counter-widget"' in form.text
         assert 'value="#7"' in form.text
         assert "Reset counter" in form.text
-        saved = await client.post(path, data={"__csrf": csrf(form), "count": "#9"})
+        saved = await client.post(
+            path, data={"__csrf": csrf(form), "__revision": revision(form), "count": "#9"}
+        )
         assert saved.status_code == 303
         key = {"id": record["id"]}
         assert (await adapter.get(model, key))["count"] == 9
