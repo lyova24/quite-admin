@@ -130,9 +130,10 @@ function recordPage(slug, key) {
     ["Structured data", fields.filter((f) => writable.includes(f.name) && f.kind === "json")],
     ["Read-only fields", fields.filter((f) => !writable.includes(f.name))],
   ];
+  const pickerMessages = Object.fromEntries(Object.entries({ choose: "Choose records", search: "Search related records", remove: "Remove", previous: "Previous", next: "Next", loading: "Loading…", empty: "No matching records.", failed: "Could not load records. Try again.", retry: "Retry", selected: "Selected", results: "Results", limit: "Select up to 1000 records." }).map(([key, value]) => [key, t(value)]));
   const relations = c.relations.map((relation) => {
     const selected = row.links[relation.name] || [], multiple = ["one_to_many", "many_to_many"].includes(relation.kind);
-    return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><select id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" ${multiple ? `multiple size="6" aria-describedby="relation-help-${e(relation.name)}"` : ""}>${multiple ? "" : '<option value="">—</option>'}${store.collection(relation.target).records.map((other) => `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(store.label(relation.target, other))}</option>`).join("")}</select>${multiple ? `<p class="field-help" id="relation-help-${e(relation.name)}">${e(t("Hold Ctrl or Command to select multiple records."))}</p>` : ""}</div>`;
+    return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><div class="relation-picker" data-relation-picker data-endpoint="./" data-relation="${e(relation.name)}" data-messages="${e(JSON.stringify(pickerMessages))}"><select class="picker-native" id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" ${multiple ? `multiple size="6" aria-describedby="relation-help-${e(relation.name)}"` : ""}>${multiple ? "" : '<option value="">—</option>'}${store.collection(relation.target).records.map((other) => `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(store.label(relation.target, other))}</option>`).join("")}</select></div></div>`;
   }).join("");
   return `<a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading"><div><p class="eyebrow">${e(c.label)}</p><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1></div>${creating ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form">${creating ? "" : `<input type="hidden" name="__revision" value="${e(store.revision(slug, key))}">`}<div class="alert" role="alert" id="form-error" hidden></div><button id="demo-reload" class="button secondary conflict-reload" type="button" hidden>${e(t("Reload record"))}</button>${groups.map(([heading, fields], index) => section(heading, fields.map(renderField).join(""), `section-${index}`)).join("")}${section("Relationships", relations, "section-relations")}<div class="form-footer"><div class="button-group">${button(href(slug), "Cancel")}<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button></div></div></form>`;
 }
@@ -236,6 +237,16 @@ function render() {
       params.set("page", "1");
       location.hash = href(slug) + "?" + params;
     };
+  if (slug) {
+    document.querySelectorAll("[data-relation-picker]").forEach((root) => {
+      const relation = store.collection(slug).relations.find((item) => item.name === root.dataset.relation);
+      root.loadOptions = async ({search, page}) => {
+        const rows = store.collection(relation.target).records.filter((row) => store.label(relation.target, row).toLowerCase().includes(search.toLowerCase()));
+        return {items: rows.slice((page - 1) * 25, page * 25).map((row) => ({key: row.key, label: store.label(relation.target, row)})), total: rows.length, has_next: page * 25 < rows.length};
+      };
+    });
+    window.QuiteAdmin.initRelationPickers();
+  }
   const form = document.querySelector("#demo-record");
   if (form)
     form.onsubmit = async (event) => {

@@ -4,6 +4,11 @@
 
 ### Added
 
+- Searchable relationship pickers with server-side pagination, independent selected chips,
+  accessible checkbox choices and no candidate limit. Selected membership remains bounded
+  to 1000 per form. A narrow per-page CSP hash allows only the integrity-checked built-in
+  script; other pages retain `script-src 'none'`.
+
 - Atomic stale-edit detection for built-in adapters. Forms carry a signed revision;
   competing saves return HTTP 409 with the entered values preserved and a reload link.
   Optional `CheckedAdapter` / `WriteGuard` lets application services enforce the same rule.

@@ -21,6 +21,23 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Choose records": "Выбрать записи",
+    "Search related records": "Поиск связанных записей",
+    "Remove": "Убрать",
+    "Loading…": "Загрузка…",
+    "No matching records.": "Совпадений нет.",
+    "Could not load records. Try again.": "Не удалось загрузить записи. Попробуйте ещё раз.",
+    "Retry": "Повторить",
+    "Selected": "Выбрано",
+    "Results": "Найдено",
+    "Select up to 1000 records.": "Можно выбрать до 1000 записей.",
+    "Unavailable record": "Запись недоступна",
+    "Enable JavaScript to search all related records.": (
+        "Включите JavaScript для поиска всех связанных записей."
+    ),
+    "More than 1000 linked records. Editing is disabled to preserve the complete selection.": (
+        "Связано более 1000 записей. Редактирование отключено, чтобы сохранить полный состав связи."
+    ),
     "WORKSPACE": "РАБОЧЕЕ ПРОСТРАНСТВО",
     "Workspace": "Рабочее пространство",
     "Overview": "Обзор",

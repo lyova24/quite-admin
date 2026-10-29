@@ -26,4 +26,5 @@ from tests.test_relations import (
     test_inline_relationship_fields_share_the_record_save,
     test_related_queries_share_filter_sort_and_projection_contract,
     test_relationship_contract_and_atomic_rollback,
+    test_searchable_picker_pagination_and_permissions,
 )

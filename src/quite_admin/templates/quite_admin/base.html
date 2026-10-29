@@ -38,5 +38,6 @@
       <div class="content">{% block content %}{% endblock %}</div>
     </main>
   </div>
+{% for script in scripts %}<script src="{{ script.url }}" integrity="{{ script.integrity }}" crossorigin="anonymous" defer></script>{% endfor %}
 </body>
 </html>

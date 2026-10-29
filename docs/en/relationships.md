@@ -2,7 +2,7 @@
 
 Relationships appear inside the record's create form and unified record page and share the **Save** button
 with scalar fields. One-to-one and many-to-one relations use a single selector; one-to-many
-and many-to-many relations use a multiple selector. Targets must already exist.
+and many-to-many relations allow multiple selections. Targets must already exist.
 The record page displays values and allows editing immediately when permitted. Users with only
 view permission see the same page with read-only fields and relationships.
 
@@ -35,9 +35,28 @@ Required foreign keys and delete-orphan relationships cannot be detached by the 
 it never deletes target records. Move a required child by choosing another parent on its own form.
 Invalid keys, unavailable targets and failed constraints reject the entire save.
 
-Selectors display up to 1000 candidates, retaining existing selections outside that window.
-If a relationship already contains more than 1000 selected records, it is read-only to prevent
-partial updates. Use an application-specific UI for larger collections.
+## Search and selection
+
+Use **Choose records** to open a picker. Search uses the target collection's visible
+`search_fields` (visible strings by default); results load 25 at a time in stable
+primary-key order. Previous/Next reaches the complete candidate set, including records
+beyond the old 1000-candidate limit. Only keys and permitted record labels reach the browser.
+Selected chips stay selected across search queries and pages; × removes a selection.
+The picker supports Tab, Space/Enter and Escape. Searching never submits the record form.
+Selections are committed together with scalar fields by **Save changes**.
+
+Up to 1000 records can be selected in one relationship. Larger existing memberships
+are read-only to prevent partial updates. Without JavaScript, the native selector
+contains the first 25 candidates plus existing selections; enable JavaScript to search
+all records. A failed request preserves selections and offers Retry.
+
+The read-only options endpoint checks parent create/edit permission, target list/view
+permission, field restrictions and reverse-link edit permission on every request.
+Search does not include hidden fields. The built-in script is self-hosted and loaded
+with SRI; CSP permits its exact SHA-256 hash on editable relationship forms only.
+Inline scripts and arbitrary same-origin scripts remain blocked. Custom `form.html`
+overrides can reuse the standard picker markup, `picker_messages` and `editor.endpoint`;
+`base.html` automatically loads the supplied `scripts`.
 
 Reflection recognizes pure many-to-many junctions with two foreign-key constraints and a
 unique combined key. Junctions with extra payload columns require an application adapter.

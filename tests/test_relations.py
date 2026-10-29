@@ -470,3 +470,110 @@ async def test_checked_relationship_changes_are_atomic(related_backend, kind, ta
     )
     assert saved["name"] == "Accepted"
     assert (await adapter.related(model, relation.name, parent_key, Query())).total == 0
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_searchable_picker_pagination_and_permissions(auth, related_backend, framework):
+    import base64
+    import hashlib
+    from pathlib import Path
+
+    adapter, models = related_backend
+    parent, child, profile, tags = await seed(adapter, models)
+    model, target = models["parents"], models["tags"]
+    relation = relation_to(adapter, model, target, "many_to_many")
+    for i in range(30):
+        await adapter.create(target, {"name": f"Option {i:03}"})
+    last = await adapter.create(target, {"name": "Outside first page <safe>"})
+    last_token = adapter.describe(target).record_key(last)
+    admin = Admin(auth=auth, secret_key="s" * 32, adapters=[adapter], secure_cookies=False)
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    if framework == "fastapi":
+        admin.mount_fastapi(host, path="/tools/admin")
+    else:
+        admin.mount_litestar(host, path="/tools/admin")
+    base = "/tools/admin"
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        url = f"{base}/models/parents/relationships/{relation.name}/options"
+        assert (await client.get(url)).status_code == 303
+        await login(client, base)
+        first = await client.get(url)
+        assert first.status_code == 200
+        assert len(first.json()["items"]) == 25
+        assert first.json()["total"] == 33 and first.json()["has_next"]
+        second = await client.get(url, params={"page": 2})
+        assert len(second.json()["items"]) == 8
+        assert not second.json()["has_next"]
+        assert not set(i["key"] for i in first.json()["items"]) & set(
+            i["key"] for i in second.json()["items"]
+        )
+        found = await client.get(url, params={"q": "Outside"})
+        assert found.json()["items"] == [{"key": last_token, "label": last["name"]}]
+        assert set(found.json()["items"][0]) == {"key", "label"}
+        assert (await client.get(url, params={"page": "bad"})).status_code == 400
+        assert (await client.get(url, params={"q": "a" * 501})).status_code == 400
+        token = adapter.describe(model).record_key(parent)
+        path = f"{base}/models/parents/{token}"
+        form = await client.get(path)
+        assert 'data-endpoint="/tools/admin/' in form.text
+        asset = Path(__file__).parents[1] / "src/quite_admin/static/relations.js"
+        digest = "sha256-" + base64.b64encode(hashlib.sha256(asset.read_bytes()).digest()).decode()
+        assert f'integrity="{digest}"' in form.text
+        policy = form.headers["content-security-policy"]
+        assert f"script-src '{digest}'" in policy
+        assert "unsafe-inline" not in policy and "unsafe-eval" not in policy
+        assert (
+            "script-src 'none'" in (await client.get(base + "/")).headers["content-security-policy"]
+        )
+        bad = await client.post(
+            path,
+            data={
+                "__csrf": csrf(form),
+                "__revision": revision(form),
+                "name": "Unsaved",
+                "__relation_present__" + relation.name: "true",
+                "__relation__" + relation.name: last_token,
+                "unknown_field": "invalid",
+            },
+        )
+        assert bad.status_code == 422
+        assert f'value="{last_token}" selected' in bad.text
+        assert "Outside first page &lt;safe&gt;" in bad.text
+        admin.configure("tags", options=ModelOptions(exclude=("name",)))
+        hidden = await client.get(url, params={"q": "Outside"})
+        assert hidden.json()["total"] == 33  # Hidden text cannot be searched.
+        assert all("Outside" not in item["label"] for item in hidden.json()["items"])
+        admin.configure(
+            "tags", options=ModelOptions(permission=lambda r, i, action: action != "view")
+        )
+        assert (await client.get(url)).status_code == 403
+        admin.configure("tags", options=ModelOptions())
+        admin.configure("parents", options=ModelOptions(readonly_relations=(relation.name,)))
+        assert (await client.get(url)).status_code == 403
+        admin.configure("parents", options=ModelOptions(can_create=False, can_edit=True))
+        assert (await client.get(url)).status_code == 403
+        assert (await client.get(url, params={"record": token})).status_code == 200
+
+
+@pytest.mark.parametrize("related_backend", ["sqlalchemy"], indirect=True)
+async def test_picker_search_reaches_records_beyond_the_old_1000_limit(auth, related_backend):
+    from sqlalchemy import insert
+
+    adapter, models = related_backend
+    target = models["tags"]
+    with adapter.session_factory.begin() as session:
+        session.execute(insert(target), [{"name": f"Candidate {n:04}"} for n in range(1006)])
+    model = models["parents"]
+    relation = relation_to(adapter, model, target, "many_to_many")
+    admin = Admin(auth=auth, secret_key="s" * 32, adapters=[adapter], secure_cookies=False)
+    host = FastAPI()
+    admin.mount_fastapi(host)
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        await login(client)
+        url = f"/admin/models/parents/relationships/{relation.name}/options"
+        found = await client.get(url, params={"q": "1005"})
+        assert found.json()["items"][0]["label"] == "Candidate 1005"
+        final_page = await client.get(url, params={"page": 41})
+        assert final_page.json()["total"] == 1006
+        assert len(final_page.json()["items"]) == 6
+        assert not final_page.json()["has_next"]

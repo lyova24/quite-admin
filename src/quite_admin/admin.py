@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import inspect
@@ -21,7 +22,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-from starlette.responses import FileResponse, RedirectResponse, Response
+from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -111,6 +112,8 @@ class SecurityHeaders:
         async def secure_send(message: dict) -> None:
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))
+                scripts = scope.get("state", {}).get("quite_admin_script_hashes", ())
+                script_policy = " ".join("'" + value + "'" for value in scripts) or "'none'"
                 headers.extend(
                     [
                         (b"cache-control", b"no-store"),
@@ -120,8 +123,9 @@ class SecurityHeaders:
                         (
                             b"content-security-policy",
                             b"default-src 'self'; style-src 'self'; "
-                            b"script-src 'none'; img-src 'self' data:; object-src 'none'; "
-                            b"base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+                            + f"script-src {script_policy}; ".encode()
+                            + b"img-src 'self' data:; object-src 'none'; "
+                            + b"base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
                         ),
                     ]
                 )
@@ -201,6 +205,7 @@ class Admin:
             Route("/pages/{slug}", self._page),
             Route("/models/{slug}/", self._list),
             Route("/models/{slug}/new", self._create, methods=["GET", "POST"]),
+            Route("/models/{slug}/relationships/{relation}/options", self._relation_options),
             Route("/models/{slug}/{key}/edit", self._edit, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/delete", self._delete, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/actions/{action}", self._record_action, methods=["POST"]),
@@ -514,7 +519,13 @@ class Admin:
         return form
 
     async def _render(
-        self, request: Request, template: str, *, status: int = 200, **context: Any
+        self,
+        request: Request,
+        template: str,
+        *,
+        status: int = 200,
+        trusted_scripts: tuple[str, ...] = (),
+        **context: Any,
     ) -> Response:
         identity = getattr(request.state, "identity", None)
         resources = []
@@ -528,7 +539,19 @@ class Admin:
             pages = [
                 page for page in self.pages.values() if await self._page_allowed(request, page)
             ]
+        scripts = []
+        for name in trusted_scripts:
+            if name not in {"relations.js"}:
+                raise ValueError("Unknown built-in script.")
+            digest = base64.b64encode(
+                hashlib.sha256((Path(__file__).parent / "static" / name).read_bytes()).digest()
+            ).decode()
+            scripts.append(
+                {"url": self._url(request, "/assets/" + name), "integrity": "sha256-" + digest}
+            )
+        request.state.quite_admin_script_hashes = tuple(item["integrity"] for item in scripts)
         shared = {
+            "scripts": scripts,
             "request": request,
             "admin": self,
             "title": self.title,
@@ -892,9 +915,12 @@ class Admin:
                 )
                 errors, status = {"__all__": str(exc)}, 409
                 stale = isinstance(exc, StaleRecord)
+        if request.method == "POST":
+            await self._restore_relation_labels(editors)
         return await self._render(
             request,
             "quite_admin/form.html",
+            trusted_scripts=("relations.js",) if any(item["editable"] for item in editors) else (),
             status=status,
             resource=resource,
             fields=fields,
@@ -906,6 +932,23 @@ class Admin:
             if editable
             else {},
             relation_editors=editors,
+            picker_messages={
+                name: self.gettext(text)
+                for name, text in {
+                    "choose": "Choose records",
+                    "search": "Search related records",
+                    "remove": "Remove",
+                    "previous": "Previous",
+                    "next": "Next",
+                    "loading": "Loading…",
+                    "empty": "No matching records.",
+                    "failed": "Could not load records. Try again.",
+                    "retry": "Retry",
+                    "selected": "Selected",
+                    "results": "Results",
+                    "limit": "Select up to 1000 records.",
+                }.items()
+            },
             revision_token=revision_token,
             stale=stale,
             editable=editable,
@@ -1020,7 +1063,7 @@ class Admin:
         )
         return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
 
-    async def _relation_editors(self, request, resource, record, *, creating, allow_edit=True):
+    async def _available_relations(self, request, resource, *, creating, allow_edit=True):
         if not isinstance(resource.adapter, RelationAdapter):
             return []
         relations = resource.adapter.relations(resource.model)
@@ -1037,6 +1080,7 @@ class Admin:
             )
         resources = tuple((await self.resources()).values())
         writable = resource.options.writable_fields(resource.schema, creating)
+        source_visible = {item.name for item in resource.options.visible_fields(resource.schema)}
         editors = []
         for relation in relations:
             if (
@@ -1044,7 +1088,7 @@ class Admin:
                 and relation.name not in resource.options.relations
             ):
                 continue
-            if set(relation.source_fields) & set(resource.options.exclude):
+            if set(relation.source_fields) - source_visible:
                 continue
             target = next(
                 (
@@ -1060,7 +1104,9 @@ class Admin:
                 or not await self._allowed(request, target, "view")
             ):
                 continue
-            if set(relation.target_fields) & set(target.options.exclude):
+            if set(relation.target_fields) - {
+                item.name for item in target.options.visible_fields(target.schema)
+            }:
                 continue
             editable = allow_edit and (
                 not relation.read_only and relation.name not in resource.options.readonly_relations
@@ -1072,6 +1118,22 @@ class Admin:
                 editable = editable and all(
                     name in target_writable for name in relation.target_fields
                 )
+            editors.append(
+                {
+                    "relation": relation,
+                    "target": target,
+                    "editable": editable,
+                    "multiple": relation.kind in {"one_to_many", "many_to_many"},
+                }
+            )
+        return editors
+
+    async def _relation_editors(self, request, resource, record, *, creating, allow_edit=True):
+        editors = await self._available_relations(
+            request, resource, creating=creating, allow_edit=allow_edit
+        )
+        for editor in editors:
+            relation, target, editable = editor["relation"], editor["target"], editor["editable"]
             linked = (
                 None
                 if creating
@@ -1086,25 +1148,93 @@ class Admin:
             truncated = linked is not None and linked.total > 1000
             editable = editable and not truncated
             candidates = (
-                await target.adapter.list(target.model, Query(limit=1000)) if editable else None
+                await target.adapter.list(target.model, Query(limit=25)) if editable else None
             )
             records = {target.schema.record_key(item): item for item in selected}
             if candidates is not None:
                 records.update(
                     {target.schema.record_key(item): item for item in candidates.records}
                 )
-            editors.append(
+            editor.update(
                 {
-                    "relation": relation,
-                    "target": target,
                     "editable": editable,
-                    "multiple": relation.kind in {"one_to_many", "many_to_many"},
                     "selected": [target.schema.record_key(item) for item in selected],
                     "choices": [(key, target.record_label(item)) for key, item in records.items()],
-                    "truncated": truncated or candidates is not None and candidates.total > 1000,
+                    "truncated": truncated,
+                    "endpoint": self._url(
+                        request, f"/models/{resource.slug}/relationships/{relation.name}/options"
+                    )
+                    + "?"
+                    + str(
+                        request.query_params.__class__(
+                            {"record": resource.schema.record_key(record)} if not creating else {}
+                        )
+                    ),
                 }
             )
         return editors
+
+    async def _relation_options(self, request):
+        creating = not request.query_params.get("record")
+        resource = await self._resource(request, "create" if creating else "edit")
+        if not creating:
+            await self._record(resource, request.query_params["record"])
+        available = await self._available_relations(request, resource, creating=creating)
+        editor = next(
+            (
+                item
+                for item in available
+                if item["relation"].name == request.path_params["relation"] and item["editable"]
+            ),
+            None,
+        )
+        if editor is None:
+            raise HTTPException(403, "This relationship is not writable.")
+        try:
+            page = int(request.query_params.get("page", "1"))
+            if not 1 <= page <= 10**7:
+                raise ValueError
+        except ValueError as exc:
+            raise HTTPException(400, "Invalid pagination.") from exc
+        search = request.query_params.get("q", "")
+        if len(search) > 500:
+            raise HTTPException(400, "Search is too long.")
+        target = editor["target"]
+        visible = {item.name: item for item in target.options.visible_fields(target.schema)}
+        searchable = target.options.search_fields
+        if searchable is None:
+            searchable = tuple(name for name, item in visible.items() if item.kind == "string")
+        query = Query(
+            offset=(page - 1) * 25,
+            limit=25,
+            search=search,
+            search_fields=tuple(name for name in searchable if name in visible),
+        )
+        result = await target.adapter.list(target.model, query)
+        return JSONResponse(
+            {
+                "items": [
+                    {"key": target.schema.record_key(row), "label": target.record_label(row)}
+                    for row in result.records
+                ],
+                "page": page,
+                "total": result.total,
+                "has_next": page * 25 < result.total,
+            }
+        )
+
+    async def _restore_relation_labels(self, editors):
+        for editor in editors:
+            known = dict(editor["choices"])
+            for token in editor["selected"][:1000]:
+                if token in known:
+                    continue
+                try:
+                    record = await self._record(editor["target"], token)
+                    known[token] = editor["target"].record_label(record)
+                except NotFound:
+                    known[token] = self.gettext("Unavailable record")
+            editor["choices"] = list(known.items())
 
     def _relation_selections(self, editors, form):
         writable = {editor["relation"].name: editor for editor in editors if editor["editable"]}
