@@ -13,6 +13,8 @@ items:
     href: browser-demo.md
   - name: Integration and adapters
     href: integration.md
+  - name: GINO
+    href: gino.md
   - name: Collections and fields
     href: configuration.md
   - name: Relationships

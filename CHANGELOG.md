@@ -4,6 +4,10 @@
 
 ### Added
 
+- A native GINO 1.0.x / PostgreSQL adapter with automatic model discovery, CRUD,
+  typed queries, composite keys and atomic 1:1, 1:N and pure-junction M:N editing.
+  The isolated `gino` extra preserves SQLAlchemy 1.3 compatibility; `all` keeps
+  its existing SQLAlchemy 2.x dependencies. Includes shared contracts and EN/RU setup guides.
 - Optional SQL reflection type overrides for ambiguous physical types such as MySQL
   `TINYINT(1)` booleans; ordinary integer columns retain their full numeric values.
 - A standalone EN/RU browser demo, exported from fictional example metadata, with

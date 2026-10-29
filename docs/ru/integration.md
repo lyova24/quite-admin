@@ -95,6 +95,19 @@ app = Litestar(route_handlers=[admin.litestar_route("/admin")])
 Работают вложенные routers, mount-пути и ASGI `root_path` для reverse proxy.
 Админка является отдельным ASGI-приложением.
 
+## GINO
+
+```python
+from quite_admin.adapters.gino import GinoAdapter
+
+adapter = GinoAdapter(db)  # Существующий экземпляр gino.Gino.
+# Или: GinoAdapter(db, models=[User, Order])
+```
+
+Установите `quite-admin[gino]`. GINO 1.x использует SQLAlchemy 1.3 и не может быть
+установлен вместе с extra современных адаптеров SQLAlchemy/SQL reflection.
+Пулом PostgreSQL владеет приложение. См. [подключение, связи и проверки GINO](gino.md).
+
 ## Tortoise и Peewee
 
 ```python

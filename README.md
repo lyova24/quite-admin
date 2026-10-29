@@ -24,7 +24,7 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
 - Editable, read-only and hidden fields, with server-side enforcement.
 - SQL reflection without model imports.
-- SQLAlchemy / SQLModel, Tortoise and Peewee adapters; an adapter protocol for other data sources.
+- SQLAlchemy / SQLModel, Tortoise, Peewee and GINO adapters; an adapter protocol for other data sources.
 - Typed adapter filters/projections and delegation to application services for writes.
 - Custom pages and Jinja2 template overrides.
 - Write lifecycle hooks, custom field controls and permission-checked record actions.
@@ -75,6 +75,7 @@ The static HTML output is written to `build/docs`.
 CI checks both translations, builds the site and uploads it as an artifact.
 
 See [integration](docs/en/integration.md), [field configuration](docs/en/configuration.md),
+[GINO 1.x / PostgreSQL](docs/en/gino.md),
 [relationships](docs/en/relationships.md),
 [language and appearance](docs/en/customization.md),
 [authentication](docs/en/authentication.md), [custom pages](docs/en/custom-pages.md),

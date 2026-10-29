@@ -98,6 +98,19 @@ app = Litestar(route_handlers=[admin.litestar_route("/admin")])
 Nested routers, mount prefixes and ASGI `root_path` behind a reverse proxy are supported.
 The admin's session is isolated from the host application's session.
 
+## GINO
+
+```python
+from quite_admin.adapters.gino import GinoAdapter
+
+adapter = GinoAdapter(db)  # Existing gino.Gino instance.
+# Or: GinoAdapter(db, models=[User, Order])
+```
+
+Install `quite-admin[gino]`. GINO 1.x uses SQLAlchemy 1.3 and cannot share an
+installation with the modern SQLAlchemy/SQL reflection extras. The host owns the
+PostgreSQL pool. See [GINO setup, relationships and checks](gino.md).
+
 ## Tortoise ORM
 
 ```python

@@ -1,29 +1,32 @@
-from types import ModuleType
-
-import peewee as pw
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from litestar import Litestar
-from sqlalchemy import Column, ForeignKey, Index, Integer, MetaData, String, Table, create_engine
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
-from tortoise import Tortoise, fields
-from tortoise.models import Model
 
 from quite_admin import Admin, Filter, ModelOptions, Query, RelationAdapter
-from quite_admin.adapters.peewee import PeeweeAdapter
-from quite_admin.adapters.sql import SQLAdapter
-from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
-from quite_admin.adapters.tortoise import TortoiseAdapter
 from quite_admin.errors import Conflict
 
-from .databases import drop_tortoise_tables, peewee_database, sqlalchemy_url, tortoise_url
 from .helpers import csrf, login
 
 
 @pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
 async def related_backend(request, tmp_path):
+    from types import ModuleType
+
+    import peewee as pw
+    from sqlalchemy import Column, ForeignKey, Integer, String, Table, create_engine
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
+    from tortoise import Tortoise, fields
+    from tortoise.models import Model
+
+    from quite_admin.adapters.peewee import PeeweeAdapter
+    from quite_admin.adapters.sql import SQLAdapter
+    from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
+    from quite_admin.adapters.tortoise import TortoiseAdapter
+
+    from .databases import drop_tortoise_tables, peewee_database, sqlalchemy_url, tortoise_url
+
     mode = request.param
     if mode.startswith("sql"):
 
@@ -204,6 +207,19 @@ def relation_to(adapter, source, target, kind):
 
 @pytest.mark.parametrize("index_kind", ["unique", "composite", "nonunique", "partial"])
 def test_reflected_relationship_cardinality_respects_index_scope(index_kind):
+    from sqlalchemy import (
+        Column,
+        ForeignKey,
+        Index,
+        Integer,
+        MetaData,
+        String,
+        Table,
+        create_engine,
+    )
+
+    from quite_admin.adapters.sql import SQLAdapter
+
     metadata = MetaData()
     parent = Table("parents", metadata, Column("id", Integer, primary_key=True))
     child = Table(

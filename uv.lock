@@ -2,9 +2,22 @@ version = 1
 revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
-    "python_full_version >= '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' or sys_platform != 'emscripten'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra == 'extra-11-quite-admin-sqlalchemy'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy'",
+    "(python_full_version < '3.12' and extra != 'extra-11-quite-admin-gino' and extra == 'extra-11-quite-admin-sqlalchemy') or (sys_platform != 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra == 'extra-11-quite-admin-sqlalchemy')",
+    "extra != 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy' and extra != 'group-11-quite-admin-dev'",
+    "(python_full_version < '3.12' and extra != 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy') or (sys_platform != 'emscripten' and extra != 'extra-11-quite-admin-gino' and extra != 'extra-11-quite-admin-sqlalchemy')",
 ]
+conflicts = [[
+    { package = "quite-admin", extra = "gino" },
+    { package = "quite-admin", extra = "sqlalchemy" },
+], [
+    { package = "quite-admin", extra = "all" },
+    { package = "quite-admin", extra = "gino" },
+], [
+    { package = "quite-admin", extra = "gino" },
+    { package = "quite-admin", group = "dev" },
+]]
 
 [[package]]
 name = "aiomysql"
@@ -367,6 +380,19 @@ wheels = [
 ]
 
 [[package]]
+name = "gino"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "sqlalchemy", version = "1.3.24", source = { registry = "https://pypi.org/simple" } },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/86/6166af092adfd1f5d2734cc73d10dbac810eb63b1c40fa1ce92c90f59638/gino-1.0.1.tar.gz", hash = "sha256:fe4189e82fe9d20c4a5f03fc775fb91c168061c5176b4c95623caeef22316150", size = 45320, upload-time = "2020-06-08T23:55:56.99Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/60/f9/c2bfc18e69f3bfc9d19101067d006185cbf92278dd73621f7088a5c01269/gino-1.0.1-py3-none-any.whl", hash = "sha256:56df57cfdefbaf897a7c4897c265a0e91a8cca80716fb64f7d3cf6d501fdfb3d", size = 49648, upload-time = "2020-06-08T23:55:55.903Z" },
+]
+
+[[package]]
 name = "greenlet"
 version = "3.5.6"
 source = { registry = "https://pypi.org/simple" }
@@ -470,8 +496,8 @@ name = "httpcore2"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "h11" },
-    { name = "truststore" },
+    { name = "h11", marker = "python_full_version < '3.12' or sys_platform != 'emscripten'" },
+    { name = "truststore", marker = "python_full_version < '3.12' or sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c0/61/afa9d6b7452f9eca73f73d45324eb0bb52f098fd5e6049bf6b8263be9b4e/httpcore2-2.16.0.tar.gz", hash = "sha256:c72cd0413563b17e1cd8354677dff887466f8ec2551679759e93126534428643", size = 69886, upload-time = "2026-10-21T07:09:45.31Z" }
 wheels = [
@@ -1542,11 +1568,16 @@ all = [
     { name = "fastapi" },
     { name = "litestar" },
     { name = "peewee" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'group-11-quite-admin-dev'" },
     { name = "tortoise-orm" },
 ]
 fastapi = [
     { name = "fastapi" },
+]
+gino = [
+    { name = "asyncpg" },
+    { name = "gino" },
+    { name = "sqlalchemy", version = "1.3.24", source = { registry = "https://pypi.org/simple" } },
 ]
 litestar = [
     { name = "litestar" },
@@ -1555,7 +1586,7 @@ peewee = [
     { name = "peewee" },
 ]
 sqlalchemy = [
-    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-sqlalchemy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino') or (extra == 'extra-11-quite-admin-gino' and extra == 'group-11-quite-admin-dev')" },
 ]
 tortoise = [
     { name = "tortoise-orm" },
@@ -1577,10 +1608,17 @@ dev = [
     { name = "loguru" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
-    { name = "quite-admin", extra = ["all"] },
+    { name = "quite-admin", extra = ["all"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'group-11-quite-admin-dev'" },
     { name = "ruff" },
     { name = "structlog" },
     { name = "uvicorn" },
+]
+gino-check = [
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "litestar" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 logging-check = [
     { name = "picologging" },
@@ -1589,18 +1627,21 @@ logging-check = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.4,<5" },
+    { name = "asyncpg", marker = "extra == 'gino'", specifier = ">=0.30,<1" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.115,<1" },
+    { name = "gino", marker = "extra == 'gino'", specifier = ">=1.0.1,<1.1" },
     { name = "itsdangerous", specifier = ">=2.2,<3" },
     { name = "jinja2", specifier = ">=3.1.6,<4" },
     { name = "litestar", marker = "extra == 'litestar'", specifier = ">=2.12,<3" },
     { name = "peewee", marker = "extra == 'peewee'", specifier = ">=3.17,<4" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
     { name = "quite-admin", extras = ["sqlalchemy", "tortoise", "peewee", "fastapi", "litestar"], marker = "extra == 'all'" },
+    { name = "sqlalchemy", marker = "extra == 'gino'", specifier = ">=1.3.24,<1.4" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sqlalchemy'", specifier = ">=2.0,<2.1" },
     { name = "starlette", specifier = ">=0.40,<2.0" },
     { name = "tortoise-orm", marker = "extra == 'tortoise'", specifier = ">=0.25,<1.0" },
 ]
-provides-extras = ["sqlalchemy", "tortoise", "peewee", "fastapi", "litestar", "all"]
+provides-extras = ["sqlalchemy", "tortoise", "peewee", "gino", "fastapi", "litestar", "all"]
 
 [package.metadata.requires-dev]
 database-check = [
@@ -1622,6 +1663,13 @@ dev = [
     { name = "ruff", specifier = ">=0.9" },
     { name = "structlog", specifier = ">=26.1,<27" },
     { name = "uvicorn", specifier = ">=0.30,<1" },
+]
+gino-check = [
+    { name = "fastapi", specifier = ">=0.115,<1" },
+    { name = "httpx", specifier = ">=0.27,<1" },
+    { name = "litestar", specifier = ">=2.12,<3" },
+    { name = "pytest", specifier = ">=8,<10" },
+    { name = "pytest-asyncio", specifier = ">=0.24,<2" },
 ]
 logging-check = [{ name = "picologging", specifier = ">=0.9.3,<1" }]
 
@@ -1688,8 +1736,18 @@ wheels = [
 
 [[package]]
 name = "sqlalchemy"
+version = "1.3.24"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/ab/81bef2f960abf3cdaf32fbf1994f0c6f5e6a5f1667b5713ed6ebf162b6a2/SQLAlchemy-1.3.24.tar.gz", hash = "sha256:ebbb777cbf9312359b897bf81ba00dae0f5cb69fba2a18265dcc18a6f5ef7519", size = 6353598, upload-time = "2021-03-30T23:04:30.273Z" }
+
+[[package]]
+name = "sqlalchemy"
 version = "2.0.55"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' or sys_platform != 'emscripten'",
+]
 dependencies = [
     { name = "greenlet", marker = "platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'" },
     { name = "typing-extensions" },

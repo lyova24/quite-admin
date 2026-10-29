@@ -12,7 +12,7 @@ from quite_admin.schema import Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates
-from ._sql_relations import _unique
+from ._sql_metadata import _unique
 
 
 class SQLAlchemyRelations:

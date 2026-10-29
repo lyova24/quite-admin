@@ -1,22 +1,8 @@
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    ForeignKeyConstraint,
-    Integer,
-    MetaData,
-    String,
-    Table,
-    create_engine,
-    event,
-)
-from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
 
 from quite_admin import Field, ModelSchema, Query
-from quite_admin.adapters.sql import SQLAdapter
-from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 
 
 @pytest.mark.parametrize(
@@ -101,6 +87,18 @@ def test_tables_without_primary_keys_fail_explicitly():
 
 
 async def test_reflected_composite_foreign_key_and_trigger(tmp_path):
+    from sqlalchemy import (
+        Column,
+        ForeignKeyConstraint,
+        Integer,
+        MetaData,
+        String,
+        Table,
+        create_engine,
+    )
+
+    from quite_admin.adapters.sql import SQLAdapter
+
     engine = create_engine(f"sqlite:///{tmp_path}/composite.db")
     metadata = MetaData()
     Table(
@@ -147,6 +145,18 @@ async def test_reflected_composite_foreign_key_and_trigger(tmp_path):
 
 @pytest.mark.parametrize("reflection", [False, True])
 async def test_hooks_triggers_cascades_and_failed_hook_rollback(tmp_path, reflection):
+    from sqlalchemy import (
+        ForeignKey,
+        Integer,
+        String,
+        create_engine,
+        event,
+    )
+    from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
+
+    from quite_admin.adapters.sql import SQLAdapter
+    from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
+
     class Base(DeclarativeBase):
         pass
 

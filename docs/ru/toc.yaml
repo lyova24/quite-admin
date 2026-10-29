@@ -13,6 +13,8 @@ items:
     href: browser-demo.md
   - name: Подключение и адаптеры
     href: integration.md
+  - name: GINO
+    href: gino.md
   - name: Регистрация и поля
     href: configuration.md
   - name: Связи

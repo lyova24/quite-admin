@@ -56,6 +56,7 @@ composite primary/foreign keys and continued operation after failures.
 | SQLModel | Uses the SQLAlchemy adapter and registry | No separate SQLModel model suite yet; SQLAlchemy compatibility is not independent SQLModel verification |
 | Peewee | Worker-thread CRUD, composite keys, raw FK, M:N and 1:N/1:1 | No async Peewee API; host-owned database |
 | Tortoise | Native async CRUD, raw FK, UUID, JSON and relationships | Must initialize in host lifespan; no composite PK contract |
+| GINO 1.0.x | Native async CRUD, shared query/relationship contracts, composite PK/FK, PostgreSQL types | PostgreSQL/asyncpg only; separate SQLAlchemy 1.3 environment; pure M:N junctions |
 | Custom adapters | A dependency-free example and structural protocol checks | Application author verifies storage, transactions and optional capabilities |
 
 FastAPI and Litestar integration suites exercise authentication, CRUD, relationships,
@@ -91,3 +92,8 @@ The opt-in fixture rejects non-local hosts and other database names. Without the
 environment variable, tests keep using isolated SQLite files or in-memory databases.
 CI configuration alone is not evidence that a remote job has passed. No claim is made
 for every permitted driver, ORM or server version.
+
+GINO runs in a [separate environment and CI matrix](gino.md), preserving the existing
+SQLAlchemy 2.x test paths. Its 51 checks passed locally with GINO 1.0.1, SQLAlchemy 1.3.24,
+asyncpg 0.32.0 and PostgreSQL 16 on CPython 3.11.18, 3.14.7 and 3.15.2. The dedicated CI service
+uses PostgreSQL 17; configuring that job alone does not establish a passed remote run.

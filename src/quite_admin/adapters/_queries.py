@@ -10,7 +10,7 @@ def predicates(query, column, *, peewee=False):
             if peewee:
                 yield field.is_null(item.value)
             else:
-                yield field.is_(None) if item.value else field.is_not(None)
+                yield field.is_(None) if item.value else field.isnot(None)
         elif item.operator == "in":
             yield field.in_(item.value)
         else:
