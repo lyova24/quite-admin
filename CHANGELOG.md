@@ -4,6 +4,7 @@
 
 ### Added
 
+- Dependency vulnerability checks, validated draft releases with changelog, and tokenless PyPI publishing after maintainer publication.
 - Existing-application quick starts, screenshots, a short interface video and compatibility evidence.
 - Public write lifecycle hooks and request-scoped operation context for application services.
 - Custom field parsers/formatters/templates and permission-checked POST record actions.
@@ -27,6 +28,8 @@
 
 ### Fixed
 
+- High-severity documentation-tool dependency advisories, with a tested Node 24
+  compatibility adapter for patched markdown-it. Remaining moderate findings stay visible.
 - Adapter queries validate scalar field names and pagination, writes reject unknown attributes,
   and record operations require complete primary keys. Reads do not commit write transactions.
 - Finite Decimal values retain precision without a float conversion.

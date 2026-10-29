@@ -20,3 +20,4 @@
 - Every version-changing commit must update `pyproject.toml`, README, `__version__` and `uv.lock` together. Never change only the displayed README version; verify that all library version references agree before committing.
 - `package.json` and `package-lock.json` belong to documentation tooling and need not match the Python package version. Update lockfiles through their package managers.
 - Document breaking changes and migration steps in EN/RU. Create release tags and publish only when explicitly requested by the user.
+- Run `python scripts/check_release.py` before a version/release commit; finalize the changelog date before tagging. Tagged releases use `.github/workflows/release.yml`; version updates alone never publish.

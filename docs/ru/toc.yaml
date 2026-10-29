@@ -33,3 +33,5 @@ items:
     href: data-safety.md
   - name: Разработка и совместимость
     href: development.md
+  - name: Релизы и политика совместимости
+    href: releases.md
