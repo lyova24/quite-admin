@@ -33,6 +33,7 @@ from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
 from .concurrency import CheckedAdapter, StaleRecord, WriteGuard, canonical
 from .config import Action, ModelOptions, Permission
+from .diagram import schema_graph
 from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
 from .logging import EventLogger, LoggerProtocol
@@ -203,6 +204,7 @@ class Admin:
             Route("/login", self._login, methods=["GET", "POST"]),
             Route("/logout", self._logout, methods=["POST"]),
             Route("/", self._dashboard),
+            Route("/schema", self._schema),
             Route("/pages/{slug}", self._page),
             Route("/models/{slug}/", self._list),
             Route("/models/{slug}/new", self._create, methods=["GET", "POST"]),
@@ -542,7 +544,7 @@ class Admin:
             ]
         scripts = []
         for name in trusted_scripts:
-            if name not in {"relations.js"}:
+            if name not in {"relations.js", "schema.js"}:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
                 hashlib.sha256((Path(__file__).parent / "static" / name).read_bytes()).digest()
@@ -594,6 +596,8 @@ class Admin:
                 items.append({"label": self.gettext("Create record"), "url": None})
             elif template == "quite_admin/delete.html":
                 items.append({"label": self.gettext("Delete record"), "url": None})
+        elif context.get("schema_page"):
+            items.append({"label": self.gettext("Database schema"), "url": None})
         elif context.get("page") is not None:
             items.append({"label": context["page"].title, "url": None})
         elif context.get("status_code"):
@@ -652,6 +656,64 @@ class Admin:
     async def _dashboard(self, request: Request) -> Response:
         await self._identity(request)
         return await self._render(request, "quite_admin/dashboard.html")
+
+    async def _schema(self, request):
+        await self._identity(request)
+        all_resources = tuple((await self.resources()).values())
+        resources = [
+            resource
+            for resource in all_resources
+            if await self._allowed(request, resource, "list")
+            and await self._allowed(request, resource, "view")
+        ]
+        graph = await schema_graph(resources, all_resources=all_resources)
+        for node in graph["nodes"] + graph["junctions"]:
+            node["url"] = (
+                self._url(request, f"/models/{node['id']}/") if not node.get("junction") else None
+            )
+        return await self._render(
+            request,
+            "quite_admin/schema.html",
+            schema_page=True,
+            graph=graph,
+            schema_messages=self._schema_messages(),
+            trusted_scripts=("schema.js",) if graph["nodes"] else (),
+        )
+
+    def _schema_messages(self, translations=None):
+        translations = translations or self._translations
+        translated = {
+            name: translations.gettext(text)
+            for name, text in {
+                "expandJunction": "Show junction table",
+                "collapseJunction": "Hide junction table",
+                "showAll": "Show all",
+                "hideAll": "Hide all",
+                "tables": "Tables",
+                "junctions": "Junction tables",
+                "selectTables": "Select tables to display",
+                "searchTables": "Search tables",
+                "showTable": "Show table",
+                "expandView": "Expand view",
+                "exitView": "Exit expanded view",
+                "noTables": "No matching tables.",
+                "expand": "Show all fields",
+                "collapse": "Show key fields",
+                "more": "more fields",
+                "fields": "fields",
+                "o2o": "One to one",
+                "o2m": "One to many",
+                "m2m": "Many to many",
+                "empty": "No visible fields",
+                "one": "1",
+                "many": "N",
+            }.items()
+        }
+        return {
+            **translated,
+            "language": translations.language,
+            "fieldForms": [translations.ngettext("field", "fields", count) for count in (1, 2, 5)],
+        }
 
     async def _page(self, request: Request) -> Response:
         await self._identity(request)

@@ -4,6 +4,13 @@
 
 ### Added
 
+- Interactive metadata-only database schema with automatic layout, field-level links,
+  expandable table cards, labeled 1:1 / 1:N / M:N relationships, junction expansion,
+  table-selection sidebar (all registered tables selected initially), pan/zoom and keyboard
+  controls. Respects collection/field permissions, includes physical SQLAlchemy foreign
+  keys and ships in the EN/RU browser demo. Optional relation/junction metadata preserves
+  adapter API version 1.
+
 - Dedicated EN/RU interface customization guide covering theme colors, stylesheet loading,
   density tokens, template overrides, accessibility and security boundaries.
 

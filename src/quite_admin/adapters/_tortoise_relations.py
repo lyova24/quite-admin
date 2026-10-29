@@ -5,8 +5,8 @@ from tortoise.transactions import in_transaction
 
 from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.relations import Relation
-from quite_admin.schema import RecordPage
+from quite_admin.relations import Junction, Relation
+from quite_admin.schema import Field, RecordPage
 
 from ._queries import tortoise_filters
 
@@ -38,6 +38,38 @@ class TortoiseRelations:
                     if reverse
                     else "many_to_one",
                     source_fields=local,
+                    source_key_fields=(meta.pk_attr,)
+                    if many
+                    else (field.to_field_instance.model_field_name,)
+                    if reverse
+                    else local,
+                    target_key_fields=(field.related_model._meta.pk_attr,)
+                    if many
+                    else (field.relation_field,)
+                    if reverse
+                    else (field.to_field,),
+                    through=field.through if many else None,
+                    junction=Junction(
+                        field.through,
+                        (
+                            Field(
+                                field.backward_key,
+                                self.describe(model).primary_keys[0].python_type,
+                                foreign_key=meta.db_table + "." + meta.pk_attr,
+                            ),
+                            Field(
+                                field.forward_key,
+                                self.describe(field.related_model).primary_keys[0].python_type,
+                                foreign_key=field.related_model._meta.db_table
+                                + "."
+                                + field.related_model._meta.pk_attr,
+                            ),
+                        ),
+                        (field.backward_key,),
+                        (field.forward_key,),
+                    )
+                    if many
+                    else None,
                     target_fields=(field.relation_field,) if reverse else (),
                     can_detach=many or field.null,
                     read_only=bool(local and local[0] == meta.pk_attr),

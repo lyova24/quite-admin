@@ -1,0 +1,21 @@
+<div class="page-heading schema-heading"><div><h1>{{ t('Database schema') }}</h1><p class="muted">{{ graph.nodes|length }} {{ tn('table', 'tables', graph.nodes|length) }} · {{ graph.edges|length }} {{ tn('relationship', 'relationships', graph.edges|length) }}</p></div></div>
+{% if graph.nodes %}
+<section class="schema-workspace" data-schema-workspace data-graph='{{ graph|tojson }}' data-messages='{{ schema_messages|tojson }}' aria-label="{{ t('Interactive database schema') }}">
+  <div class="schema-toolbar">
+    <div class="schema-find"><button type="button" class="button secondary small" data-schema-sidebar-toggle aria-controls="schema-sidebar" aria-expanded="true">{{ t('Tables') }}</button><a class="button secondary small" data-schema-open hidden>{{ t('Open collection') }} ↗</a></div>
+    <div class="schema-controls"><button type="button" class="button secondary small" data-schema-zoom="out" aria-label="{{ t('Zoom out') }}">−</button><output data-schema-zoom-label>100%</output><button type="button" class="button secondary small" data-schema-zoom="in" aria-label="{{ t('Zoom in') }}">+</button><button type="button" class="button secondary small" data-schema-fit>{{ t('Fit schema') }}</button><button type="button" class="button secondary small" data-schema-layout>{{ t('Auto layout') }}</button><button type="button" class="button secondary small" data-schema-expand-view aria-pressed="false">{{ t('Expand view') }}</button></div>
+  </div>
+  <p class="schema-help" id="schema-help">{{ t('Click a table to expand fields; click M:N to reveal its junction. Drag to move. Ctrl/⌘ + scroll to zoom.') }}</p>
+  <div class="schema-body">
+  <aside class="schema-sidebar" id="schema-sidebar" aria-label="{{ t('Visible tables') }}">
+    <div class="schema-sidebar-heading"><h2>{{ t('Tables') }}</h2><span class="muted" data-schema-count></span></div>
+    <label class="sr-only" for="schema-search">{{ t('Search tables') }}</label><input type="search" id="schema-search" data-schema-search placeholder="{{ t('Search tables') }}">
+    <div class="schema-select-actions"><button type="button" class="link-button" data-schema-show-all>{{ t('Show all') }}</button><button type="button" class="link-button" data-schema-hide-all>{{ t('Hide all') }}</button></div>
+    <div class="schema-table-choices" data-schema-choices></div>
+  </aside>
+  <svg class="schema-canvas" data-schema-canvas role="group" aria-label="{{ t('Tables and relationships') }}" aria-describedby="schema-help" tabindex="0"></svg>
+  </div>
+  <div class="schema-legend"><span><b>1:1 · o2o</b> {{ t('One to one') }}</span><span><b>1:N · o2m</b> {{ t('One to many') }}</span><span><b>N:M · m2m</b> {{ t('Many to many') }}</span><span class="muted">PK · {{ t('Primary key') }}　FK · {{ t('Foreign key') }}</span></div>
+</section>
+<noscript><p class="alert">{{ t('Enable JavaScript to use the interactive schema.') }}</p><ul>{% for node in graph.nodes %}<li>{{ node.label }} · {{ node.name }}</li>{% endfor %}</ul></noscript>
+{% else %}<div class="panel empty-state"><h2>{{ t('No collections available.') }}</h2></div>{% endif %}

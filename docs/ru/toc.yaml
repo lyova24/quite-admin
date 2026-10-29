@@ -21,6 +21,8 @@ items:
     href: filters.md
   - name: Связи
     href: relationships.md
+  - name: Схема базы данных
+    href: database-schema.md
   - name: Язык и оформление
     href: customization.md
   - name: Кастомизация оформления

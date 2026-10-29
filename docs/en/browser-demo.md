@@ -5,7 +5,9 @@ The documentation site workflow builds and deploys it at `/demo/`.
 
 Try a table row, change a scalar field and a relationship, and save the same record page.
 Customers/profiles demonstrate 1:1, customers/orders 1:N, and products/tags M:N. Search,
-sorting, pagination, creation, delete confirmation, EN/RU switching and a custom report
+sorting, typed list filters, searchable relationship pickers, pagination, creation,
+delete confirmation, EN/RU switching, an interactive [database schema](database-schema.md)
+and a custom report
 are available. Changes stay in local browser storage when enabled. Reset restores the
 fictional seed; each visitor has their own copy.
 

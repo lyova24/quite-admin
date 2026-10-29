@@ -20,6 +20,9 @@ from tests.test_adapters import (
     test_typed_filters_and_projection,
 )
 from tests.test_concurrency import test_checked_write_contract
+from tests.test_diagram import (
+    test_schema_uses_metadata_with_visible_fields_and_expandable_junctions,
+)
 from tests.test_relations import (
     test_checked_relationship_changes_are_atomic,
     test_create_with_forward_and_collection_relationships,

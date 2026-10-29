@@ -6,7 +6,16 @@ from collections.abc import Awaitable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol, runtime_checkable
 
-from .schema import Query, RecordPage
+from .schema import Field, Query, RecordPage
+
+
+@dataclass(frozen=True)
+class Junction:
+    name: str
+    fields: tuple[Field, ...]
+    source_fields: tuple[str, ...]
+    target_fields: tuple[str, ...]
+    model: Any = None
 
 
 @dataclass(frozen=True)
@@ -19,6 +28,10 @@ class Relation:
     can_detach: bool = True
     read_only: bool = False
     mutates_target: bool = False
+    source_key_fields: tuple[str, ...] = ()
+    target_key_fields: tuple[str, ...] = ()
+    through: str | None = None
+    junction: Junction | None = None
 
     @property
     def label(self) -> str:

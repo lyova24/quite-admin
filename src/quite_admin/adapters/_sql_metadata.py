@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from sqlalchemy import Column, Table, and_, exists
 from sqlalchemy.exc import NoReferencedTableError
 
-from quite_admin.relations import Relation
+from quite_admin.relations import Junction, Relation
+from quite_admin.schema import Field
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,8 @@ class SQLRelationMetadata:
                                 target,
                                 "one_to_one" if _unique(table, local) else "many_to_one",
                                 source_fields=local,
+                                source_key_fields=local,
+                                target_key_fields=remote,
                                 can_detach=all(table.c[n].nullable for n in local),
                                 read_only=bool(
                                     set(local) & {c.name for c in model.primary_key.columns}
@@ -94,6 +97,8 @@ class SQLRelationMetadata:
                                 table,
                                 "one_to_one" if _unique(table, local) else "one_to_many",
                                 target_fields=local,
+                                source_key_fields=remote,
+                                target_key_fields=local,
                                 can_detach=all(table.c[n].nullable for n in local),
                                 mutates_target=True,
                                 read_only=bool(
@@ -120,6 +125,16 @@ class SQLRelationMetadata:
                                 _name(target.name + "_via_" + table.name + "_" + "_".join(left[1])),
                                 target,
                                 "many_to_many",
+                                source_key_fields=left[2],
+                                target_key_fields=target_remote,
+                                through=table.fullname,
+                                junction=Junction(
+                                    table.fullname,
+                                    junction_fields(table),
+                                    left[1],
+                                    target_columns,
+                                    table,
+                                ),
                             ),
                             left[2],
                             target_remote,
@@ -161,3 +176,26 @@ def related_predicates(model, query, links):
                 for local, remote in zip(link.local, link.remote, strict=True)
             )
         yield exists(statement.where(and_(*conditions)).correlate(model))
+
+
+def junction_fields(table):
+    """Physical read-only metadata, also for junctions without a primary key."""
+    result = []
+    for column in table.columns:
+        try:
+            python_type = column.type.python_type
+        except (AttributeError, NotImplementedError):
+            python_type = object
+        result.append(
+            Field(
+                name=column.name,
+                python_type=python_type,
+                primary_key=column.primary_key,
+                nullable=column.nullable,
+                foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None),
+                choices=tuple(getattr(column.type, "enums", ()) or ())
+                if getattr(column.type, "enum_class", None) is None
+                else (),
+            )
+        )
+    return tuple(result)

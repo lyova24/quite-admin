@@ -17,7 +17,8 @@ from sqlalchemy import inspect  # noqa: E402
 
 from examples.common import make_demo, seed  # noqa: E402
 from quite_admin import Query, __version__  # noqa: E402
-from quite_admin.i18n import RUSSIAN  # noqa: E402
+from quite_admin.diagram import schema_graph  # noqa: E402
+from quite_admin.i18n import RUSSIAN, Translator  # noqa: E402
 
 
 async def build(output):
@@ -111,12 +112,29 @@ async def build(output):
                     ],
                     "records": records,
                 }
+            graph = await schema_graph(resources.values())
+            for node in graph["nodes"]:
+                node["url"] = "#/models/" + node["id"] + "/"
+            for node in graph["junctions"]:
+                node["url"] = None
+            schema_pages = {}
+            for language in ("en", "ru"):
+                translations = Translator(language)
+                schema_pages[language] = admin.templates.env.get_template(
+                    "quite_admin/_schema_content.html"
+                ).render(
+                    graph=graph,
+                    schema_messages=admin._schema_messages(translations),
+                    t=translations.gettext,
+                    tn=translations.ngettext,
+                )
             output.mkdir(parents=True, exist_ok=True)
             for path in (ROOT / "demo").iterdir():
                 if path.is_file():
                     shutil.copyfile(path, output / path.name)
             shutil.copyfile(ROOT / "src/quite_admin/static/admin.css", output / "admin.css")
-            shutil.copyfile(ROOT / "src/quite_admin/static/relations.js", output / "relations.js")
+            for script in ("relations.js", "schema.js"):
+                shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
             (output / "theme.css").write_text(admin.theme.stylesheet())
             (output / "seed.json").write_text(
                 json.dumps(
@@ -125,6 +143,7 @@ async def build(output):
                         "title": admin.title,
                         "translations": RUSSIAN,
                         "collections": collections,
+                        "schemaPages": schema_pages,
                     },
                     ensure_ascii=False,
                     indent=2,

@@ -14,7 +14,8 @@
   {% if identity %}
     <aside class="sidebar">
       <a class="brand" href="{{ url('/') }}">{% if logo_url %}<img class="brand-logo" src="{{ logo_url }}" width="32" height="32" alt="">{% else %}<span class="brand-mark">q.</span>{% endif %}{{ title }}</a>
-      <a class="nav-link {% if not resource and not page %}active{% endif %}" href="{{ url('/') }}"{% if not resource and not page %} aria-current="page"{% endif %}>{{ t('Overview') }}</a>
+      <a class="nav-link {% if not resource and not page and not schema_page %}active{% endif %}" href="{{ url('/') }}"{% if not resource and not page and not schema_page %} aria-current="page"{% endif %}>{{ t('Overview') }}</a>
+      <a class="nav-link {% if schema_page %}active{% endif %}" href="{{ url('/schema') }}"{% if schema_page %} aria-current="page"{% endif %}>{{ t('Database schema') }}</a>
       <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
       <nav aria-label="{{ t('Collections') }}">
       {% for item in resources %}

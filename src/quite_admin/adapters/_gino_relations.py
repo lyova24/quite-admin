@@ -27,7 +27,26 @@ class GinoRelations:
                 target=target,
                 source_fields=local if link.relation.source_fields else (),
                 target_fields=remote if link.relation.target_fields else (),
+                source_key_fields=local,
+                target_key_fields=remote,
             )
+            if relation.junction is not None:
+                junction_model = models.get(link.through)
+                if junction_model is not None:
+                    junction = replace(
+                        relation.junction,
+                        model=junction_model,
+                        fields=self.describe(junction_model).fields,
+                        source_fields=tuple(
+                            self._attribute(junction_model, name)
+                            for name in relation.junction.source_fields
+                        ),
+                        target_fields=tuple(
+                            self._attribute(junction_model, name)
+                            for name in relation.junction.target_fields
+                        ),
+                    )
+                    relation = replace(relation, junction=junction)
             result[name] = replace(link, relation=relation, local=local, remote=remote)
         return result
 

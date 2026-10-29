@@ -177,8 +177,9 @@ function deletion(slug, key) {
 }
 function shell(content, slug, key) {
   const c = slug ? store.collection(slug) : null;
-  const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
-  return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark">q.</span>${e(seed.title)}</a><a class="nav-link ${!slug && location.hash !== "#/report" ? "active" : ""}" href="#/">${e(t("Overview"))}</a><p class="nav-label">${e(t("COLLECTIONS"))}</p><nav>${Object.entries(
+  const schemaPage = location.hash === "#/schema";
+  const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${schemaPage ? ` / <span aria-current="page">${e(t("Database schema"))}</span>` : ""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
+  return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark">q.</span>${e(seed.title)}</a><a class="nav-link ${!slug && !schemaPage && location.hash !== "#/report" ? "active" : ""}" href="#/">${e(t("Overview"))}</a><p class="nav-label">${e(t("COLLECTIONS"))}</p><nav>${Object.entries(
     store.state,
   )
     .map(
@@ -187,7 +188,7 @@ function shell(content, slug, key) {
     )
     .join(
       "",
-    )}</nav><p class="nav-label">${e(t("PAGES"))}</p><a class="nav-link ${location.hash === "#/report" ? "active" : ""}" href="#/report">Store report</a><div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
+    )}</nav><a class="nav-link ${schemaPage ? "active" : ""}" href="#/schema">${e(t("Database schema"))}</a><p class="nav-label">${e(t("PAGES"))}</p><a class="nav-link ${location.hash === "#/report" ? "active" : ""}" href="#/report">Store report</a><div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
 }
 function render() {
   document.documentElement.lang = language;
@@ -219,7 +220,8 @@ function render() {
         slug,
         key,
       );
-    } else if (parts[0] === "report")
+    } else if (parts[0] === "schema") content = shell(seed.schemaPages[language]);
+    else if (parts[0] === "report")
       content = shell(
         `<div class="page-heading"><h1>Store report</h1></div><div class="collection-grid">${["customers", "orders"].map((name) => `<div class="collection-card"><h2>${e(store.collection(name).label)}</h2><p class="report-value">${store.collection(name).records.length}</p><div class="card-footer"><a href="${href(name)}">${e(t("Open collection"))} →</a></div></div>`).join("")}</div>`,
       );
@@ -227,7 +229,9 @@ function render() {
   } catch (error) {
     content = shell(`<h1>${e(t("Not Found"))}</h1>${button("#/", "Overview")}`);
   }
+  document.querySelectorAll("[data-schema-workspace]").forEach((root) => root.schemaCleanup?.());
   document.querySelector("#app").innerHTML = content;
+  window.QuiteAdmin.initSchemas();
   document.querySelector("#demo-language").onchange = (event) => {
     language = event.target.value;
     write("localStorage", "quite-admin-demo-language", language);

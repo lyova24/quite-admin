@@ -7,7 +7,7 @@ import peewee as pw
 
 from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.relations import Relation
+from quite_admin.relations import Junction, Relation
 from quite_admin.schema import RecordPage
 
 from ._queries import ordering as order_expressions
@@ -31,7 +31,25 @@ class PeeweeRelations:
         result = []
         for name, (direction, field) in self._relation_fields(model).items():
             if direction == "many":
-                result.append(Relation(name, field.rel_model, "many_to_many"))
+                source_fk = field.through_model._meta.model_refs[model][0]
+                target_fk = field.through_model._meta.model_refs[field.rel_model][0]
+                result.append(
+                    Relation(
+                        name,
+                        field.rel_model,
+                        "many_to_many",
+                        source_key_fields=(source_fk.rel_field.name,),
+                        target_key_fields=(target_fk.rel_field.name,),
+                        through=field.through_model._meta.table_name,
+                        junction=Junction(
+                            field.through_model._meta.table_name,
+                            self.describe(field.through_model).fields,
+                            (source_fk.name,),
+                            (target_fk.name,),
+                            field.through_model,
+                        ),
+                    )
+                )
                 continue
             reverse = direction == "reverse"
             target = field.model if reverse else field.rel_model
@@ -41,6 +59,8 @@ class PeeweeRelations:
                     target,
                     "one_to_one" if field.unique else "one_to_many" if reverse else "many_to_one",
                     source_fields=() if reverse else (field.name,),
+                    source_key_fields=(field.rel_field.name,) if reverse else (field.name,),
+                    target_key_fields=(field.name,) if reverse else (field.rel_field.name,),
                     target_fields=(field.name,) if reverse else (),
                     can_detach=field.null,
                     mutates_target=reverse,

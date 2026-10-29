@@ -6,7 +6,7 @@ from .concurrency import CheckedAdapter, WriteGuard
 from .config import FieldOptions, ModelOptions, RecordAction
 from .logging import LoggerProtocol
 from .operations import Operation, OperationHooks, current_operation
-from .relations import Relation, RelationAdapter
+from .relations import Junction, Relation, RelationAdapter
 from .schema import Field, Filter, ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
 
@@ -34,6 +34,7 @@ __all__ = [
     "RecordPage",
     "RecordAction",
     "RelatedFilter",
+    "Junction",
     "Relation",
     "RelationAdapter",
     "Theme",

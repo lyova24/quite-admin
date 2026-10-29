@@ -21,6 +21,44 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Expand view": "Развернуть схему",
+    "Exit expanded view": "Обычный вид",
+    "Database schema": "Схема БД",
+    "Interactive database schema": "Интерактивная схема базы данных",
+    "Tables and relationships": "Таблицы и связи",
+    "Tables": "Таблицы",
+    "Show table": "Показать таблицу",
+    "Visible tables": "Отображаемые таблицы",
+    "Search tables": "Поиск таблиц",
+    "Show all": "Показать все",
+    "Hide all": "Скрыть все",
+    "Select tables to display": "Выберите таблицы для показа",
+    "No matching tables.": "Таблицы не найдены.",
+    "Find table": "Найти таблицу",
+    "Zoom in": "Приблизить",
+    "Zoom out": "Отдалить",
+    "Fit schema": "Вся схема",
+    "Auto layout": "Автокомпоновка",
+    "Show all fields": "Все поля",
+    "Show key fields": "Ключевые поля",
+    "Show junction table": "Показать промежуточную таблицу",
+    "Hide junction table": "Скрыть промежуточную таблицу",
+    "Junction tables": "Промежуточные таблицы",
+    "No visible fields": "Нет доступных полей",
+    "One to one": "Один к одному",
+    "One to many": "Один ко многим",
+    "Many to many": "Многие ко многим",
+    "Foreign key": "Внешний ключ",
+    "Enable JavaScript to use the interactive schema.": (
+        "Включите JavaScript для интерактивной схемы."
+    ),
+    (
+        "Click a table to expand fields; click M:N to reveal its junction. "
+        "Drag to move. Ctrl/⌘ + scroll to zoom."
+    ): (
+        "Нажмите таблицу для раскрытия полей, M:N — для промежуточной таблицы. "
+        "Перетаскивайте для перемещения. Ctrl/⌘ + прокрутка меняет масштаб."
+    ),
     "Filters": "Фильтры",
     "Active filters": "Активные фильтры",
     "Apply filters": "Применить фильтры",
@@ -185,6 +223,8 @@ RUSSIAN = {
 }
 
 RUSSIAN_PLURALS = {
+    "table": ("таблица", "таблицы", "таблиц"),
+    "relationship": ("связь", "связи", "связей"),
     "record": ("запись", "записи", "записей"),
     "collection": ("коллекция", "коллекции", "коллекций"),
     "field": ("поле", "поля", "полей"),

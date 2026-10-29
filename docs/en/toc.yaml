@@ -21,6 +21,8 @@ items:
     href: filters.md
   - name: Relationships
     href: relationships.md
+  - name: Database schema
+    href: database-schema.md
   - name: Language and appearance
     href: customization.md
   - name: Customize the interface

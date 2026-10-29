@@ -8,12 +8,12 @@ from sqlalchemy.orm import with_parent
 
 from quite_admin.concurrency import check_record, check_relation, guarded, sqlite_session_lock
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.relations import Relation
+from quite_admin.relations import Junction, Relation
 from quite_admin.schema import Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates
-from ._sql_metadata import _unique
+from ._sql_metadata import _unique, junction_fields
 
 
 class SQLAlchemyRelations:
@@ -57,10 +57,94 @@ class SQLAlchemyRelations:
                     else "many_to_one",
                     source_fields=source,
                     target_fields=target,
+                    source_key_fields=self._attribute_names(model, item.local_columns),
+                    target_key_fields=self._attribute_names(
+                        item.mapper.class_,
+                        item.remote_side
+                        if item.secondary is None
+                        else {left for left, right in item.secondary_synchronize_pairs},
+                    ),
+                    through=item.secondary.fullname if item.secondary is not None else None,
+                    junction=self._junction(item) if item.secondary is not None else None,
                     can_detach=(item.secondary is not None or nullable)
                     and "delete-orphan" not in item.cascade,
                     read_only=item.viewonly or item.lazy in {"dynamic", "write_only"},
                     mutates_target=reverse,
+                )
+            )
+        return tuple(result)
+
+    def _junction(self, relation):
+
+        table = relation.secondary
+        junction = Junction(
+            table.fullname,
+            junction_fields(table),
+            tuple(right.name for left, right in relation.synchronize_pairs),
+            tuple(right.name for left, right in relation.secondary_synchronize_pairs),
+            table,
+        )
+        return self._normalize_junction(junction)
+
+    def _normalize_junction(self, junction):
+        from dataclasses import replace
+
+        table = junction.model
+        mapped = [item for item in self.discover() if inspect(item).local_table is table]
+        if len(mapped) == 1:
+            model = mapped[0]
+            junction = replace(
+                junction,
+                model=model,
+                fields=self.describe(model).fields,
+                source_fields=self._attribute_names(
+                    model, {table.c[name] for name in junction.source_fields}
+                ),
+                target_fields=self._attribute_names(
+                    model, {table.c[name] for name in junction.target_fields}
+                ),
+            )
+        return junction
+
+    @staticmethod
+    def _attribute_names(model, columns):
+        return tuple(
+            attribute.key
+            for attribute in inspect(model).column_attrs
+            if any(column in columns for column in attribute.columns)
+        )
+
+    def schema_relations(self, model):
+        # Include physical FKs even when no ORM relationship() was declared.
+        from dataclasses import replace
+
+        from ._sql_metadata import SQLRelationMetadata
+
+        result = list(self.relations(model))
+        tables = {}
+        for item in self.discover():
+            tables.setdefault(inspect(item).local_table, []).append(item)
+        source_table = inspect(model).local_table
+        for link in SQLRelationMetadata()._links(source_table).values():
+            targets = tables.get(link.relation.target, ())
+            if len(targets) != 1:
+                continue
+            target = targets[0]
+            source_fields = self._attribute_names(
+                model, {source_table.c[name] for name in link.local}
+            )
+            target_fields = self._attribute_names(
+                target, {link.relation.target.c[name] for name in link.remote}
+            )
+            result.append(
+                replace(
+                    link.relation,
+                    target=target,
+                    source_key_fields=source_fields,
+                    target_key_fields=target_fields,
+                    junction=self._normalize_junction(link.relation.junction)
+                    if link.relation.junction is not None
+                    else None,
                 )
             )
         return tuple(result)
