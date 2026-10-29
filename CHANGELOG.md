@@ -11,6 +11,11 @@
   keys and ships in the EN/RU browser demo. Optional relation/junction metadata preserves
   adapter API version 1.
 
+- Compact condition-based list filters: searchable field menu, editable chips and a
+  single popover for operator/value selection and related-record search. Numeric/date
+  filters default to exact equality, with explicit comparisons and inclusive ranges.
+  Filter values retain Decimal precision; existing URLs and no-script forms remain supported.
+
 - Dedicated EN/RU interface customization guide covering theme colors, stylesheet loading,
   density tokens, template overrides, accessibility and security boundaries.
 

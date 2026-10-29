@@ -133,7 +133,7 @@ async def build(output):
                 if path.is_file():
                     shutil.copyfile(path, output / path.name)
             shutil.copyfile(ROOT / "src/quite_admin/static/admin.css", output / "admin.css")
-            for script in ("relations.js", "schema.js"):
+            for script in ("relations.js", "schema.js", "filters.js"):
                 shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
             (output / "theme.css").write_text(admin.theme.stylesheet())
             (output / "seed.json").write_text(

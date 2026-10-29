@@ -544,7 +544,7 @@ class Admin:
             ]
         scripts = []
         for name in trusted_scripts:
-            if name not in {"relations.js", "schema.js"}:
+            if name not in {"relations.js", "schema.js", "filters.js"}:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
                 hashlib.sha256((Path(__file__).parent / "static" / name).read_bytes()).digest()
@@ -783,7 +783,13 @@ class Admin:
                 related.append(
                     RelatedFilter(editor["relation"].name, editor["target"].schema.parse_key(token))
                 )
-                active.append({"parameter": name, "label": editor["relation"].label + ": " + label})
+                active.append(
+                    {
+                        "parameter": name,
+                        "value": token,
+                        "label": editor["relation"].label + ": " + label,
+                    }
+                )
             except NotFound as exc:
                 raise HTTPException(400, "Invalid filter.") from exc
         if len(related) > 10:
@@ -832,29 +838,20 @@ class Admin:
 
         clear = {item["parameter"]: None for item in active}
         clear.update(q=None, page=1)
+        filter_descriptors, active = list_filters.presentation(
+            filter_fields, relation_filters, active, self.gettext
+        )
         for item in active:
-            item["remove_url"] = query_url(**{item["parameter"]: None, "page": 1})
-            if "field" in item:
-                field, operator, value = item["field"], item["operator"], item["value"]
-                if operator == "is_null":
-                    text = self.gettext("Is NULL" if value == "true" else "Is not NULL")
-                else:
-                    text = (
-                        list_filters.OPERATORS[operator]
-                        + " "
-                        + (
-                            self.gettext("True" if value == "true" else "False")
-                            if field.kind == "boolean"
-                            else value
-                        )
-                    )
-                item["label"] = field.label + " " + text
+            item["remove_url"] = query_url(**{**dict.fromkeys(item["parameters"]), "page": 1})
 
         return await self._render(
             request,
             "quite_admin/list.html",
             status=422 if filter_errors else 200,
-            trusted_scripts=("relations.js",) if relation_filters else (),
+            trusted_scripts=("filters.js",) if filter_descriptors else (),
+            filter_descriptors=filter_descriptors,
+            filter_messages=list_filters.messages(self.gettext),
+            filter_errors_json={key: self.gettext(value) for key, value in filter_errors.items()},
             filter_fields=filter_fields,
             filter_values=dict(request.query_params),
             filter_errors=filter_errors,
