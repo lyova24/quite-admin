@@ -7,8 +7,7 @@ Try a table row, change a scalar field and a relationship, and save the same rec
 Customers/profiles demonstrate 1:1, customers/orders 1:N, and products/tags M:N. Search,
 sorting, typed list filters, searchable relationship pickers, pagination, creation,
 delete confirmation, EN/RU switching, an interactive [database schema](database-schema.md)
-and a custom report
-are available. Changes stay in local browser storage when enabled. Reset restores the
+and a custom report are available. Changes stay in local browser storage when enabled. Reset restores the
 fictional seed; each visitor has their own copy.
 
 This is a standalone JavaScript demonstration of the interface. Its schemas and seed
@@ -23,6 +22,17 @@ For the real ASGI application, use the [local example](quickstart.md#run-the-sam
 The checked-in static demo is generated without connecting to a host application's DB.
 Its builder always creates a disposable SQLite database and random temporary credentials.
 
+## Try the new screens
+
+1. Open **Products**, then **+ Add filter** → **Price**. Choose **Between**, enter
+   two bounds and apply. Click the resulting chip to edit the range, or × to remove it.
+2. Open a product, choose related tags, search and save. Selected chips persist across
+   lookup pages. Two copies of an edit form can demonstrate a stale-edit conflict.
+3. Open **Database schema**. Use the sidebar to hide/show tables, expand a table's
+   fields and click **N:M** to reveal `product_tags`. Moving any table fixes all visible
+   positions until **Auto layout**.
+4. Switch to Russian to check the same controls and messages in both languages.
+
 ## Build locally
 
 ```bash
@@ -36,5 +46,6 @@ npm run docs:serve
 Open [localhost:8001/demo/](http://localhost:8001/demo/). The output includes `index.html`,
 scripts, JSON data and CSS under `build/docs/demo`. Hash navigation works under a
 repository URL prefix and needs no server-side route fallback. Node contract tests cover
-both sides of relations, required-link rollback, 1:1 reassignment, creation and deletion.
+both sides of relations, required-link rollback, 1:1 reassignment, creation/deletion,
+stale edits, filter conditions, layout and M:N expansion.
 The whole output is included in the site's existing deployment artifact.

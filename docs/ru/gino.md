@@ -6,9 +6,11 @@
 
 ## Установка
 
+Пакет пока не опубликован; установите исходный checkout, как в [быстром старте](quickstart.md).
+
 ```bash
-pip install 'quite-admin[gino-legacy,fastapi]'
-# Или: pip install 'quite-admin[gino-legacy,litestar]'
+pip install '/path/to/quite-admin[gino-legacy,fastapi]'
+# Или: pip install '/path/to/quite-admin[gino-legacy,litestar]'
 ```
 
 GINO 1.x требует SQLAlchemy 1.3, а адаптеры SQL reflection и SQLAlchemy — SQLAlchemy 2.x.
@@ -105,6 +107,10 @@ CRUD, поиск буквального текста, стабильная па�
 `as_uuid=False`: asyncpg уже возвращает Python UUID. Объявление `UUID(as_uuid=True)`
 вызывает ошибку двойного преобразования в SQLAlchemy 1.3; адаптер не меняет типы
 колонок приложения и кодеки драйвера.
+
+Адаптер также поддерживает [фильтры связанных записей](filters.md),
+[атомарную проверку устаревшей формы](configuration.md#konkuriruyushee-redaktirovanie)
+и [метаданные схемы БД](database-schema.md).
 
 ## Проверки с PostgreSQL
 

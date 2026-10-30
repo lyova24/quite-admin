@@ -1,8 +1,9 @@
 # Development and compatibility
 
 The planned library version is **0.2.0**. See the repository's `CHANGELOG.md` for changes
-since 0.1.0. The minor bump covers relationship editing, the unified record page and UI
-configuration additions. A version update does not create or publish a release.
+since 0.1.0. The minor bump includes relationship editors, list filters, stale-edit
+protection, the database schema and interface customization. A version update does not
+create or publish a release.
 
 ## Python support
 
@@ -43,7 +44,8 @@ uv build
 Integration tests exercise SQLite CRUD with synchronous and asynchronous SQL reflection,
 synchronous and asynchronous SQLAlchemy, Tortoise and Peewee under FastAPI and Litestar.
 They also cover CSRF, mass assignment, read-only fields, XSS escaping, permissions,
-rollback, templates, host sessions, composite keys and proxy prefixes.
+rollback, templates, host sessions, composite keys, proxy prefixes, stale edits,
+relationship lookups, list filters and permission-filtered diagram metadata.
 
 PostgreSQL 17 and MySQL 8.4 have dedicated [contract jobs](data-safety.md).
 Both databases have passed local contract runs.
@@ -69,11 +71,15 @@ Russian is available under `/ru/`.
 
 The build checks translation page coverage, internal links and Diplodoc warnings.
 CI builds both languages and uploads the HTML as an artifact.
+Run `npm run demo:test` after changing the browser demo or shared scripts; it rebuilds
+the fictional seed and checks relationship writes, stale edits, filter conditions,
+schema layout and junction expansion.
+
 The separate `pages` workflow publishes the generated `build/docs` directory from `master`
 using GitHub Pages Actions. In repository Settings → Pages, select **GitHub Actions** as the source.
 Do not select the repository root or source `docs` folder for a Jekyll build: Liquid treats Jinja
 examples such as `{% extends %}` as its own tags. The generated artifact contains `.nojekyll`
-and retains Diplodoc's `_bundle` assets. The Faraday retry notice is unrelated to this build failure.
+and retains Diplodoc's `_bundle` assets.
 Configuration lives in `docs/.yfm`; `package-lock.json` pins the CLI and its dependencies.
 Add new pages to both language directories and both navigation files, and keep API
 examples synchronized between translations.

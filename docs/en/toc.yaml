@@ -7,41 +7,51 @@ navigation:
 items:
   - name: Overview
     href: index.md
-  - name: Quick start
-    href: quickstart.md
-  - name: Browser demo
-    href: browser-demo.md
-  - name: Integration and adapters
-    href: integration.md
-  - name: GINO
-    href: gino.md
-  - name: Collections and fields
-    href: configuration.md
-  - name: List filters
-    href: filters.md
-  - name: Relationships
-    href: relationships.md
-  - name: Database schema
-    href: database-schema.md
-  - name: Language and appearance
-    href: customization.md
-  - name: Customize the interface
-    href: styling.md
-  - name: Authentication and permissions
-    href: authentication.md
-  - name: Logging
-    href: logging.md
-  - name: Custom pages and templates
-    href: custom-pages.md
-  - name: Support another ORM
-    href: custom-adapters.md
-  - name: Architecture
-    href: architecture.md
-  - name: Operations and extensions
-    href: extensions.md
-  - name: Data access and compatibility
-    href: data-safety.md
-  - name: Development and compatibility
-    href: development.md
-  - name: Releases and compatibility policy
-    href: releases.md
+  - name: Getting started
+    items:
+      - name: Quick start
+        href: quickstart.md
+      - name: Browser demo
+        href: browser-demo.md
+      - name: Integration and adapters
+        href: integration.md
+      - name: GINO / PostgreSQL
+        href: gino.md
+  - name: Working with data
+    items:
+      - name: Collections and fields
+        href: configuration.md
+      - name: List filters
+        href: filters.md
+      - name: Relationships
+        href: relationships.md
+      - name: Database schema
+        href: database-schema.md
+  - name: Customization
+    items:
+      - name: Language and colors
+        href: customization.md
+      - name: Customize the interface
+        href: styling.md
+      - name: Custom pages and templates
+        href: custom-pages.md
+      - name: Operations and extensions
+        href: extensions.md
+  - name: Security and operations
+    items:
+      - name: Authentication and permissions
+        href: authentication.md
+      - name: Logging
+        href: logging.md
+      - name: Data access and compatibility
+        href: data-safety.md
+  - name: Library development
+    items:
+      - name: Support another ORM
+        href: custom-adapters.md
+      - name: Architecture
+        href: architecture.md
+      - name: Development and checks
+        href: development.md
+      - name: Releases and compatibility policy
+        href: releases.md

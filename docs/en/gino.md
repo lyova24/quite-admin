@@ -6,9 +6,11 @@ Litestar use the same adapter.
 
 ## Install
 
+The package is not published yet; install the source checkout as in the [quick start](quickstart.md).
+
 ```bash
-pip install 'quite-admin[gino-legacy,fastapi]'
-# Or: pip install 'quite-admin[gino-legacy,litestar]'
+pip install '/path/to/quite-admin[gino-legacy,fastapi]'
+# Or: pip install '/path/to/quite-admin[gino-legacy,litestar]'
 ```
 
 GINO 1.x requires SQLAlchemy 1.3, while the SQL reflection and SQLAlchemy adapters
@@ -102,6 +104,10 @@ GINO 1.0.1 expects PostgreSQL UUID columns declared with `UUID()` (the default
 `as_uuid=False`). asyncpg already returns Python UUID values. Declaring
 `UUID(as_uuid=True)` triggers an upstream SQLAlchemy 1.3 double-conversion error;
 the adapter does not patch the host's column types or driver codecs.
+
+The adapter also supports [related-record filters](filters.md),
+[atomic stale-edit detection](configuration.md#concurrent-edits) and
+[database schema metadata](database-schema.md).
 
 ## Run the PostgreSQL checks
 

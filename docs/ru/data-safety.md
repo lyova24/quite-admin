@@ -10,11 +10,16 @@
 `Query.validate(schema)` требует неотрицательный offset, limit от 1 до 10 000,
 булево направление сортировки и строку поиска до 4096 символов. Поиск допускает
 только известные строковые поля. В UI ограничения строже: 100 записей и 500 символов.
+[Скалярные фильтры и фильтры связей](filters.md) применяются до подсчёта и пагинации.
+`Query.related` требует явной поддержки адаптера и полных типизированных ключей цели;
+обычный `Query.validate(schema)` отклоняет его без метаданных связанных схем.
 
 Для get/update/delete нужен полный первичный ключ со всеми частями составного ключа.
 Пустые ключи, NULL в ключе, операторы вида `id__gt` и неизвестные поля записи
-отклоняются. Изменение первичного ключа не поддерживается. Таблица без PK вызывает
+отклоняются. Изменение первичного ключа не поддерживается. CRUD-коллекция без PK вызывает
 явную ошибку: библиотека не угадывает идентификатор строки.
+[Карточка промежуточной таблицы только на схеме](database-schema.md) может не иметь PK;
+операции с записями у неё не появляются.
 
 ## Скалярные значения
 
@@ -69,8 +74,8 @@ ORM и БД. Отвязка связи не удаляет связанную з
 | СУБД | Адаптеры и режимы | Подтверждение |
 |---|---|---|
 | SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Полный набор, CI CPython 3.11–3.15 |
-| PostgreSQL 17 | Те же шесть режимов | Локально прошли 280 проверок CRUD, безопасности запросов, связей и типов reflection; отдельный CI job |
-| MySQL 8.4 | Те же шесть режимов | Те же 280 проверок прошли локально на 8.4.13; отдельный CI job |
+| PostgreSQL 17 | Те же шесть режимов | Локально проверены общие контракты CRUD, безопасности запросов, фильтров, связей, конкурентных изменений и схемы БД; отдельный CI job |
+| MySQL 8.4 | Те же шесть режимов | Те же контракты проверены локально; отдельный CI job |
 
 MySQL reflection не различает `BOOLEAN` и обычные колонки `TINYINT(1)`.
 Контрактная фикстура явно указывает Boolean через [`column_types`](integration.md);
@@ -86,7 +91,7 @@ Peewee 3.19 передаёт PyMySQL 1.2 устаревшие аргументы
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py -q
 ```
 
 Для MySQL нужен URL `mysql://`. Тесты создают и удаляют свои таблицы; запускайте их
@@ -96,6 +101,8 @@ QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.
 версию драйвера, ORM и сервера.
 
 GINO проверяется в [отдельном окружении и CI-матрице](gino.md), сохраняя существующие
-проверки SQLAlchemy 2.x. Локально прошёл 51 тест с GINO 1.0.1, SQLAlchemy 1.3.24,
-asyncpg 0.32.0 и PostgreSQL 16 на CPython 3.11.18, 3.14.7 и 3.15.2. В отдельном CI job используется
-PostgreSQL 17; одна настройка job не подтверждает прохождение удалённого запуска.
+проверки SQLAlchemy 2.x. Локальная проверка включает GINO 1.0.1, SQLAlchemy 1.3.24 и
+asyncpg 0.32.0 с PostgreSQL 16, а также расширенные контракты конкурентных изменений,
+фильтров и схемы БД на PostgreSQL 17. Отдельный CI job использует PostgreSQL 17;
+его настройка сама по себе не подтверждает успешный удалённый запуск. Число тестов
+меняется по мере развития контрактов; команды выше и workflow определяют состав набора.

@@ -44,7 +44,7 @@ For example, `templates/quite_admin/list.html` overrides the default list screen
 User templates take precedence over packaged templates.
 
 No frontend build or external CDN is required for the admin interface.
-Custom pages retain `script-src 'none'`. Built-in relationship pickers and the database schema use narrowly
+Custom pages retain `script-src 'none'`. Built-in filter editors, relationship pickers and the database schema use narrowly
 scoped SHA-256 hashes and SRI on the pages that need them; inline scripts and arbitrary
 same-origin scripts remain blocked. Custom pages do not inherit those permissions.
 

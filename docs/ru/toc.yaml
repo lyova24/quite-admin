@@ -7,41 +7,51 @@ navigation:
 items:
   - name: Обзор
     href: index.md
-  - name: Быстрый старт
-    href: quickstart.md
-  - name: Демо в браузере
-    href: browser-demo.md
-  - name: Подключение и адаптеры
-    href: integration.md
-  - name: GINO
-    href: gino.md
-  - name: Регистрация и поля
-    href: configuration.md
-  - name: Фильтры списков
-    href: filters.md
-  - name: Связи
-    href: relationships.md
-  - name: Схема базы данных
-    href: database-schema.md
-  - name: Язык и оформление
-    href: customization.md
-  - name: Кастомизация оформления
-    href: styling.md
-  - name: Авторизация и права
-    href: authentication.md
-  - name: Логирование
-    href: logging.md
-  - name: Свои страницы и шаблоны
-    href: custom-pages.md
-  - name: Другая ORM
-    href: custom-adapters.md
-  - name: Архитектура
-    href: architecture.md
-  - name: Операции и расширения
-    href: extensions.md
-  - name: Доступ к данным и совместимость
-    href: data-safety.md
-  - name: Разработка и совместимость
-    href: development.md
-  - name: Релизы и политика совместимости
-    href: releases.md
+  - name: Начало работы
+    items:
+      - name: Быстрый старт
+        href: quickstart.md
+      - name: Демо в браузере
+        href: browser-demo.md
+      - name: Интеграция и адаптеры
+        href: integration.md
+      - name: GINO / PostgreSQL
+        href: gino.md
+  - name: Работа с данными
+    items:
+      - name: Коллекции и поля
+        href: configuration.md
+      - name: Фильтры списков
+        href: filters.md
+      - name: Связи
+        href: relationships.md
+      - name: Схема базы данных
+        href: database-schema.md
+  - name: Настройка интерфейса
+    items:
+      - name: Язык и цвета
+        href: customization.md
+      - name: Кастомизация оформления
+        href: styling.md
+      - name: Свои страницы и шаблоны
+        href: custom-pages.md
+      - name: Операции и расширения
+        href: extensions.md
+  - name: Безопасность и эксплуатация
+    items:
+      - name: Авторизация и права
+        href: authentication.md
+      - name: Логирование
+        href: logging.md
+      - name: Доступ к данным и совместимость
+        href: data-safety.md
+  - name: Разработка библиотеки
+    items:
+      - name: Поддержка другой ORM
+        href: custom-adapters.md
+      - name: Архитектура
+        href: architecture.md
+      - name: Разработка и проверки
+        href: development.md
+      - name: Релизы и политика совместимости
+        href: releases.md

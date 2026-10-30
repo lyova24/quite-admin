@@ -10,11 +10,16 @@ arbitrary SQL, filter-expression or column-expression input.
 `Query.validate(schema)` requires nonnegative offsets, limits from 1 to 10,000, a boolean
 sort direction and at most 4,096 search characters. Search fields must be known strings.
 The UI uses smaller limits: 100 records per page and 500 search characters.
+[Scalar and relationship filters](filters.md) run before counts and pagination.
+`Query.related` requires explicit adapter support and typed complete target keys;
+ordinary `Query.validate(schema)` rejects it without related schema metadata.
 
 Adapters require exactly the complete primary key for get/update/delete, including all
 parts of composite keys. Empty keys, null key values, lookup operators such as `id__gt`
 and unknown write fields are rejected. Updating a primary key is not supported.
-Tables without primary keys fail explicitly instead of using a guessed row identifier.
+CRUD collections without primary keys fail explicitly instead of using a guessed row identifier.
+A [diagram-only junction](database-schema.md) may still describe a table without a primary key;
+it does not gain record operations.
 
 ## Scalar values
 
@@ -71,8 +76,8 @@ not a guarantee for every version in the permitted ranges.
 | Database | Adapters / paths | Evidence |
 |---|---|---|
 | SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Full suite, CPython 3.11–3.15 CI |
-| PostgreSQL 17 | The same six paths | 280 CRUD, query-safety, relationship and reflection-type checks passed locally; dedicated CI job |
-| MySQL 8.4 | The same six paths | The same 280 checks passed locally on 8.4.13; dedicated CI job |
+| PostgreSQL 17 | The same six paths | Locally verified shared CRUD, query-safety, filters, relationships, concurrency and diagram contracts; dedicated CI job |
+| MySQL 8.4 | The same six paths | The same contracts verified locally; dedicated CI job |
 
 MySQL reflection cannot distinguish `BOOLEAN` from ordinary `TINYINT(1)` columns.
 The contract fixture explicitly declares the intended Boolean type through
@@ -89,7 +94,7 @@ a **disposable** local database named `quite_admin_test`, then:
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py -q
 ```
 
 Use a `mysql://` URL for MySQL. Tests create and drop their tables; run them serially.
@@ -99,6 +104,8 @@ CI configuration alone is not evidence that a remote job has passed. No claim is
 for every permitted driver, ORM or server version.
 
 GINO runs in a [separate environment and CI matrix](gino.md), preserving the existing
-SQLAlchemy 2.x test paths. Its 51 checks passed locally with GINO 1.0.1, SQLAlchemy 1.3.24,
-asyncpg 0.32.0 and PostgreSQL 16 on CPython 3.11.18, 3.14.7 and 3.15.2. The dedicated CI service
-uses PostgreSQL 17; configuring that job alone does not establish a passed remote run.
+SQLAlchemy 2.x paths. Local verification includes GINO 1.0.1, SQLAlchemy 1.3.24 and
+asyncpg 0.32.0 with PostgreSQL 16, plus the extended concurrency/filter/diagram contracts
+on PostgreSQL 17. The dedicated CI service uses PostgreSQL 17; configuration alone
+does not establish a passed remote run. Test counts change as contracts grow; the
+commands above and the workflow specify which suites are included.

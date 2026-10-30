@@ -59,6 +59,10 @@
 
 ### Changed
 
+- Diplodoc EN/RU navigation groups guides by task. Overview, configuration, architecture,
+  compatibility instructions and browser-demo walkthroughs reflect the current filters,
+  concurrency protection, relationship search and database schema, with fresh screenshots.
+
 - Custom edit-form overrides and HTTP clients must echo the hidden `__revision` value
   when using built-in adapters. Create, delete and action requests are unchanged.
   See the EN/RU configuration and adapter guides for migration and optional support.

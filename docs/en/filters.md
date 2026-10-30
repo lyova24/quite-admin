@@ -8,6 +8,8 @@ Active chips show every condition; **Clear all** resets filters and search
 while preserving sorting and page size. Search, sorting and page links retain active filters.
 The resulting URL can be bookmarked or shared with another authorized user.
 
+[![Choose a condition and enter a range](../assets/screenshots/filters.png)](../assets/screenshots/filters.png)
+
 | Field | Control |
 |---|---|
 | Boolean, enum, choices | One exact value |

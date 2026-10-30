@@ -15,6 +15,7 @@ admin.register(User, options=ModelOptions(
     readonly_fields=("created_at",),
     exclude=("password_hash",),
     search_fields=("email",),
+    filter_fields=("is_active", "created_at"),
     fields={"email": FieldOptions(label="Email", help_text="Notification address")},
     can_create=False,
     can_delete=False,
@@ -42,6 +43,9 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 | `readonly_fields` | Show values but reject writes |
 | `exclude` | Hide fields and reject writes and searches against them |
 | `search_fields` | Text fields used by search |
+| `filter_fields` | Visible scalar filters; `None` discovers supported fields, `()` disables them |
+| `relations`, `readonly_relations` | Available relationship editors and read-only links |
+| `record_label` | Field used to label records in relationship selectors |
 | `fields` | Labels, help text and per-field read-only settings |
 | `can_create`, `can_edit`, `can_delete` | Enable or disable operations |
 
@@ -97,7 +101,8 @@ A blank nullable field means `NULL`; a blank non-null string means `""`.
 
 Supported scalar types include strings, integers, booleans, float, Decimal, UUID,
 ISO date/time/datetime, JSON and enums.
-Foreign keys appear as scalar fields with a hint identifying the referenced table.
+Foreign keys appear as scalar fields with a hint identifying the referenced table,
+unless an available [relationship editor](relationships.md) replaces them.
 
 If an excluded or read-only required field has no default, disable creation or use
 an adapter that fills the field through your application service.

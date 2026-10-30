@@ -5,6 +5,8 @@ The diagram includes every registered collection you can list and view. All thes
 are selected by default, including tables without relationships. It uses adapter metadata;
 opening or rearranging the diagram does not read or modify record values.
 
+[![Database schema with the table sidebar and expanded M:N junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)
+
 ## Explore the diagram
 
 - **Tables** opens the sidebar. Search by collection label or table name, use checkboxes

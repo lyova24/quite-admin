@@ -2,15 +2,15 @@
 
 ```text
 FastAPI mount ───┐
-                ├── Admin ASGI / Starlette ── Jinja2 UI and custom pages
+                ├── Admin ASGI / Starlette ── Jinja2 UI / interactive components
 Litestar mount ─┘              │
                     Authentication / CSRF / permissions
                               │
                     ModelSchema / Field / Query
                               │
                        Adapter protocol
-                    ┌────┬────┬─────┬────┐
-               SQL Core  ORM  Tortoise  Peewee  Custom repositories
+                              │
+               SQL Core / SQLAlchemy / Tortoise / Peewee / GINO / services
 ```
 
 ## Two access modes
@@ -30,12 +30,16 @@ implement an adapter around your application service.
 - `Field`: type, nullable/default/generated/read-only flags, choices and foreign-key metadata.
 - `ModelOptions`: ORM-independent display and write policy.
 - `Query`: validated pagination, sorting, text search, typed filters and scalar projection.
+- `RelatedFilter`: typed target-key membership; adapter support is optional.
+- `Relation`, `Junction`: relationship and junction metadata for editors and the diagram.
+- `CheckedAdapter`, `WriteGuard`: optional atomic stale-edit preconditions.
 - `RecordPage`: scalar mappings and a total count.
 - `Adapter`: discovery, introspection and five CRUD operations.
 - `AuthBackend`: credential verification and identity revalidation.
 
 A model descriptor can be an ORM class, SQL table or external repository descriptor.
 The core imports no ORM; unused adapters do not add installation requirements.
+The required adapter API remains version 1; new capabilities are optional.
 
 ## A write request
 
@@ -44,9 +48,11 @@ The core imports no ORM; unused adapters do not add installation requirements.
 3. Bound the body size, parse form data, reject duplicates and validate CSRF.
 4. Build the server-side writable-field allowlist and reject unknown, hidden or read-only fields.
 5. Convert form strings to scalar types and return validation errors to the form.
-6. Call the optional before-write hook, then run the adapter operation in its own transaction.
-7. Roll back constraint failures and return `409`. After commit, notify the after-write hook
-   and redirect. See [operations and extensions](extensions.md) for timing and audit limits.
+6. Validate the signed form revision. Call the optional before-write hook, then run the adapter
+   operation in its own transaction with atomic record and edited-relationship preconditions.
+7. Roll back conflicts and return `409`. After commit, notify the after-write hook and redirect.
+   Stale forms retain entered values. See [operations and extensions](extensions.md) and
+   [concurrent edits](configuration.md#concurrent-edits).
 
 The session identifies a subject. The backend supplies current roles and account status
 for each protected request. Record keys are URL-safe base64-encoded JSON arrays and
@@ -58,13 +64,25 @@ containing slashes. Encoding does not replace authorization.
 Synchronous SQLAlchemy and Peewee operations run entirely in `anyio.to_thread.run_sync`.
 Sessions and connections open and close in the same worker thread.
 SQLAlchemy `AsyncSession.run_sync` bridges the ORM operation while database I/O stays
-asynchronous. Tortoise uses its native asynchronous API.
+asynchronous. Tortoise and GINO use their native asynchronous APIs. GINO 1.x uses a
+separate SQLAlchemy 1.3 environment and is not installed alongside SQLAlchemy 2.x adapters.
 
 The host owns engines, pools, migrations and lifespan.
 Model discovery runs after startup, which matters for Tortoise raw foreign-key fields.
 Reflection caches metadata and replaces it atomically on `refresh()`.
 The dashboard does not execute `COUNT(*)` for every collection; record queries start
 when opening a list.
+
+## Interactive screens
+
+[List filters](filters.md) build a validated `Query`; adapters apply conditions before
+counting and pagination. Relationship selection loads 25 candidates per page and repeats
+permission checks on each request. The [database schema](database-schema.md) reads only
+metadata for permitted collections and fields; record values never enter the graph.
+
+HTML is rendered on the server. Built-in filters, relationship pickers and the schema use
+local scripts with SRI and exact page-specific CSP hashes. Custom pages retain
+`script-src 'none'`.
 
 ## Extension boundaries
 
@@ -88,3 +106,6 @@ SQLAlchemy provides [runtime inspection](https://docs.sqlalchemy.org/en/20/orm/m
 and [MetaData reflection](https://docs.sqlalchemy.org/en/20/core/reflection.html).
 Tortoise exposes [model metadata](https://tortoise.github.io/models.html), and Peewee exposes
 [Model._meta](https://docs.peewee-orm.com/en/latest/peewee/models.html).
+
+PostgreSQL/MySQL and the isolated GINO environment are covered in the
+[compatibility matrix](data-safety.md).

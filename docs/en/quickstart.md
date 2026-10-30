@@ -88,3 +88,10 @@ Open [localhost:8000/admin/](http://localhost:8000/admin/) and sign in with
 `admin` / `local-demo-only`. This creates an isolated sample SQLite database;
 `QUITE_ADMIN_DEMO_DB` can select a different path. Use uv 0.13.6+ to download stable
 Python 3.15. The Python package does not need Node.js; only documentation builds do.
+
+## Next steps
+
+Try [list filters](filters.md), [relationship search](relationships.md) and the
+[interactive database schema](database-schema.md). Configure [authentication and permissions](authentication.md)
+before exposing the admin, then adapt the [palette, density and templates](styling.md)
+to your application.

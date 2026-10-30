@@ -2,92 +2,107 @@
 
 ```text
 FastAPI mount ───┐
-                ├── Admin ASGI / Starlette ── Jinja2 UI and custom pages
+                ├── Admin ASGI / Starlette ── Jinja2 UI / интерактивные компоненты
 Litestar mount ─┘              │
-                    Authentication / CSRF / permissions
+                    Авторизация / CSRF / права
                               │
                     ModelSchema / Field / Query
                               │
-                       Adapter protocol
-                    ┌────┬────┬─────┬────┐
-               SQL Core  ORM  Tortoise  Peewee  Custom repositories
+                       Контракт Adapter
+                              │
+               SQL Core / SQLAlchemy / Tortoise / Peewee / GINO / сервисы
 ```
 
 ## Два режима доступа к данным
 
-Общего протокола introspection/persistence у Python ORM нет. Через SQL reflection можно
-получить физические таблицы и обеспечить CRUD независимо от ORM. Но в БД нет информации
-о Python defaults, Enum-классах, model validators и application services.
-Поэтому reflection и ORM adapters — разные явные варианты подключения.
-Библиотека не обещает автоматически исполнить бизнес-правила, которых нет в источнике.
+Общего API introspection/persistence у Python ORM нет. SQL reflection обнаруживает
+физические таблицы независимо от ORM приложения. Но в БД нет информации о Python defaults,
+Enum-классах, model validators и правилах сервисов. Reflection и ORM-адаптеры —
+разные явные варианты подключения.
 
-SQLAlchemy в `SQLAdapter` используется как SQL toolkit. `SQLAlchemyAdapter`, напротив,
-работает через ORM Session и вызывает ORM persistence. Для soft delete, tenant isolation
-и прикладных инвариантов точка интеграции — свой адаптер над application service.
+`SQLAdapter` использует SQLAlchemy как SQL toolkit. `SQLAlchemyAdapter` использует
+ORM-сессии и ORM persistence. Для soft delete, изоляции арендаторов и прикладных
+инвариантов реализуйте адаптер над сервисом приложения.
 
 ## Контракты
 
-- `ModelSchema`: имя коллекции, scalar fields, один или несколько primary key.
-- `Field`: тип, nullable/default/generated/read-only, choices, foreign key metadata.
+- `ModelSchema`: имя коллекции, скалярные поля, один или несколько первичных ключей.
+- `Field`: тип, nullable/default/generated/read-only, варианты значений и метаданные FK.
 - `ModelOptions`: независимая от ORM политика отображения и записи.
-- `Query`: уже проверенные pagination, sort и текстовый поиск.
-- `RecordPage`: scalar mappings и общее количество.
-- `Adapter`: discovery/introspection и пять CRUD-операций.
-- `AuthBackend`: проверка credentials и повторная проверка identity.
+- `Query`: проверенные пагинация, сортировка, текстовый поиск, типизированные фильтры и проекции.
+- `RelatedFilter`: условие связи с целевой записью по типизированному ключу; поддержка адаптером необязательна.
+- `Relation`, `Junction`: метаданные связей и промежуточных таблиц для редакторов и схемы БД.
+- `CheckedAdapter`, `WriteGuard`: необязательная атомарная проверка актуальности редактируемой записи.
+- `RecordPage`: словари скалярных значений и общее количество.
+- `Adapter`: обнаружение, описание схемы и пять CRUD-операций.
+- `AuthBackend`: проверка учётных данных и повторная проверка пользователя.
 
-Моделью в адаптере может быть ORM-класс, SQL Table или дескриптор внешнего repository.
-Ядро не импортирует ни одну ORM. Неиспользуемые ORM не нужны при установке.
+Дескриптор модели может быть ORM-классом, SQL-таблицей или дескриптором внешнего repository.
+Ядро не импортирует ORM; неиспользуемые адаптеры не добавляют требований установки.
+Версия обязательного API адаптера остаётся 1; новые возможности подключаются явно.
 
 ## Путь изменения записи
 
-1. Проверить сессию и актуальность identity в backend приложения.
-2. Разрешить действие коллекции (`edit`, `create`, `delete`).
-3. Ограничить тело, разобрать form data, запретить дубликаты, проверить CSRF.
-4. Сформировать серверный allowlist. Неизвестное / hidden / read-only отвергнуть.
-5. Преобразовать строки в scalar types; ошибки вернуть в форму.
-6. Выполнить операцию адаптера в отдельной транзакции.
-7. Перевести constraint failure в `409`, откатить транзакцию; после успеха PRG redirect.
+1. Проверить подписанную сессию и актуальность пользователя в backend авторизации.
+2. Проверить право на операцию с коллекцией.
+3. Ограничить тело запроса, разобрать форму, отклонить дубликаты и проверить CSRF.
+4. Сформировать серверный allowlist полей и отклонить неизвестные, скрытые и read-only поля.
+5. Преобразовать строки в скалярные типы и вернуть ошибки в форму.
+6. Проверить подписанную ревизию формы. Вызвать before-write hook и выполнить операцию
+   адаптера в своей транзакции, атомарно проверяя актуальность записи и редактируемых связей.
+7. При конфликте откатить транзакцию и вернуть `409`. После commit вызвать after-write hook
+   и перенаправить. При устаревшей форме введённые значения сохраняются.
+   См. [операции и расширения](extensions.md) и [конкурирующее редактирование](configuration.md#konkuriruyushee-redaktirovanie).
 
-Identity хранится в cookie только как subject. Роли и актуальность пользователя
-поступают из backend при каждом защищённом запросе. Ключи записей кодируются в
-URL-safe base64 JSON-массив; значения типизируются при декодировании. Поддержаны UUID,
-составные ключи и строки со слешами. Кодирование не заменяет проверку прав.
+В сессии хранится subject. Роли и актуальность пользователя поступают из backend
+при каждом защищённом запросе. Ключи записей — URL-safe base64 JSON-массивы,
+декодируемые в типизированные значения. Поддержаны UUID, составные ключи и строки
+со слешами. Кодирование не заменяет проверку прав.
 
-## Асинхронность и lifecycle
+## Асинхронность и жизненный цикл
 
 Синхронные SQLAlchemy/Peewee операции целиком выполняются в `anyio.to_thread.run_sync`.
-Сессия/connection создаётся и закрывается в том же потоке. Нельзя разделять Session
-между запросами. SQLAlchemy AsyncSession использует `run_sync` внутри greenlet bridge,
-DB I/O остаётся async; Tortoise использует native async API.
+Сессия и connection создаются и закрываются в том же потоке.
+`SQLAlchemy AsyncSession.run_sync` связывает ORM-операции с асинхронным DB I/O.
+Tortoise и GINO используют родные асинхронные API. GINO 1.x работает в отдельном
+окружении SQLAlchemy 1.3; его не устанавливают вместе с адаптерами SQLAlchemy 2.x.
 
-Приложение владеет startup/shutdown, engine/pool и миграциями. Обнаружение моделей
-происходит после startup, что существенно для Tortoise raw FK fields. Reflection кеширует
-metadata и атомарно заменяет её при `refresh()`. Dashboard не выполняет `COUNT(*)`
-для каждой таблицы: запросы записей начинаются при открытии списка.
+Приложение владеет engine/pool, миграциями и startup/shutdown. Обнаружение моделей
+происходит после startup, что существенно для Tortoise raw FK. Reflection кеширует
+метаданные и атомарно заменяет их при `refresh()`. Обзор не выполняет `COUNT(*)`
+для каждой коллекции: запросы записей начинаются при открытии списка.
+
+## Интерактивные экраны
+
+[Фильтры списков](filters.md) строят проверенный `Query`; адаптер применяет условия
+до подсчёта и пагинации. Выбор связей загружает по 25 вариантов с повторной проверкой
+прав на каждый запрос. [Схема БД](database-schema.md) читает только метаданные доступных
+коллекций и полей; значения записей в граф не попадают.
+
+HTML рендерится на сервере. Встроенные фильтры, выбор связей и схема используют
+локальные скрипты с SRI и точными CSP-хешами на соответствующих страницах.
+Свои страницы сохраняют `script-src 'none'`.
 
 ## Точки расширения
 
-- ORM / database: свой `Adapter`.
-- Identity: свой `AuthBackend`.
+- Доступ к данным: `Adapter`.
+- Пользователь и роли: `AuthBackend`.
 - Коллекции и поля: `ModelOptions`, `FieldOptions`, `register()`, `configure()`.
-- Layout / формы: Jinja loader с приоритетом пользовательского каталога.
-- Отдельные экраны: `Page` + context callback + permission.
+- Оформление и формы: переопределение Jinja-шаблонов в своём каталоге.
+- Дополнительные экраны: `Page`, context callback и permission.
 
-Права текущей версии — уровня коллекции. Tenant isolation должна быть частью адаптера.
-Запись в reflection не запускает ORM hooks. GET не изменяет данные; удаление возможно
-только POST после страницы подтверждения.
+Права применяются к коллекции целиком; фильтрация строк относится к адаптеру.
+GET не изменяет записи. Удаление требует POST после страницы подтверждения.
 
-## Точки интеграции
+## Интеграция с фреймворками
 
-FastAPI использует [ASGI sub-app mount](https://fastapi.tiangolo.com/advanced/sub-applications/),
+FastAPI использует [ASGI sub-application mounting](https://fastapi.tiangolo.com/advanced/sub-applications/),
 Litestar — [ASGI mount handlers](https://docs.litestar.dev/main/usage/routing/overview.html#mounting-asgi-apps).
 Обёртка приводит относительные нормализованные пути Litestar к Starlette `path/root_path`.
-Это проверено тестами с вложенным router и proxy prefix.
+Тесты проверяют вложенные роутеры и reverse-proxy prefixes.
 
-SQLAlchemy использует [registry / runtime inspection](https://docs.sqlalchemy.org/en/20/orm/mapping_api.html)
-и [MetaData.reflect](https://docs.sqlalchemy.org/en/20/core/reflection.html).
-Tortoise предоставляет [model metadata](https://tortoise.github.io/models.html),
+SQLAlchemy предоставляет [runtime inspection](https://docs.sqlalchemy.org/en/20/orm/mapping_api.html)
+и [MetaData reflection](https://docs.sqlalchemy.org/en/20/core/reflection.html).
+Tortoise предоставляет [метаданные моделей](https://tortoise.github.io/models.html),
 Peewee — [Model._meta](https://docs.peewee-orm.com/en/latest/peewee/models.html).
-
-Текущий lock и SQLite matrix подтверждают установленные версии. PostgreSQL/MySQL
-и отдельные dependency-version matrices — следующие полезные расширения CI.
+Проверки PostgreSQL/MySQL и отдельного GINO-окружения описаны в [матрице совместимости](data-safety.md).

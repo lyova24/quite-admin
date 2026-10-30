@@ -87,3 +87,10 @@ QUITE_ADMIN_PASSWORD='local-demo-only' uv run uvicorn examples.fastapi_app:app -
 `admin` / `local-demo-only`. Пример создаёт отдельную SQLite-базу; путь задаётся
 через `QUITE_ADMIN_DEMO_DB`. Для стабильной Python 3.15 нужен uv 0.13.6+.
 Самой библиотеке Node.js не нужен — он используется только при сборке документации.
+
+## Дальше
+
+Попробуйте [фильтры списков](filters.md), [поиск связанных записей](relationships.md)
+и [интерактивную схему БД](database-schema.md). Перед открытием админки настройте
+[авторизацию и права](authentication.md), затем адаптируйте [палитру, плотность и шаблоны](styling.md)
+под своё приложение.

@@ -124,10 +124,12 @@ See [custom pages and overrides](custom-pages.md) for registration.
 
 Keep `__csrf`, `__revision`, `form_action`, field names, read-only rendering, errors,
 labels and `aria-describedby` when overriding forms. Keep the base template's `scripts`
-loop for built-in relationship pickers. Stylesheets must remain same-origin: CSP
+loop for built-in filter editors, relationship pickers and the schema viewer.
+Stylesheets must remain same-origin: CSP
 blocks inline styles and external CDNs. Custom JavaScript is not enabled by CSS or
 template overrides. Built-in interactive components receive only their exact script hashes.
 
 After changing the theme, check a list with active filters, a long edit form, validation
-and stale-edit errors, a read-only record and a narrow viewport. Verify text contrast,
+and stale-edit errors, a read-only record, the database schema and a narrow viewport.
+Verify text contrast,
 keyboard focus and that the sticky form footer leaves the final fields reachable.

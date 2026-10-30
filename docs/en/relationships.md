@@ -7,7 +7,7 @@ The record page displays values and allows editing immediately when permitted. U
 view permission see the same page with read-only fields and relationships.
 
 Supported backends: synchronous/asynchronous SQLAlchemy, synchronous/asynchronous SQL reflection,
-Peewee and Tortoise. ORM adapters use native ORM operations; SQL reflection uses database constraints.
+Peewee, Tortoise and [GINO 1.0.x / PostgreSQL](gino.md). ORM adapters use native ORM operations; SQL reflection uses database constraints.
 Scalar changes and all submitted relationship changes commit together or roll back together.
 
 ```python
@@ -71,3 +71,7 @@ Custom adapters may optionally implement the exported `RelationAdapter` protocol
 is unchanged. Metadata is represented by `Relation` and has no template dependencies.
 
 The local demo includes Product–Tag (M:N), Customer–Order (1:N) and Customer–Profile (1:1).
+
+Use [list filters](filters.md#related-records) to find records linked to a target without
+editing a relationship. The [database schema](database-schema.md) shows relationship
+structure and junctions independently of record values.
