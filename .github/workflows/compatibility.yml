@@ -1,0 +1,80 @@
+name: dependency compatibility
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  modern:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.15']
+        profile: [minimum, latest]
+        include:
+          - python-version: '3.12'
+            profile: starlette-0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Resolve fresh dependency endpoints and run the full suite
+        run: >-
+          uv run --no-project --python ${{ matrix.python-version }} python scripts/test_compatibility.py
+          --profile ${{ matrix.profile }} --python ${{ matrix.python-version }}
+          --report build/compatibility/modern-${{ matrix.profile }}-${{ matrix.python-version }}.json
+      - name: Keep the ordinary lockfile unchanged
+        run: git diff --exit-code -- pyproject.toml uv.lock
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modern-${{ matrix.profile }}-${{ matrix.python-version }}
+          path: build/compatibility/
+          if-no-files-found: warn
+
+  gino:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.15']
+        profile: [minimum, latest]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: quite_admin
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: quite_admin_gino_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quite_admin -d quite_admin_gino_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      QUITE_ADMIN_GINO_TEST_DATABASE_URL: postgresql://quite_admin:ci-test-only@127.0.0.1:5432/quite_admin_gino_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Check GINO endpoints separately from SQLAlchemy 2.x
+        run: >-
+          uv run --no-project --python ${{ matrix.python-version }} python scripts/test_compatibility.py --legacy
+          --profile ${{ matrix.profile }} --python ${{ matrix.python-version }}
+          --report build/compatibility/gino-${{ matrix.profile }}-${{ matrix.python-version }}.json
+      - name: Keep the ordinary lockfile unchanged
+        run: git diff --exit-code -- pyproject.toml uv.lock
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gino-${{ matrix.profile }}-${{ matrix.python-version }}
+          path: build/compatibility/
+          if-no-files-found: warn

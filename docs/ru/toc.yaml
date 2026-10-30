@@ -45,6 +45,8 @@ items:
         href: logging.md
       - name: Доступ к данным и совместимость
         href: data-safety.md
+      - name: Совместимость зависимостей
+        href: dependency-compatibility.md
   - name: Разработка библиотеки
     items:
       - name: Поддержка другой ORM

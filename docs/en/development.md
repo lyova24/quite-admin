@@ -25,11 +25,12 @@ uv run pytest -q
 Use uv 0.13.6 or newer if an older uv installation only offers a Python 3.15 prerelease.
 The package keeps Python 3.11 as its minimum supported version.
 
-The dependency range allows Starlette 0.x and 1.x. The lockfile selects Starlette 1.10.0,
-whose `TestClient` uses `anyio.from_thread.BlockingPortal` and `httpx2`.
-Both HTTP client packages are development dependencies: synchronous example tests use
-Starlette's `TestClient`, while asynchronous integration tests use `httpx.ASGITransport`.
-Pytest treats `DeprecationWarning` as an error to catch obsolete API use in the tested dependency set.
+The [dependency endpoint matrix](dependency-compatibility.md) checks supported lower
+bounds and newly resolved versions in addition to the ordinary lockfile. Tests use
+`httpx.ASGITransport` and each example's real framework lifespan context. This keeps the
+same HTTP/lifecycle coverage across Starlette 0.x and 1.x without depending on different
+TestClient HTTP libraries. Pytest treats `DeprecationWarning` as an error; dependency
+warnings are not suppressed.
 
 ## Run checks
 
@@ -42,15 +43,16 @@ uv build
 ```
 
 Integration tests exercise SQLite CRUD with synchronous and asynchronous SQL reflection,
-synchronous and asynchronous SQLAlchemy, Tortoise and Peewee under FastAPI and Litestar.
+synchronous and asynchronous SQLAlchemy/SQLModel, Tortoise and Peewee under FastAPI and Litestar.
 They also cover CSRF, mass assignment, read-only fields, XSS escaping, permissions,
 rollback, templates, host sessions, composite keys, proxy prefixes, stale edits,
 relationship lookups, list filters and permission-filtered diagram metadata.
 
 PostgreSQL 17 and MySQL 8.4 have dedicated [contract jobs](data-safety.md).
 Both databases have passed local contract runs.
-The lockfile verifies the pinned dependency versions;
-it is not a test of every version permitted by the dependency ranges.
+The lockfile verifies pinned versions; the separate endpoint workflow tests exact runtime
+floors and fresh resolutions. See [dependency compatibility](dependency-compatibility.md)
+for commands, ranges and artifact interpretation.
 
 ## Build the Diplodoc documentation
 

@@ -61,21 +61,37 @@ ORM и БД. Отвязка связи не удаляет связанную з
 |---|---|---|
 | SQL reflection | Sync/async CRUD, фильтры/проекции, составные PK/FK, запись связей | Физическая схема без Python-хуков; только чистые M:N junction-таблицы |
 | SQLAlchemy 2.x | Sync/async CRUD, общий контракт, ORM-хуки, связи | Импортированные модели; dynamic/write-only/view-only связи только для чтения |
-| SQLModel | Адаптер и registry SQLAlchemy | Отдельного набора SQLModel-моделей пока нет; проверка SQLAlchemy не равна независимой проверке SQLModel |
+| SQLModel | Отдельные sync/async-контракты настоящих моделей: CRUD, связи, фильтры, web-права, ревизии, схема БД, типы/defaults | Адаптер SQLAlchemy; тесты с Pydantic 2; валидаторы приложения не становятся правилами записи админки автоматически |
 | Peewee | CRUD в worker, составные ключи, raw FK, M:N и 1:N/1:1 | Нет async Peewee API; базой владеет приложение |
 | Tortoise | Async CRUD, raw FK, UUID, JSON, связи | Инициализация в lifespan; нет контракта составного PK |
 | GINO 1.0.x | Родной async CRUD, общие контракты запросов и связей, составные PK/FK, типы PostgreSQL | Только PostgreSQL/asyncpg; отдельное окружение SQLAlchemy 1.3; чистые таблицы M:N |
 | Свои адаптеры | Пример без ORM и структурные проверки протокола | Хранилище, транзакции и optional-возможности проверяет автор приложения |
 
 Интеграционные наборы FastAPI и Litestar проверяют авторизацию, CRUD, связи,
-ограничения полей и proxy prefixes. Lockfile определяет проверенный набор
-зависимостей, а не все версии из разрешённых диапазонов.
+ограничения полей и proxy prefixes. Проверяются закреплённое окружение и независимо
+разрешаемые [нижние/актуальные версии зависимостей](dependency-compatibility.md).
+Артефакты содержат точные версии; матрица не перебирает все возможные сочетания.
 
 | СУБД | Адаптеры и режимы | Подтверждение |
 |---|---|---|
-| SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Полный набор, CI CPython 3.11–3.15 |
-| PostgreSQL 17 | Те же шесть режимов | Локально проверены общие контракты CRUD, безопасности запросов, фильтров, связей, конкурентных изменений и схемы БД; отдельный CI job |
-| MySQL 8.4 | Те же шесть режимов | Те же контракты проверены локально; отдельный CI job |
+| SQLite | SQL reflection sync/async, SQLAlchemy/SQLModel sync/async, Peewee, Tortoise | Полный набор, CI CPython 3.11–3.15 |
+| PostgreSQL 17 | Те же восемь режимов | Локально проверены общие контракты CRUD, безопасности запросов, фильтров, связей, конкурентных изменений и схемы БД; отдельный CI job |
+| MySQL 8.4 | Те же восемь режимов | Те же контракты проверены локально; отдельный CI job |
+
+Локальная проверка **2026-10-30**:
+
+| Окружение | Результат одного прогона |
+|---|---|
+| Точные нижние runtime-версии, CPython 3.11.18 и 3.15.2 | 828 passed, 2 skipped на каждой версии Python |
+| Заново разрешённые актуальные runtime-версии, CPython 3.11.18 и 3.15.2 | 828 passed, 2 skipped на каждой версии Python |
+| Актуальная Starlette 0.x, CPython 3.12.14 | 828 passed, 2 skipped |
+| GINO minimum/latest, CPython 3.11.18 и 3.15.2, PostgreSQL 17 | 62 passed в каждом из четырёх прогонов |
+| Закреплённые зависимости, PostgreSQL 17 / MySQL 8.4, CPython 3.12.14 | 534 passed на каждом сервере, включая 128 проверок SQLModel |
+
+Два пропуска полного набора — запускаемая отдельно коллекция GINO и опциональная
+проверка picologging; тесты SQLModel не пропускаются. Локальные JSON версий и JUnit XML
+сохраняются в `build/compatibility/`; CI публикует отчёты в тех же форматах.
+Команды воспроизведения приведены в [совместимости зависимостей](dependency-compatibility.md).
 
 MySQL reflection не различает `BOOLEAN` и обычные колонки `TINYINT(1)`.
 Контрактная фикстура явно указывает Boolean через [`column_types`](integration.md);
@@ -91,7 +107,7 @@ Peewee 3.19 передаёт PyMySQL 1.2 устаревшие аргументы
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py tests/sqlmodel -q
 ```
 
 Для MySQL нужен URL `mysql://`. Тесты создают и удаляют свои таблицы; запускайте их

@@ -19,29 +19,28 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "starlette>=0.40,<2.0",
+  "starlette>=0.52.1,<2.0",
   "jinja2>=3.1.6,<4",
   "itsdangerous>=2.2,<3",
   "python-multipart>=0.0.20,<1",
-  "anyio>=4.4,<5",
+  "anyio>=4.15.1,<5",
 ]
 
 [project.optional-dependencies]
-sqlalchemy = ["sqlalchemy[asyncio]>=2.0,<2.1"]
-tortoise = ["tortoise-orm>=0.25,<1.0"]
+sqlalchemy = ["sqlalchemy[asyncio]>=2.0.52,<2.1"]
+sqlmodel = ["quite-admin[sqlalchemy]", "sqlmodel>=0.0.27,<0.1"]
+tortoise = ["tortoise-orm>=0.25.4,<1.0"]
 peewee = ["peewee>=3.17,<4"]
-gino-legacy = ["gino>=1.0.1,<1.1", "sqlalchemy>=1.3.24,<1.4", "asyncpg>=0.30,<1"]
-fastapi = ["fastapi>=0.115,<1"]
-litestar = ["litestar>=2.12,<3"]
-all = ["quite-admin[sqlalchemy,tortoise,peewee,fastapi,litestar]"]
+gino-legacy = ["gino>=1.0.1,<1.1", "sqlalchemy>=1.3.24,<1.4", "asyncpg>=0.32,<1"]
+fastapi = ["fastapi>=0.162,<1"]
+litestar = ["litestar>=2.20,<3"]
+all = ["quite-admin[sqlalchemy,sqlmodel,tortoise,peewee,fastapi,litestar]"]
 
 [dependency-groups]
 dev = [
   "quite-admin[all]",
   "aiosqlite>=0.20",
   "httpx>=0.27,<1",
-  # Starlette 1.x TestClient uses httpx2; async integration tests also use httpx.
-  "httpx2>=2,<3",
   "pytest>=8,<10",
   "pytest-asyncio>=0.24,<2",
   "ruff>=0.9",
@@ -54,8 +53,8 @@ gino-check = [
   "pytest>=8,<10",
   "pytest-asyncio>=0.24,<2",
   "httpx>=0.27,<1",
-  "fastapi>=0.115,<1",
-  "litestar>=2.12,<3",
+  "fastapi>=0.162,<1",
+  "litestar>=2.20,<3",
 ]
 logging-check = ["picologging>=0.9.3,<1"]
 database-check = [
@@ -87,6 +86,7 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 [tool.uv]
 conflicts = [
   [{ extra = "gino-legacy" }, { extra = "sqlalchemy" }],
+  [{ extra = "gino-legacy" }, { extra = "sqlmodel" }],
   [{ extra = "gino-legacy" }, { extra = "all" }],
   [{ extra = "gino-legacy" }, { group = "dev" }],
 ]

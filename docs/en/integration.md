@@ -138,3 +138,6 @@ within the same worker thread.
 
 All adapters share the same [collection configuration](configuration.md).
 To support another data source, implement the [Adapter protocol](custom-adapters.md).
+
+SQLModel applications can install the explicit `sqlmodel` extra, which includes the
+SQLAlchemy adapter. See [dependency ranges and the SQLModel contracts](dependency-compatibility.md).

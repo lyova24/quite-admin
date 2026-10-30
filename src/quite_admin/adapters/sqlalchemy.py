@@ -62,6 +62,15 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
                 python_type = column.type.python_type
             except (NotImplementedError, AttributeError):
                 python_type = object
+                # SQLModel's native string decorator does not expose python_type.
+                # Do not infer arbitrary TypeDecorator codecs from their SQL impl.
+                try:
+                    from sqlmodel.sql.sqltypes import AutoString
+                except ImportError:
+                    pass
+                else:
+                    if isinstance(column.type, AutoString):
+                        python_type = str
             is_column = isinstance(column, Column)
             pk = bool(is_column and column.primary_key)
             default = bool(

@@ -63,21 +63,37 @@ not a persistent audit/version history.
 |---|---|---|
 | SQL reflection | Sync/async CRUD, query filters/projection, composite PK/FK, relationship writes | Physical schema only; no Python hooks; pure M:N junctions only |
 | SQLAlchemy 2.x | Sync/async CRUD, query contract, native hooks, relationship writes | Imported mapped classes; dynamic/write-only/view-only relations are read-only |
-| SQLModel | Uses the SQLAlchemy adapter and registry | No separate SQLModel model suite yet; SQLAlchemy compatibility is not independent SQLModel verification |
+| SQLModel | Dedicated real-model sync/async contracts: CRUD, relationships, filters, web permissions, revisions, diagram and typed/defaulted fields | Uses the SQLAlchemy adapter; Pydantic 2 test paths; application validators are not automatically admin write rules |
 | Peewee | Worker-thread CRUD, composite keys, raw FK, M:N and 1:N/1:1 | No async Peewee API; host-owned database |
 | Tortoise | Native async CRUD, raw FK, UUID, JSON and relationships | Must initialize in host lifespan; no composite PK contract |
 | GINO 1.0.x | Native async CRUD, shared query/relationship contracts, composite PK/FK, PostgreSQL types | PostgreSQL/asyncpg only; separate SQLAlchemy 1.3 environment; pure M:N junctions |
 | Custom adapters | A dependency-free example and structural protocol checks | Application author verifies storage, transactions and optional capabilities |
 
 FastAPI and Litestar integration suites exercise authentication, CRUD, relationships,
-field restrictions and proxy prefixes. The lockfile is the tested dependency set,
-not a guarantee for every version in the permitted ranges.
+field restrictions and proxy prefixes. The locked environment and independently resolved
+[minimum/latest dependency profiles](dependency-compatibility.md) are both tested.
+Their artifacts identify the exact versions; the matrix does not enumerate all combinations.
 
 | Database | Adapters / paths | Evidence |
 |---|---|---|
-| SQLite | SQL reflection sync/async, SQLAlchemy sync/async, Peewee, Tortoise | Full suite, CPython 3.11–3.15 CI |
-| PostgreSQL 17 | The same six paths | Locally verified shared CRUD, query-safety, filters, relationships, concurrency and diagram contracts; dedicated CI job |
-| MySQL 8.4 | The same six paths | The same contracts verified locally; dedicated CI job |
+| SQLite | SQL reflection sync/async, SQLAlchemy/SQLModel sync/async, Peewee, Tortoise | Full suite, CPython 3.11–3.15 CI |
+| PostgreSQL 17 | The same eight paths | Locally verified shared CRUD, query-safety, filters, relationships, concurrency and diagram contracts; dedicated CI job |
+| MySQL 8.4 | The same eight paths | The same contracts verified locally; dedicated CI job |
+
+Local verification on **2026-10-30**:
+
+| Environment | Result per run |
+|---|---|
+| Exact runtime floors, CPython 3.11.18 and 3.15.2 | 828 passed, 2 skipped on each Python |
+| Fresh latest runtime versions, CPython 3.11.18 and 3.15.2 | 828 passed, 2 skipped on each Python |
+| Latest Starlette 0.x, CPython 3.12.14 | 828 passed, 2 skipped |
+| GINO minimum/latest, CPython 3.11.18 and 3.15.2, PostgreSQL 17 | 62 passed in each of four runs |
+| Locked dependencies, PostgreSQL 17 / MySQL 8.4, CPython 3.12.14 | 534 passed on each server, including 128 SQLModel checks |
+
+The two full-suite skips are the separately executed GINO collection and optional
+picologging coverage; SQLModel tests are not skipped. Version JSON and JUnit XML from
+local endpoint runs are written under `build/compatibility/`; CI uploads the same report
+formats. See [dependency compatibility](dependency-compatibility.md) to reproduce them.
 
 MySQL reflection cannot distinguish `BOOLEAN` from ordinary `TINYINT(1)` columns.
 The contract fixture explicitly declares the intended Boolean type through
@@ -94,7 +110,7 @@ a **disposable** local database named `quite_admin_test`, then:
 ```bash
 uv sync --locked --group database-check
 QUITE_ADMIN_TEST_DATABASE_URL='postgresql://quite_admin:local-test-password@127.0.0.1:55432/quite_admin_test' \
-  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py -q
+  uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py tests/sqlmodel -q
 ```
 
 Use a `mysql://` URL for MySQL. Tests create and drop their tables; run them serially.

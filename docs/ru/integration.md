@@ -129,3 +129,6 @@ adapter = PeeweeAdapter(base=ProjectBaseModel)
 в одном worker thread. Tortoise выполняет запросы асинхронно через соединение модели.
 
 Общие [настройки коллекций](configuration.md) работают с любым адаптером. Для другой ORM реализуйте [Adapter](custom-adapters.md).
+
+Для SQLModel есть явный extra `sqlmodel`, включающий адаптер SQLAlchemy.
+[Диапазоны зависимостей и контракты SQLModel](dependency-compatibility.md) описаны отдельно.

@@ -94,8 +94,10 @@ uv build
 
 CI tests CPython 3.11, 3.12, 3.13, 3.14 and 3.15 with the pinned dependencies.
 The full test suite uses SQLite; PostgreSQL 17 and MySQL 8.4 have dedicated contract jobs.
-PostgreSQL 17 and MySQL 8.4 each passed 280 contract checks locally.
-See the [compatibility matrix](docs/en/data-safety.md) for evidence and limits.
+Separate minimum/latest dependency jobs resolve fresh isolated environments and include
+real SQLModel sync/async contracts. PostgreSQL/MySQL jobs run the SQLModel suite too.
+See the [compatibility matrix](docs/en/data-safety.md) and
+[dependency endpoints](docs/en/dependency-compatibility.md) for evidence, ranges and limits.
 SQL reflection executes database rules and triggers;
 Python ORM hooks require an ORM or application-service adapter.
 See [current limitations](docs/en/development.md#current-limitations) before choosing an integration mode.

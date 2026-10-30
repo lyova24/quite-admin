@@ -10,11 +10,11 @@
 
 Локально проверены Python 3.14.7 и 3.15.2. Нет отдельных гарантий для free-threaded сборок и альтернативных реализаций Python.
 
-Диапазон зависимостей допускает Starlette 0.x и 1.x. В lock-файле выбран Starlette 1.10.0,
-чей `TestClient` использует `anyio.from_thread.BlockingPortal` и `httpx2`.
-Оба HTTP-клиента входят в зависимости для разработки: синхронные тесты примеров используют
-`TestClient` Starlette, асинхронные интеграционные тесты — `httpx.ASGITransport`.
-Pytest считает `DeprecationWarning` ошибкой, чтобы обнаруживать устаревшие API в проверяемом наборе зависимостей.
+[Матрица версий зависимостей](dependency-compatibility.md) проверяет поддерживаемые нижние
+границы и новое разрешение дополнительно к lockfile. HTTP-тесты используют
+`httpx.ASGITransport` и настоящие lifespan-контексты фреймворков в примерах. Это сохраняет
+покрытие HTTP и жизненного цикла со Starlette 0.x и 1.x без разных библиотек TestClient.
+Pytest считает `DeprecationWarning` ошибкой; предупреждения зависимостей не подавляются.
 
 ## Проверка кода
 
@@ -26,7 +26,7 @@ uv build
 ```
 
 Интеграционные тесты проходят CRUD на SQLite для sync/async SQL reflection,
-sync/async SQLAlchemy, Tortoise и Peewee под FastAPI и Litestar. Проверяются
+sync/async SQLAlchemy/SQLModel, Tortoise и Peewee под FastAPI и Litestar. Проверяются
 CSRF, mass assignment, read-only поля, XSS, права, rollback, шаблоны, host sessions,
 составные ключи, proxy prefixes, конкурентные изменения, поиск связей, фильтры
 и метаданные схемы с учётом прав.

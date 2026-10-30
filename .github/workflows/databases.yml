@@ -78,4 +78,4 @@ jobs:
           python-version: '3.12'
           enable-cache: true
       - run: uv sync --locked --group database-check
-      - run: uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py -q
+      - run: uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py tests/test_filters.py tests/test_diagram.py tests/sqlmodel -q

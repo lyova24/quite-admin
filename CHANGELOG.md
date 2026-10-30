@@ -4,6 +4,12 @@
 
 ### Added
 
+- Independent minimum/latest dependency profiles on Python 3.11 and 3.15, a current
+  Starlette 0.x profile, and separate GINO/PostgreSQL endpoints. CI retains resolved
+  versions and JUnit artifacts without changing the project lockfile.
+- Explicit `sqlmodel` extra and dedicated real SQLModel sync/async contracts in the
+  ordinary, endpoint and PostgreSQL/MySQL suites, including relationships and web behavior.
+
 - Interactive metadata-only database schema with automatic layout, field-level links,
   expandable table cards, labeled 1:1 / 1:N / M:N relationships, junction expansion,
   table-selection sidebar (all registered tables selected initially), pan/zoom and keyboard
@@ -59,6 +65,13 @@
 
 ### Changed
 
+- Supported dependency floors now target verified Python 3.11–3.15 combinations:
+  Starlette 0.52.1, AnyIO 4.15.1, SQLAlchemy 2.0.52, SQLModel 0.0.27, Tortoise 0.25.4,
+  FastAPI 0.162, Litestar 2.20 and legacy asyncpg 0.32. Upgrade application locks to
+  these ranges; EN/RU migration and verification instructions explain the narrowed support.
+- Example HTTP tests use ASGITransport with the real framework lifespan, preserving
+  lifecycle coverage across Starlette branches without TestClient-specific HTTP dependencies.
+
 - Diplodoc EN/RU navigation groups guides by task. Overview, configuration, architecture,
   compatibility instructions and browser-demo walkthroughs reflect the current filters,
   concurrency protection, relationship search and database schema, with fresh screenshots.
@@ -83,6 +96,9 @@
   `detail.html` template has been removed. See the EN/RU configuration documentation.
 
 ### Fixed
+
+- SQLModel `AutoString` fields are recognized as editable/searchable strings without
+  assuming arbitrary custom SQLAlchemy TypeDecorator codecs are safe strings.
 
 - Peewee's MySQL contract fixtures use current PyMySQL connection parameter names
   instead of deprecated `db` / `passwd` aliases; deprecation warnings remain errors.
