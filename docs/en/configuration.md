@@ -143,3 +143,42 @@ form edits, not delete requests or custom actions. Custom adapters opt in throug
 [`CheckedAdapter`](custom-adapters.md#concurrent-edits); others retain their own write policy.
 
 See [list filters](filters.md) for `filter_fields` and related-record filtering.
+
+## Database type controls (0.3.0)
+
+| Database/model type | Built-in control |
+|---|---|
+| CHAR / VARCHAR, bounded strings | Single-line input with discovered `maxlength` |
+| TEXT, Tortoise/Peewee TextField | Full-width multiline textarea |
+| DATE | Native browser calendar; localized display, ISO value |
+| DATETIME / TIMESTAMP | Native date/time picker plus explicit optional UTC offset |
+| TIME | Native time picker plus optional UTC offset |
+| JSON / JSONB | Monospace editor, syntax highlighting, syntax status and Format JSON |
+| Integer / Decimal / float | Numeric input with integer or arbitrary step |
+| Boolean / enum | Select with allowed values; nullable fields include an empty choice |
+| UUID | Text input with server-side UUID validation |
+| Binary / unknown | Read-only, unless an existing explicit parser/template policy handles it |
+
+Text metadata works with SQL reflection as well as ORM adapters; no ORM is required.
+`Field.multiline` is optional metadata for custom adapters, defaulting to `False`.
+Logical kinds remain `string`, so search, filtering and parsing keep their existing behavior.
+`String()` without a length remains a single-line control; only an actual TEXT type
+(or TextField) implies multiline. `FieldOptions.template` still takes precedence.
+
+JSON highlighting is local and uses text nodes, without loading an external editor.
+**Format JSON** preserves numeric lexemes, duplicate keys and string escapes; it never
+rewrites numbers through JavaScript floating point. Syntax status does not replace
+server-side type/nullable checks. Highlighting is disabled above 200,000 characters,
+formatting beyond 40 levels of nesting; the ordinary textarea continues to work.
+
+Date/time pickers never convert into the browser timezone. `Z` or an explicit `±HH:MM`
+offset is retained separately; an empty offset means a naive value. Fractional seconds
+use a separate optional input (up to six digits) so browser picker limitations cannot
+truncate microseconds. Merely opening a form
+does not normalize or truncate its original timestamp. Unsupported ISO shapes/offsets and
+invalid submitted values stay in the text input. Without JavaScript, datetime/time remain
+ISO text inputs and JSON remains a normal textarea. Native calendar presentation depends
+on browser/OS. Server-side parsing, model constraints, field permissions, CSRF and signed
+stale-edit revisions remain authoritative. Built-in scripts use the existing per-page CSP hash.
+
+Future widget extension approaches are compared in the [widget design proposal](field-widgets.md).

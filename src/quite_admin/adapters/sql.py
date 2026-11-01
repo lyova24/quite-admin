@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from anyio import Lock, to_thread
-from sqlalchemy import JSON, MetaData, Table, and_, delete, func, insert, or_, select, update
+from sqlalchemy import JSON, MetaData, Table, Text, and_, delete, func, insert, or_, select, update
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -147,6 +147,7 @@ class SQLAdapter(CheckedWrites, SQLRelations):
                     read_only=column.computed is not None or column.identity is not None,
                     has_default=default,
                     max_length=getattr(column.type, "length", None),
+                    multiline=isinstance(column.type, Text),
                     choices=() if enum_class else tuple(getattr(column.type, "enums", ()) or ()),
                     foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None),
                 )

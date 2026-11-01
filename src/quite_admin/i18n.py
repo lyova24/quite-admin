@@ -21,6 +21,16 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Format JSON": "Форматировать JSON",
+    "Valid JSON": "Корректный JSON",
+    "Invalid JSON": "Ошибка синтаксиса JSON",
+    "JSON is too large for highlighting.": "JSON слишком большой для подсветки.",
+    "JSON nesting is too deep to format.": "Слишком глубокая вложенность JSON для форматирования.",
+    "Fractional seconds (optional)": "Доли секунды (необязательно)",
+    "UTC offset (optional)": "Смещение UTC (необязательно)",
+    "Use Z or ±HH:MM; leave empty for no timezone.": (
+        "Укажите Z или ±HH:MM; оставьте пустым для времени без часового пояса."
+    ),
     "Export data": "Экспорт данных",
     "Columns": "Столбцы",
     "Format": "Формат",

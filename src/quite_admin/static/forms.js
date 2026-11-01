@@ -1,0 +1,143 @@
+(function (root) {
+  'use strict';
+  const maxJSON = 200000;
+  const tokenRE = /"(?:[^"\\]|\\.)*"\s*:|"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b/g;
+  function tokens(text) {
+    const result = [];
+    let last = 0;
+    for (const match of text.matchAll(tokenRE)) {
+      if (match.index > last) result.push(['plain', text.slice(last, match.index)]);
+      const value = match[0];
+      result.push([value.startsWith('"') ? (value.trimEnd().endsWith(':') ? 'key' : 'string') : /^(true|false|null)$/.test(value) ? 'literal' : 'number', value]);
+      last = match.index + value.length;
+    }
+    result.push(['plain', text.slice(last)]);
+    return result;
+  }
+  function splitTemporal(value, kind) {
+    const pattern = kind === 'datetime'
+      ? /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?)(Z|[+-]\d{2}:\d{2})?$/
+      : /^(\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?)(Z|[+-]\d{2}:\d{2})?$/;
+    const match = value.match(pattern);
+    return !value ? ['', ''] : match ? [match[1], match[2] || ''] : null;
+  }
+  // Format lexical JSON without parsing numbers through JavaScript's binary float.
+  // Validation still uses JSON.parse, but never serializes its numeric values.
+  function formatJSON(text) {
+    JSON.parse(text);
+    let output = '', depth = 0, quoted = false, escaped = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (quoted) {
+        output += char;
+        if (escaped) escaped = false;
+        else if (char === '\\') escaped = true;
+        else if (char === '"') quoted = false;
+        continue;
+      }
+      if (/\s/.test(char)) continue;
+      if (char === '"') { quoted = true; output += char; }
+      else if (char === '{' || char === '[') {
+        output += char;
+        const next = text.slice(i + 1).trimStart()[0];
+        if (next === '}' || next === ']') { output += next; i = text.indexOf(next, i + 1); }
+        else { depth++; if (depth > 40) throw new RangeError('depth'); output += '\n' + '  '.repeat(depth); }
+      } else if (char === '}' || char === ']') {
+        depth--; output += '\n' + '  '.repeat(depth) + char;
+      } else if (char === ',') output += ',\n' + '  '.repeat(depth);
+      else if (char === ':') output += ': ';
+      else output += char;
+    }
+    return output;
+  }
+  if (typeof module !== 'undefined') module.exports = {tokens, splitTemporal, formatJSON};
+  if (!root.document) return;
+  const doc = root.document;
+  const config = doc.querySelector('[data-form-messages]');
+  const messages = config ? JSON.parse(config.dataset.messages) : {};
+  const t = name => messages[name] || name;
+  function describe(input, id) {
+    input.setAttribute('aria-describedby', [input.getAttribute('aria-describedby'), id].filter(Boolean).join(' '));
+  }
+  for (const input of doc.querySelectorAll('[data-json-editor]')) {
+    const wrap = doc.createElement('div');
+    wrap.className = 'json-editor';
+    input.before(wrap); wrap.append(input);
+    const pre = doc.createElement('pre');
+    pre.className = 'json-highlight code-input'; pre.setAttribute('aria-hidden', 'true');
+    wrap.prepend(pre);
+    const toolbar = doc.createElement('div'); toolbar.className = 'json-toolbar';
+    const button = doc.createElement('button'); button.type = 'button';
+    button.className = 'button secondary small'; button.textContent = t('Format JSON');
+    const status = doc.createElement('span'); status.className = 'field-help';
+    status.id = input.id + '-json-status'; status.setAttribute('role', 'status');
+    toolbar.append(button, status); wrap.after(toolbar); describe(input, status.id);
+    input.wrap = 'off';
+    function render() {
+      const text = input.value;
+      pre.replaceChildren();
+      const large = text.length > maxJSON;
+      wrap.classList.toggle('json-plain', large);
+      if (!large) {
+        for (const [kind, value] of tokens(text)) {
+          const span = doc.createElement('span'); span.className = 'json-' + kind;
+          span.textContent = value; pre.append(span);
+        }
+        pre.append(doc.createTextNode('\n'));
+      }
+      button.disabled = large || !text.trim();
+      if (large) status.textContent = t('JSON is too large for highlighting.');
+      else if (!text.trim()) status.textContent = '';
+      else {
+        try { JSON.parse(text); status.textContent = t('Valid JSON'); }
+        catch (_) { status.textContent = t('Invalid JSON'); button.disabled = true; }
+      }
+      pre.scrollTop = input.scrollTop; pre.scrollLeft = input.scrollLeft;
+    }
+    input.addEventListener('input', render);
+    input.addEventListener('scroll', () => { pre.scrollTop = input.scrollTop; pre.scrollLeft = input.scrollLeft; });
+    button.addEventListener('click', () => {
+      if (input.value.length > maxJSON) return;
+      try { input.value = formatJSON(input.value); input.dispatchEvent(new Event('input', {bubbles: true})); }
+      catch (_) { status.textContent = t('JSON nesting is too deep to format.'); }
+    });
+    render();
+  }
+  for (const input of doc.querySelectorAll('[data-temporal]')) {
+    const kind = input.dataset.temporal;
+    const parts = splitTemporal(input.value, kind);
+    if (!parts) continue; // Preserve unrecognized submitted values and exotic ISO offsets verbatim.
+    const picker = doc.createElement('input');
+    picker.type = kind === 'datetime' ? 'datetime-local' : 'time';
+    if (picker.type === 'text') continue;
+    picker.step = '1'; picker.value = parts[0].replace(/\.\d+$/, '');
+    if (parts[0] && !picker.value) continue;
+    const group = doc.createElement('div'); group.className = 'temporal-controls';
+    picker.id = input.id + '-picker';
+    for (const name of ['aria-describedby', 'aria-invalid']) {
+      if (input.hasAttribute(name)) picker.setAttribute(name, input.getAttribute(name));
+    }
+    const label = doc.querySelector('label[for="' + CSS.escape(input.id) + '"]');
+    if (label) label.htmlFor = picker.id;
+    const fractionLabel = doc.createElement('label'); fractionLabel.className = 'field-help temporal-fraction';
+    fractionLabel.append(doc.createTextNode(t('Fractional seconds (optional)')));
+    const fraction = doc.createElement('input'); fraction.type = 'text';
+    fraction.value = (parts[0].match(/\.(\d+)$/) || ['', ''])[1];
+    fraction.placeholder = '123456'; fraction.maxLength = 6; fraction.pattern = '[0-9]{1,6}';
+    fraction.inputMode = 'numeric'; fractionLabel.append(fraction);
+    const offsetLabel = doc.createElement('label'); offsetLabel.className = 'field-help temporal-offset';
+    offsetLabel.append(doc.createTextNode(t('UTC offset (optional)')));
+    const offset = doc.createElement('input'); offset.type = 'text'; offset.value = parts[1];
+    offset.placeholder = '+03:00'; offset.maxLength = 6;
+    offset.pattern = 'Z|(?:[+]|-)(?:[01][0-9]|2[0-3]):[0-5][0-9]';
+    const hint = doc.createElement('p'); hint.className = 'field-help';
+    hint.id = input.id + '-timezone-help'; hint.textContent = t('Use Z or ±HH:MM; leave empty for no timezone.');
+    describe(offset, hint.id);
+    offsetLabel.append(offset); group.append(picker, fractionLabel, offsetLabel);
+    input.after(group, hint); input.type = 'hidden';
+    // Do not rewrite the original value until the user changes a control. Browsers
+    // may normalize :00 or fractional seconds in datetime-local display values.
+    const sync = () => { input.value = picker.value ? picker.value + (fraction.value ? '.' + fraction.value : '') + offset.value : ''; };
+    picker.addEventListener('input', sync); fraction.addEventListener('input', sync); offset.addEventListener('input', sync);
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

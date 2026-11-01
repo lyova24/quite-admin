@@ -39,6 +39,8 @@ items:
         href: custom-pages.md
       - name: Operations and extensions
         href: extensions.md
+      - name: Field widget design proposal
+        href: field-widgets.md
   - name: Security and operations
     items:
       - name: Authentication and permissions

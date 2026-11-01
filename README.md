@@ -29,6 +29,7 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - SQLAlchemy / SQLModel, Tortoise, Peewee and GINO 1.x (`gino-legacy` extra) adapters;
   an adapter protocol for other data sources.
 - Typed adapter filters/projections and delegation to application services for writes.
+- Type-aware forms: TEXT textareas, date/time pickers and JSON/JSONB syntax highlighting.
 - Custom pages and Jinja2 template overrides.
 - Write lifecycle hooks, custom field controls and permission-checked record actions.
 - English/Russian UI, configurable colors, admin name and description.

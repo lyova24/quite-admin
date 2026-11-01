@@ -4,6 +4,11 @@
 
 ### Added
 
+- Type-aware record forms: multiline TEXT fields across SQL reflection and ORM adapters,
+  native date/time pickers with explicit optional UTC offsets, and a local JSON/JSONB
+  syntax editor with precision-preserving formatting and no-script fallbacks.
+- EN/RU design proposal comparing field widget extension APIs; no new widget API implemented.
+
 - Permission-checked CSV/XLSX exports from collection lists with selected columns, current
   search/filters/sorting and optional one-hop related columns. Collection relationships
   stay on separate lines within a cell. Bounded exports fail rather than truncate,

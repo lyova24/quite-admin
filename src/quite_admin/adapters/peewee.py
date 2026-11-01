@@ -84,6 +84,7 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
                     generated=isinstance(item, pw.AutoField),
                     has_default=item.default is not None,
                     max_length=getattr(item, "max_length", None),
+                    multiline=isinstance(item, pw.TextField),
                     choices=tuple(str(choice[0]) for choice in (item.choices or ())),
                     foreign_key=f"{item.rel_model._meta.table_name}.{item.rel_field.name}"
                     if isinstance(item, pw.ForeignKeyField)

@@ -545,7 +545,7 @@ class Admin:
             ]
         scripts = []
         for name in trusted_scripts:
-            if name not in {"relations.js", "schema.js", "filters.js"}:
+            if name not in {"relations.js", "schema.js", "filters.js", "forms.js"}:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
                 hashlib.sha256((Path(__file__).parent / "static" / name).read_bytes()).digest()
@@ -1151,7 +1151,32 @@ class Admin:
         return await self._render(
             request,
             "quite_admin/form.html",
-            trusted_scripts=("relations.js",) if any(item["editable"] for item in editors) else (),
+            trusted_scripts=(
+                (("relations.js",) if any(item["editable"] for item in editors) else ())
+                + (
+                    ("forms.js",)
+                    if editable
+                    and any(
+                        item.name in resource.options.writable_fields(resource.schema, creating)
+                        and item.kind in {"json", "datetime", "time"}
+                        for item in fields
+                    )
+                    else ()
+                )
+            ),
+            form_messages={
+                name: self.gettext(name)
+                for name in (
+                    "Format JSON",
+                    "Valid JSON",
+                    "Invalid JSON",
+                    "JSON is too large for highlighting.",
+                    "UTC offset (optional)",
+                    "Fractional seconds (optional)",
+                    "Use Z or ±HH:MM; leave empty for no timezone.",
+                    "JSON nesting is too deep to format.",
+                )
+            },
             status=status,
             resource=resource,
             fields=fields,

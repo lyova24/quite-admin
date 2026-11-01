@@ -39,6 +39,8 @@ items:
         href: custom-pages.md
       - name: Операции и расширения
         href: extensions.md
+      - name: Проект API виджетов полей
+        href: field-widgets.md
   - name: Безопасность и эксплуатация
     items:
       - name: Авторизация и права

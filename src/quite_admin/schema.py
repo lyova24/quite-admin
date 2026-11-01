@@ -50,6 +50,7 @@ class Field:
     foreign_key: str | None = None
     parser: Callable[[Any], Any] | None = None
     formatter: Callable[[Any], str] | None = None
+    multiline: bool = False
 
     def __post_init__(self) -> None:
         if not self.name or self.name.startswith("__"):

@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from anyio import to_thread
-from sqlalchemy import JSON, Column, String, and_, func, inspect, or_, select
+from sqlalchemy import JSON, Column, String, Text, and_, func, inspect, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
@@ -109,6 +109,7 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
                     read_only=computed or not is_column,
                     has_default=default,
                     max_length=getattr(column.type, "length", None),
+                    multiline=isinstance(column.type, Text),
                     choices=choices,
                     foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None)
                     if is_column

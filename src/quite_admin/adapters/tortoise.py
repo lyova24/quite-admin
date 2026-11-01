@@ -6,7 +6,7 @@ from typing import Any
 from tortoise import Tortoise
 from tortoise.exceptions import IntegrityError, ValidationError
 from tortoise.expressions import Q
-from tortoise.fields import JSONField
+from tortoise.fields import JSONField, TextField
 from tortoise.transactions import in_transaction
 
 from quite_admin.concurrency import CheckedWrites, check_record
@@ -66,6 +66,7 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
                     read_only=generated,
                     has_default=item.default is not None,
                     max_length=getattr(item, "max_length", None),
+                    multiline=isinstance(item, TextField),
                     foreign_key=foreign_keys.get(name),
                 )
             )

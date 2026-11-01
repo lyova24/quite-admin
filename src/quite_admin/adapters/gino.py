@@ -7,7 +7,7 @@ from uuid import UUID
 
 from asyncpg import IntegrityConstraintViolationError
 from gino import Gino
-from sqlalchemy import JSON, String, and_, func, or_, select
+from sqlalchemy import JSON, String, Text, and_, func, or_, select
 from sqlalchemy.dialects import registry
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
@@ -110,6 +110,7 @@ class GinoAdapter(CheckedWrites, GinoRelations):
                     read_only=computed,
                     has_default=default,
                     max_length=getattr(column.type, "length", None),
+                    multiline=isinstance(column.type, Text),
                     choices=choices,
                     foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None),
                 )

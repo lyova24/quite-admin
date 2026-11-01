@@ -75,7 +75,7 @@ The build checks translation page coverage, internal links and Diplodoc warnings
 CI builds both languages and uploads the HTML as an artifact.
 Run `npm run demo:test` after changing the browser demo or shared scripts; it rebuilds
 the fictional seed and checks relationship writes, stale edits, filter conditions,
-schema layout and junction expansion.
+schema layout, junction expansion and form control precision.
 
 The separate `pages` workflow publishes the generated `build/docs` directory from `master`
 using GitHub Pages Actions. In repository Settings → Pages, select **GitHub Actions** as the source.
