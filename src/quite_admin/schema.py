@@ -34,7 +34,7 @@ def kind_for(python_type: type) -> str:
     }.get(get_origin(python_type) or python_type, "unsupported")
 
 
-@dataclass(frozen=True)
+@dataclass(init=False)
 class Field:
     name: str
     python_type: type = str
@@ -52,16 +52,45 @@ class Field:
     formatter: Callable[[Any], str] | None = None
     multiline: bool = False
 
-    def __post_init__(self) -> None:
-        if not self.name or self.name.startswith("__"):
+    def __init__(
+        self,
+        name: str,
+        python_type: type = str,
+        label: str | None = None,
+        kind: str | None = None,
+        nullable: bool = False,
+        primary_key: bool = False,
+        generated: bool = False,
+        read_only: bool = False,
+        has_default: bool = False,
+        max_length: int | None = None,
+        choices: tuple[str, ...] = (),
+        foreign_key: str | None = None,
+        parser: Callable[[Any], Any] | None = None,
+        formatter: Callable[[Any], str] | None = None,
+        multiline: bool = False,
+    ) -> None:
+        if not name or name.startswith("__"):
             raise ValueError("Field names must be nonempty and cannot start with '__'.")
-        object.__setattr__(self, "kind", self.kind or kind_for(self.python_type))
-        object.__setattr__(self, "label", self.label or self.name.replace("_", " ").title())
+        self.name = name
+        self.python_type = python_type
+        self.label = label or name.replace("_", " ").title()
+        self.kind = kind or kind_for(python_type)
+        self.nullable = nullable
+        self.primary_key = primary_key
+        self.generated = generated
+        self.read_only = read_only
+        self.has_default = has_default
+        self.max_length = max_length
+        self.choices = choices
+        self.foreign_key = foreign_key
+        self.parser = parser
+        self.formatter = formatter
+        self.multiline = multiline
         if self.kind in {"unsupported", "binary"}:
-            object.__setattr__(self, "read_only", True)
+            self.read_only = True
         if self.kind == "enum" and not self.choices:
-            values = tuple(str(item.value) for item in self.python_type)
-            object.__setattr__(self, "choices", values)
+            self.choices = tuple(str(item.value) for item in python_type)
 
     def parse(self, value: Any) -> Any:
         if value is None or (value == "" and self.nullable):
@@ -123,18 +152,20 @@ class Field:
         return str(value)
 
 
-@dataclass(frozen=True)
+@dataclass(init=False)
 class ModelSchema:
     name: str
     fields: tuple[Field, ...]
     label: str | None = None
 
-    def __post_init__(self) -> None:
-        if len({field.name for field in self.fields}) != len(self.fields):
+    def __init__(self, name: str, fields: tuple[Field, ...], label: str | None = None) -> None:
+        if len({field.name for field in fields}) != len(fields):
             raise ValueError("Duplicate field names.")
+        self.name = name
+        self.fields = fields
+        self.label = label or name.replace("_", " ").title()
         if not self.primary_keys:
             raise ValueError(f"{self.name} has no primary key; records cannot be addressed safely.")
-        object.__setattr__(self, "label", self.label or self.name.replace("_", " ").title())
 
     @property
     def primary_keys(self) -> tuple[Field, ...]:

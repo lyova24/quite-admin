@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from functools import reduce
-from operator import or_
-
 import peewee as pw
 
 from quite_admin.concurrency import check_record, check_relation, guarded
@@ -11,7 +8,7 @@ from quite_admin.relations import Junction, Relation
 from quite_admin.schema import RecordPage
 
 from ._queries import ordering as order_expressions
-from ._queries import predicates
+from ._queries import predicates, search_predicate
 
 
 class PeeweeRelations:
@@ -128,12 +125,8 @@ class PeeweeRelations:
                 )
             if query.search and query.search_fields:
                 statement = statement.where(
-                    reduce(
-                        or_,
-                        (
-                            getattr(relation.target, field).contains(query.search)
-                            for field in query.search_fields
-                        ),
+                    search_predicate(
+                        query, lambda field: getattr(relation.target, field), peewee=True
                     )
                 )
             total = statement.count()

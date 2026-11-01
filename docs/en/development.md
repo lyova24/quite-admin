@@ -1,5 +1,21 @@
 # Development and compatibility
 
+## Readable implementation
+
+Use explicit constructors for validation and derived defaults. `Field`, `ModelSchema`,
+`RecordAction` and `Theme` use ordinary assignments; there are no post-init callbacks or
+frozen-object mutations. They remain dataclasses for equality, representation and
+`dataclasses.replace()`. They are mutable configuration objects: finish constructing them
+before serving requests. Do not mutate registered metadata during requests; use
+`Admin.configure()` to replace collection options. Constructor validation does not run on
+later attribute assignments. Code that relied on these four objects being hashable or
+raising `FrozenInstanceError` must stop doing so. Request operation snapshots, identities,
+query objects and write guards keep their existing protections.
+
+Use explicit branches and loops for transaction selection and compound query conditions.
+Keep ORM reflection and async boundaries where their contracts require them; avoid
+introducing an abstraction solely to save a few lines.
+
 The finalized baseline is **0.3.0** (2026-11-01); subsequent work targets a higher version. See the repository's `CHANGELOG.md` for changes
 since 0.1.0. The minor bump includes relationship editors, list filters, stale-edit
 protection, the database schema and interface customization. A version update does not

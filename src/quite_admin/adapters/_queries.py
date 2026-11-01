@@ -1,7 +1,6 @@
 """Native query expressions, called only after Query.validate()."""
 
 import operator
-from functools import reduce
 
 from quite_admin.schema import TEXT_FILTER_OPERATORS
 
@@ -55,10 +54,17 @@ def search_predicate(query, column, *, peewee=False, text_column=None):
                 literal = query.search.replace("!", "!!").replace("%", "!%").replace("_", "!_")
                 expressions.append(field.ilike("%" + literal + "%", escape="!"))
     if query.search_key is not None:
-        expressions.append(
-            reduce(operator.and_, (column(n) == v for n, v in query.search_key.items()))
-        )
-    return reduce(operator.or_, expressions) if expressions else None
+        key_parts = [column(name) == value for name, value in query.search_key.items()]
+        key_match = key_parts[0]
+        for part in key_parts[1:]:
+            key_match = key_match & part
+        expressions.append(key_match)
+    if not expressions:
+        return None
+    search = expressions[0]
+    for expression in expressions[1:]:
+        search = search | expression
+    return search
 
 
 def ordering(query, schema, column):

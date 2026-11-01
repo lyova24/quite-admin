@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -5,13 +6,65 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quite_admin import Field, FieldOptions, ModelOptions, ModelSchema
+from quite_admin import Field, FieldOptions, ModelOptions, ModelSchema, RecordAction, Theme
 from quite_admin.errors import NotFound, ValidationError
 
 
 class Status(Enum):
     DRAFT = "draft"
     ACTIVE = "active"
+
+
+def test_explicit_constructors_keep_defaults_validation_and_replacement():
+    field = Field("display_name")
+    assert field.label == "Display Name" and field.kind == "string"
+    assert replace(field, label="Name") == Field("display_name", label="Name")
+    assert Field("status", Status).choices == ("draft", "active")
+    assert Field("blob", bytes).read_only
+    assert Field("unknown", object).read_only
+    schema = ModelSchema("order_items", (Field("id", int, primary_key=True), field))
+    assert schema.label == "Order Items"
+    assert replace(schema, label="Items").fields == schema.fields
+    theme = Theme(primary="#ABC", on_danger="#DEF")
+    assert theme.primary == "#aabbcc" and theme.on_danger == "#ddeeff"
+    assert replace(theme, primary="#123").primary == "#112233"
+
+    def handler(operation):
+        return None
+
+    action = RecordAction("publish", "Publish", handler)
+    assert action.required_permission == "edit" and action.handler is handler
+    assert replace(action, required_permission="delete").required_permission == "delete"
+    for name in ("", "__hidden"):
+        with pytest.raises(ValueError, match="Field names"):
+            Field(name)
+    with pytest.raises(ValueError, match="Duplicate field"):
+        ModelSchema("items", (schema.fields[0], schema.fields[0]))
+    with pytest.raises(ValueError, match="no primary key"):
+        ModelSchema("items", (field,))
+    with pytest.raises(ValueError, match="Action slugs"):
+        RecordAction("../publish", "Publish", handler)
+    with pytest.raises(ValueError, match="Unknown required"):
+        RecordAction("publish", "Publish", handler, required_permission="unknown")
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "primary",
+        "background",
+        "surface",
+        "text",
+        "muted",
+        "border",
+        "danger",
+        "on_primary",
+        "on_danger",
+    ],
+)
+def test_explicit_theme_constructor_validates_every_color(name):
+    with pytest.raises(ValueError, match=rf"Theme\.{name} must be"):
+        Theme(**{name: "#fff;}body{display:none}"})
 
 
 @pytest.mark.parametrize(

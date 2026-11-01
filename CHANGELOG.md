@@ -2,6 +2,16 @@
 
 ## 0.3.1 — Unreleased
 
+### Changed
+
+- Replace hidden post-initialization and frozen-object mutation in Field, ModelSchema,
+  RecordAction and Theme with explicit constructors and ordinary assignments. Constructor
+  arguments, validation, derived defaults, equality and dataclasses.replace remain available.
+  These four objects are now mutable configuration data; configure them before serving
+  requests and use Admin.configure() for collection options. Operation snapshots stay protected.
+- Use ordinary loops for composed SQL search conditions and explicit Peewee transaction
+  selection instead of reduce() and nested conditional context managers.
+
 ### Fixed
 
 - Patch the Diplodoc dependency chain and refresh its lockfile; npm audit reports zero

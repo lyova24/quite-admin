@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Literal
@@ -51,7 +52,7 @@ def is_sensitive_field(name: str) -> bool:
     )
 
 
-@dataclass(frozen=True)
+@dataclass(init=False)
 class RecordAction:
     slug: str
     label: str
@@ -59,13 +60,25 @@ class RecordAction:
     permission: Permission | None = None
     required_permission: Action = "edit"
 
-    def __post_init__(self) -> None:
-        import re
-
-        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", self.slug):
+    def __init__(
+        self,
+        slug: str,
+        label: str,
+        handler: Callable[
+            [Operation], Mapping[str, Any] | None | Awaitable[Mapping[str, Any] | None]
+        ],
+        permission: Permission | None = None,
+        required_permission: Action = "edit",
+    ) -> None:
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", slug):
             raise ValueError("Action slugs must contain letters, digits, hyphens or underscores.")
-        if self.required_permission not in {"list", "view", "create", "edit", "delete"}:
+        if required_permission not in {"list", "view", "create", "edit", "delete"}:
             raise ValueError("Unknown required action permission.")
+        self.slug = slug
+        self.label = label
+        self.handler = handler
+        self.permission = permission
+        self.required_permission = required_permission
 
 
 @dataclass(frozen=True)

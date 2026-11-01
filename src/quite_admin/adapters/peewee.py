@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import operator
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import nullcontext
 from datetime import date, datetime, time
 from decimal import Decimal
-from functools import reduce
 from typing import Any
 from uuid import UUID
 
@@ -103,15 +101,13 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
             database = model._meta.database
             # Open and close in the SAME worker; Peewee connections are thread-local.
             with database.connection_context():
-                with (
-                    (
-                        database.atomic("IMMEDIATE")
-                        if guarded() and isinstance(database, pw.SqliteDatabase)
-                        else database.atomic()
-                    )
-                    if write
-                    else nullcontext()
-                ):
+                transaction = nullcontext()
+                if write:
+                    if guarded() and isinstance(database, pw.SqliteDatabase):
+                        transaction = database.atomic("IMMEDIATE")
+                    else:
+                        transaction = database.atomic()
+                with transaction:
                     return operation()
 
         try:
@@ -120,7 +116,11 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
             raise Conflict("The operation conflicts with a database constraint.") from exc
 
     def _where(self, model: type, key: Mapping[str, Any]) -> Any:
-        return reduce(operator.and_, (getattr(model, name) == value for name, value in key.items()))
+        conditions = [getattr(model, name) == value for name, value in key.items()]
+        condition = conditions[0]
+        for part in conditions[1:]:
+            condition = condition & part
+        return condition
 
     def _locked_get(self, model, key):
         query = model.select().where(self._where(model, key))

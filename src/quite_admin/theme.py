@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 
 COLOR = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
+
+
+def _color(name: str, value: str) -> str:
+    if not isinstance(value, str) or not COLOR.fullmatch(value):
+        raise ValueError(f"Theme.{name} must be a #RGB or #RRGGBB color.")
+    value = value.lower()
+    if len(value) == 4:
+        value = "#" + "".join(character * 2 for character in value[1:])
+    return value
 
 
 def _mix(color: str, background: str, weight: float) -> str:
@@ -19,7 +28,7 @@ def _mix(color: str, background: str, weight: float) -> str:
     return "#" + "".join(f"{channel:02x}" for channel in channels)
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(init=False, kw_only=True)
 class Theme:
     """Main UI colors, as #RGB or #RRGGBB. Related shades are derived automatically."""
 
@@ -33,15 +42,28 @@ class Theme:
     on_primary: str = "#ffffff"
     on_danger: str = "#ffffff"
 
-    def __post_init__(self) -> None:
-        for item in fields(self):
-            value = getattr(self, item.name)
-            if not isinstance(value, str) or not COLOR.fullmatch(value):
-                raise ValueError(f"Theme.{item.name} must be a #RGB or #RRGGBB color.")
-            value = value.lower()
-            if len(value) == 4:
-                value = "#" + "".join(character * 2 for character in value[1:])
-            object.__setattr__(self, item.name, value)
+    def __init__(
+        self,
+        *,
+        primary: str = "#3e6656",
+        background: str = "#f5f6f8",
+        surface: str = "#ffffff",
+        text: str = "#20252b",
+        muted: str = "#626b76",
+        border: str = "#dce0e5",
+        danger: str = "#b43e3e",
+        on_primary: str = "#ffffff",
+        on_danger: str = "#ffffff",
+    ) -> None:
+        self.primary = _color("primary", primary)
+        self.background = _color("background", background)
+        self.surface = _color("surface", surface)
+        self.text = _color("text", text)
+        self.muted = _color("muted", muted)
+        self.border = _color("border", border)
+        self.danger = _color("danger", danger)
+        self.on_primary = _color("on_primary", on_primary)
+        self.on_danger = _color("on_danger", on_danger)
 
     def stylesheet(self) -> str:
         colors = {
