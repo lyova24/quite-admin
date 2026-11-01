@@ -16,7 +16,7 @@ Use explicit branches and loops for transaction selection and compound query con
 Keep ORM reflection and async boundaries where their contracts require them; avoid
 introducing an abstraction solely to save a few lines.
 
-The finalized baseline is **0.4.0** (2026-11-01); subsequent work targets a higher version.
+The finalized baseline is **0.4.1** (2026-11-01); subsequent work targets a higher version.
 See `CHANGELOG.md` and [public API guarantees](api-stability.md) for migration and
 compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
 GINO checks run separately with `--profile gino`. Version updates do not publish a release.
@@ -108,10 +108,12 @@ Install the pinned browsers first with `npx playwright install --with-deps`.
 The fixture uses only fictional data in a temporary SQLite database. Browser jobs run
 Chromium, Firefox and WebKit in CI and retain failure screenshots/traces.
 
-CI tests the source checkout without building library distributions. GitHub releases
-provide only source-code ZIP/tar.gz archives. For optional local packaging diagnostics,
-`uv build` followed by `uv run python scripts/check_distributions.py` remains available;
-it is not part of CI or release publication and requires registry access.
+Python matrix jobs test the source checkout without building distributions.
+The dedicated `pypi.yml` workflow builds one wheel/sdist pair after a validated GitHub
+release, checks Twine and installs both into clean environments. For local packaging
+checks, run `uv build`, then `uvx --from 'twine>=6,<7' twine check --strict dist/*` and
+`uv run python scripts/check_distributions.py`. Package metadata must remain 2.4.
+GitHub release downloads remain source-code archives; see [publishing](releases.md).
 
 ## Current limitations
 

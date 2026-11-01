@@ -33,7 +33,7 @@
       <p class="nav-label">{{ t('PAGES') }}</p>
       <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}<a class="nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}"{% if page and page.slug == item.slug %} aria-current="page"{% endif %}>{{ item.title }}</a>{% endfor %}</nav>
       {% endif %}
-      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.4.0</span></div>
+      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.4.1</span></div>
     </aside>
   {% endif %}
     <main class="main">

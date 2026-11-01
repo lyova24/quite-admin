@@ -1,13 +1,15 @@
 # Add an admin in two minutes
 
 Use CPython **3.11–3.15** and your existing application, database and models.
-For version **0.4.0**, unpack a GitHub source archive or use a source checkout,
-then install it into the application's virtual environment:
+Install quite-admin from PyPI into your application's virtual environment:
 
 ```bash
-pip install '/path/to/quite-admin[sqlalchemy,fastapi]'
-# For Litestar: pip install '/path/to/quite-admin[sqlalchemy,litestar]'
+pip install 'quite-admin[sqlalchemy,fastapi]'
+# For Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
+
+Pin `quite-admin[sqlalchemy,fastapi]==0.4.1` when you need reproducible deployments.
+Source checkout/archive installation is also supported.
 
 ## Existing FastAPI application
 

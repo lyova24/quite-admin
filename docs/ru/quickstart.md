@@ -1,13 +1,15 @@
 # Подключение за две минуты
 
 Нужны CPython **3.11–3.15**, существующее приложение, база и модели.
-Для версии **0.4.0** распакуйте архив исходников GitHub или используйте checkout,
-затем установите его в окружение приложения:
+Установите quite-admin из PyPI в окружение приложения:
 
 ```bash
-pip install '/path/to/quite-admin[sqlalchemy,fastapi]'
-# Для Litestar: pip install '/path/to/quite-admin[sqlalchemy,litestar]'
+pip install 'quite-admin[sqlalchemy,fastapi]'
+# Для Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
+
+Для воспроизводимой установки закрепите `quite-admin[sqlalchemy,fastapi]==0.4.1`.
+Установка из исходного checkout или архива также поддерживается.
 
 ## Существующее FastAPI-приложение
 

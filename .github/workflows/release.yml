@@ -2,13 +2,15 @@ name: release
 on:
   push:
     tags: ['v*']
+  release:
+    types: [published]
 permissions:
   contents: read
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 env:
-  RELEASE_TAG: ${{ github.ref_name }}
+  RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
 
 jobs:
   metadata:
@@ -28,6 +30,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
+    if: github.event_name == 'push'
     needs: [metadata, checks]
     runs-on: ubuntu-latest
     permissions:

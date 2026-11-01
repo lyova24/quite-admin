@@ -10,7 +10,7 @@ from .relations import Junction, Relation, RelationAdapter
 from .schema import Field, Filter, ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     "ADAPTER_API_VERSION",

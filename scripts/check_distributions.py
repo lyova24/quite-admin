@@ -4,9 +4,12 @@ import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tomllib
+from email.parser import BytesParser
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 SMOKE = r"""
 import asyncio
@@ -80,6 +83,15 @@ def main():
     environment = dict(os.environ)
     environment.pop("PYTHONPATH", None)
     for artifact in artifacts:
+        if artifact.suffix == ".whl":
+            with ZipFile(artifact) as archive:
+                raw_metadata = archive.read(f"quite_admin-{version}.dist-info/METADATA")
+        else:
+            with tarfile.open(artifact) as archive:
+                raw_metadata = archive.extractfile(f"quite_admin-{version}/PKG-INFO").read()
+        metadata = BytesParser().parsebytes(raw_metadata)
+        if metadata["Metadata-Version"] != "2.4":
+            raise SystemExit(f"{artifact.name} must use compatible core metadata 2.4.")
         with TemporaryDirectory(prefix="quite-admin-artifact-") as temporary:
             workspace = Path(temporary)
             virtualenv = workspace / "venv"

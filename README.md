@@ -1,6 +1,6 @@
 # quite-admin
 
-**Version: 0.4.0** (finalized 2026-11-01) · [Changelog](CHANGELOG.md)
+**Version: 0.4.1** (finalized 2026-11-01) · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -37,6 +37,17 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Application-owned logging with stdlib, structlog, Loguru and Litestar backends.
 - FastAPI and Litestar mounting, including nested paths and reverse-proxy prefixes.
 
+## Install
+
+```bash
+pip install 'quite-admin[sqlalchemy,fastapi]'
+# Or: uv add 'quite-admin[sqlalchemy,litestar]'
+```
+
+Choose `sqlmodel`, `tortoise`, `peewee` or `gino-legacy` for another adapter.
+Use `pip install quite-admin` for the ORM-independent core. Native GINO requires a
+separate environment from SQLAlchemy 2.x. [PyPI package](https://pypi.org/project/quite-admin/).
+
 ## Run the demo
 
 From this source checkout:
@@ -55,7 +66,7 @@ Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
 
 | Project | When its documented approach fits |
 |---|---|
-| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.4.0; see the public API guarantees and compatibility evidence. |
+| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.4.1; see the public API guarantees and compatibility evidence. |
 | [SQLAdmin](https://github.com/smithyhq/sqladmin) | A SQLAlchemy/SQLModel application using its model views, sync/async engines and WTForms controls with FastAPI/Starlette. |
 | [Starlette Admin](https://github.com/jowilf/starlette-admin) | Its contrib backend/model-view approach, MongoDB integrations, bulk actions, file handling or import/export fit the application. |
 
@@ -95,9 +106,10 @@ uv run ruff check src tests examples
 uv run ruff format --check src tests examples
 ```
 
-GitHub releases provide source-code ZIP/tar.gz archives. CI does not build library
-distributions or publish to PyPI. Pushing a version tag publishes the validated GitHub
-release automatically, marks it Latest and fills its description from CHANGELOG.md.
+GitHub releases provide source-code ZIP/tar.gz archives. A version tag publishes the
+validated GitHub release with its changelog. The separate PyPI workflow builds one
+wheel/sdist pair and publishes it through Trusted Publishing; Python test matrix jobs
+do not build distributions.
 
 CI tests CPython 3.11, 3.12, 3.13, 3.14 and 3.15 with the pinned dependencies.
 The full test suite uses SQLite; PostgreSQL 17 and MySQL 8.4 have dedicated contract jobs.

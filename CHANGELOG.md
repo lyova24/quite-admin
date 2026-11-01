@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.1 — 2026-11-01
+
+### Added
+
+- Publish one universal wheel and sdist to PyPI after a successful GitHub release,
+  using a dedicated Trusted Publishing workflow and no long-lived API token.
+  Support manual retries for published tags whose commits have passed full CI.
+- Validate distribution metadata, install both artifacts in clean environments and
+  verify installation from the public index after publishing. GitHub release downloads
+  remain source-code ZIP/tar.gz archives; Python test matrices do not build packages.
+
+### Fixed
+
+- Explicitly use core metadata 2.4 for wheel and sdist, avoiding the Twine failure on
+  unsupported metadata 2.5 while retaining package extras and bundled UI resources.
+
 ## 0.4.0 — 2026-11-01
 
 ### Added

@@ -1,6 +1,6 @@
 # Releases and compatibility policy
 
-Release **0.4.0** was finalized on **2026-11-01**. Subsequent work targets a higher version.
+Release **0.4.1** was finalized on **2026-11-01**. Subsequent work targets a higher version.
 Its changes are recorded in
 the repository `CHANGELOG.md`. A version update alone does not create a tag or release.
 
@@ -24,29 +24,66 @@ the documented tested matrix; dependency ranges are not proof of every combinati
 
 ## Release flow
 
-1. Finalize the versioned changelog section with a release date and migration notes.
+1. Finalize the version, changelog date and migration notes.
 2. Run tests, lint, the API compatibility guard, documentation and dependency audits.
-3. Run `python scripts/check_release.py`; the tag must equal `v<project.version>`.
-4. When authorized, push the tag. The workflow validates versions and runs the complete
-   CPython 3.11–3.15, database, browser, compatibility and security gate.
-5. It creates or updates the GitHub release with the matching changelog section.
-6. It **publishes the release automatically and marks it Latest**, including an existing
-   draft. No separate publication click is required. No library distributions are built
-   and nothing is published to PyPI.
+3. Run `python scripts/check_release.py --tag v<project.version>`.
+4. Push the version tag when authorized. `release.yml` runs the complete validation gate,
+   publishes the GitHub release with the matching changelog and marks it Latest.
+5. After that workflow succeeds, `pypi.yml` builds **one universal wheel and one sdist**
+   on Python 3.12. It checks both with Twine and installs each into a clean environment.
+6. A separate job uploads the verified files to PyPI through Trusted Publishing; a final
+   job installs the exact version from the public index and checks packaged resources.
 
-Releases contain only GitHub's automatic **Source code (zip)** and **Source code (tar.gz)**
-archives of the tagged commit. No wheel, package sdist or extra release assets are
-built/uploaded. These source archives do not use Python distribution metadata or Twine;
-removing the unnecessary Twine step avoids its rejection of metadata version 2.5.
-Download and unpack an archive, then install the source with the desired extras:
+Creating a release in GitHub's interface also runs the complete validation workflow
+before PyPI publication. The package workflow checks out the validated commit by SHA
+and verifies that the published version tag still points to that exact commit.
+
+GitHub release downloads remain the automatic source-code ZIP/tar.gz archives.
+Wheel/sdist files go to PyPI, not GitHub release assets. Python test matrix jobs do not
+build packages. Both distributions explicitly use core metadata **2.4**, avoiding the
+previous unsupported metadata 2.5 error. The checks reject a different metadata version.
+
+## One-time PyPI setup
+
+Sign in to PyPI and add a pending publisher at
+[account publishing settings](https://pypi.org/manage/account/publishing/) for the first
+upload, or configure a publisher on the existing project's Publishing page:
+
+| Field | Value |
+|---|---|
+| PyPI project | `quite-admin` |
+| GitHub owner | `lyova24` |
+| Repository | `quite-admin` |
+| Workflow filename | `pypi.yml` |
+| GitHub environment | `pypi` |
+
+The upload job uses the GitHub environment `pypi`. Only that job has `id-token: write`;
+no checkout or project code runs in it. PyPI exchanges the GitHub OIDC identity for a
+short-lived upload credential; no long-lived PyPI token belongs in GitHub secrets or
+the repository. Optional environment reviewers can restrict who authorizes publication.
+See [PyPI's official setup](https://docs.pypi.org/trusted-publishers/adding-a-publisher/).
+
+The PyPI workflow is top-level rather than reusable, so the publisher always matches
+`pypi.yml`. It accepts only successful release runs from this repository and verifies
+the tag still points to the validated source commit and the GitHub release is published.
+For a retry, run **publish to PyPI** manually from `master`, entering the existing tag,
+for example `v0.4.1`. Manual runs also require a successful full `ci.yml` run for the
+same source commit. Existing package files are skipped on retry; PyPI versions cannot
+be overwritten. Never move a published tag to change an uploaded package.
+
+## Install with a package manager
 
 ```bash
-pip install '/path/to/quite-admin-0.4.0[sqlalchemy,fastapi]'
+pip install 'quite-admin[sqlalchemy,fastapi]'
+uv add 'quite-admin[sqlalchemy,litestar]'
+# Reproduce a particular release:
+pip install 'quite-admin[sqlalchemy,fastapi]==0.4.1'
 ```
 
-The Python build backend remains available for installation from source. Installing
-an editable checkout or dependencies in test environments is separate from producing
-release artifacts. No API tokens or passwords belong in the repository.
+The core also installs as `pip install quite-admin` without ORM dependencies.
+Other extras are `sqlmodel`, `tortoise`, `peewee`, `gino-legacy`, `fastapi`, `litestar`
+and `all`. GINO 1.x requires a separate environment from modern SQLAlchemy adapters.
+Installation from an unpacked source archive remains available.
 
 ## Dependency security
 
@@ -57,7 +94,7 @@ all severities and fails on high/critical findings. Public PRs also use
 Network/advisory service errors fail checks. No blanket advisory ignores are configured.
 See `SECURITY.md` for private reporting and the early-release maintenance policy.
 
-The 2026-11-01 CI/CD changes included in **0.4.0** update Diplodoc and pin patched
+The 2026-11-01 CI/CD changes included in **0.4.1** update Diplodoc and pin patched
 transitive packages (including decode-uri-component, fast-xml-parser, glob, minimatch
 and KaTeX). The refreshed npm audit reports **zero vulnerabilities**; advisory data can
 change, so every run audits again. `scripts/diplodoc.cjs` adapts older CommonJS consumers

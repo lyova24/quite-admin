@@ -4,7 +4,7 @@ Report suspected vulnerabilities privately to [the maintainer](mailto:lengthylyo
 Include the affected version, a minimal reproduction and the impact. Avoid public issues
 containing credentials, private records or an exploit against someone else's application.
 
-The current finalized version is 0.4.0 (2026-11-01); the maintained line is 0.4.x. The project does not promise a separate
+The current finalized version is 0.4.1 (2026-11-01); the maintained line is 0.4.x. The project does not promise a separate
 long-term maintenance branch. Security fixes and any required migration are documented
 in CHANGELOG.md and the English/Russian documentation.
 

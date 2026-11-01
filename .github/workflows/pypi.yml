@@ -1,0 +1,121 @@
+name: publish to PyPI
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published and validated version tag to upload to PyPI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+concurrency:
+  group: pypi
+  cancel-in-progress: false
+env:
+  SOURCE_REF: ${{ inputs.tag || github.event.workflow_run.head_sha }}
+  REQUESTED_TAG: ${{ inputs.tag }}
+
+jobs:
+  build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'release') &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_REF }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+      - name: Validate release metadata
+        id: metadata
+        run: |
+          version=$(uv run --no-project python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          tag="v$version"
+          if [ -n "$REQUESTED_TAG" ]; then
+            test "$tag" = "$REQUESTED_TAG"
+          fi
+          uv run --no-project python scripts/check_release.py --tag "$tag"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+          printf 'RELEASE_TAG=%s\n' "$tag" >> "$GITHUB_ENV"
+      - name: Verify the published tag and validation results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')" = false
+          commit=$(git rev-parse HEAD)
+          test "$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq '.sha')" = "$commit"
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            test "$commit" = "$SOURCE_SHA"
+          else
+            runs=$(gh api "repos/$GH_REPO/actions/workflows/ci.yml/runs?head_sha=$commit&status=success&per_page=1" --jq '.total_count')
+            test "$runs" -gt 0 || { echo 'The tagged commit needs a successful full CI run.'; exit 1; }
+          fi
+      - name: Build one universal wheel and source distribution
+        run: uv build
+      - name: Check metadata and package contents before uploading
+        run: |
+          uvx --from 'twine>=6,<7' twine check --strict dist/*
+          uv run --no-project python scripts/check_distributions.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pypi-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/quite-admin
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pypi-distributions
+          path: dist
+      - name: Publish verified distributions through Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  verify:
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+      - name: Install the released package from PyPI outside the checkout
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if uv run --no-project --with "quite-admin==$PACKAGE_VERSION" python -I -c 'import os, quite_admin; from importlib import metadata, resources; assert quite_admin.__version__ == metadata.version("quite-admin") == os.environ["PACKAGE_VERSION"]; assert resources.files("quite_admin").joinpath("static/forms.js").is_file(); print("Installed quite-admin", quite_admin.__version__)'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
