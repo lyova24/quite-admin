@@ -150,11 +150,12 @@ def parse(resource, fields, params):
             )
     if len(filters) > 50:
         errors["__all__"] = "At most 50 filters are supported."
+    by_parameter = {item["parameter"]: item for item in active}
     for item in active:
         if item["operator"] != "gte":
             continue
         upper_name = "f." + item["field"].name + ".lte" + item["slot"]
-        upper = next((other for other in active if other["parameter"] == upper_name), None)
+        upper = by_parameter.get(upper_name)
         if upper is None or item["parameter"] in errors or upper_name in errors:
             continue
         try:

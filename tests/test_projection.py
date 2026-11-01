@@ -12,6 +12,32 @@ from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 from .helpers import login
 
 
+@pytest.mark.parametrize("window", [False, True])
+async def test_list_metadata_work_does_not_grow_with_page_size(backend, monkeypatch, window):
+    adapter, model = backend
+    for index in range(6):
+        await adapter.create(model, {"name": f"Item {index}"})
+    describe = adapter.describe
+    calls = 0
+
+    def tracked(model):
+        nonlocal calls
+        calls += 1
+        return describe(model)
+
+    monkeypatch.setattr(adapter, "describe", tracked)
+    read = adapter.list_window if window else adapter.list
+    small = await read(model, Query(limit=1))
+    small_calls = calls
+    calls = 0
+    large = await read(model, Query(limit=5))
+    assert len(small.records) == 1
+    assert len(large.records) == 5
+    assert large.records[0] == small.records[0]
+    assert [record["name"] for record in large.records] == [f"Item {i}" for i in range(5)]
+    assert calls == small_calls > 0
+
+
 @pytest.mark.parametrize("reflection", [False, True])
 async def test_projection_prevents_loading_unselected_values_in_queries_and_web(
     tmp_path, auth, reflection

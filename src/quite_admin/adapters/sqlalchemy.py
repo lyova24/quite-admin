@@ -15,13 +15,10 @@ from quite_admin.pagination import (
     WindowReads,
     finish_window,
     validate_window,
-    window_condition,
-    window_ordering,
 )
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
-from ._queries import ordering as order_expressions
-from ._queries import predicates, search_predicate, validate_query
+from ._queries import paginate, predicates, search_predicate, validate_query
 from ._sql_timeout import read_timeout, validate_timeout
 from ._sql_types import integer_bounds
 from ._sqlalchemy_relations import SQLAlchemyRelations
@@ -154,15 +151,17 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations, WindowReads):
         except (DataError, OverflowError) as exc:
             raise ValidationError({"__all__": "The database rejected these values."}) from exc
 
-    def _record(self, model: type, instance: Any) -> dict[str, Any]:
-        return {field.name: getattr(instance, field.name) for field in self.describe(model).fields}
+    def _record(self, model: type, instance: Any, *, schema=None) -> dict[str, Any]:
+        return {
+            field.name: getattr(instance, field.name)
+            for field in (schema or self.describe(model)).fields
+        }
 
     async def list(self, model: type, query: Query) -> RecordPage:
         return await self._list(model, query)
 
     async def _list(self, model, query, *, after=None, before=None, window=False):
-        validate_query(self, model, query)
-        schema = self.describe(model)
+        schema = validate_query(self, model, query)
         if window:
             validate_window(schema, query, after, before)
 
@@ -207,26 +206,15 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations, WindowReads):
             def column(name):
                 return getattr(model, name)
 
-            if window:
-                condition = window_condition(
-                    schema,
-                    query,
-                    after if after is not None else before,
-                    before is not None,
-                    column,
-                )
-                if condition is not None:
-                    statement = statement.where(condition)
-                ordering = tuple(window_ordering(schema, query, before is not None, column))
-            else:
-                ordering = tuple(order_expressions(query, schema, column))
-            statement = statement.order_by(*ordering)
-            statement = statement.offset(query.offset).limit(query.limit + int(window))
+            statement = paginate(
+                statement, query, schema, column, after=after, before=before, window=window
+            )
             if query.columns:
                 records = [dict(row) for row in session.execute(statement).mappings()]
             else:
                 records = [
-                    self._record(model, item) for item in session.scalars(statement).unique().all()
+                    self._record(model, item, schema=schema)
+                    for item in session.scalars(statement).unique().all()
                 ]
             return (
                 finish_window(schema, query, records, after, before)

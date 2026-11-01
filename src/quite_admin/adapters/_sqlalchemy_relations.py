@@ -13,6 +13,7 @@ from quite_admin.schema import Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates
+from ._relations import validate_selections
 from ._sql_metadata import _unique, junction_fields
 
 
@@ -206,7 +207,8 @@ class SQLAlchemyRelations:
         prop = inspect(model).relationships[name]
         target = prop.mapper.class_
         self.describe(model).validate_key(key)
-        query.validate(self.describe(target))
+        schema = self.describe(target)
+        query.validate(schema)
 
         def operation(session):
             parent = session.get(model, dict(key))
@@ -237,9 +239,7 @@ class SQLAlchemyRelations:
                 )
             total = session.scalar(select(func.count()).select_from(statement.subquery())) or 0
             statement = statement.order_by(
-                *order_expressions(
-                    query, self.describe(target), lambda field: getattr(target, field)
-                )
+                *order_expressions(query, schema, lambda field: getattr(target, field))
             )
             statement = statement.offset(query.offset).limit(query.limit)
             if query.columns:
@@ -247,7 +247,9 @@ class SQLAlchemyRelations:
                     [dict(row) for row in session.execute(statement).mappings()], total
                 )
             rows = session.scalars(statement).unique().all()
-            return RecordPage([query.project(self._record(target, row)) for row in rows], total)
+            return RecordPage(
+                [query.project(self._record(target, row, schema=schema)) for row in rows], total
+            )
 
         return await self._run(operation, read=True)
 
@@ -262,15 +264,7 @@ class SQLAlchemyRelations:
         self.describe(model).validate_values(values, creating=key is None)
         if key is not None:
             self.describe(model).validate_key(key)
-        available_targets = {item.name: item.target for item in self.relations(model)}
-        for relation_name, selected_keys in selections.items():
-            if relation_name in available_targets:
-                target_schema = self.describe(available_targets[relation_name])
-                for selected_key in selected_keys:
-                    target_schema.validate_key(selected_key)
-        available = {item.name: item for item in self.relations(model)}
-        if set(selections) - available.keys():
-            raise Conflict("Unknown relationship.")
+        available = validate_selections(self, self.relations(model), selections)
 
         def operation(session):
             with session.begin():

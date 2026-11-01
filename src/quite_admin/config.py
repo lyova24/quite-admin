@@ -92,6 +92,9 @@ class FieldOptions:
     template: str | None = None
 
 
+_DEFAULT_FIELD_OPTIONS = FieldOptions()
+
+
 @dataclass(frozen=True)
 class ModelOptions:
     slug: str | None = None
@@ -123,7 +126,8 @@ class ModelOptions:
             raise ValueError("pagination must be offset or cursor.")
         if self.group is not None and (not isinstance(self.group, str) or not self.group.strip()):
             raise ValueError("group must be a nonempty label or None.")
-        names = set(schema.by_name)
+        fields = schema.by_name
+        names = set(fields)
         for option in (
             self.list_fields,
             self.list_editable,
@@ -144,7 +148,7 @@ class ModelOptions:
         if len({action.slug for action in self.actions}) != len(self.actions):
             raise ValueError("Duplicate record action slugs.")
         if self.search_fields is not None:
-            if any(schema.by_name[name].kind != "string" for name in self.search_fields):
+            if any(fields[name].kind != "string" for name in self.search_fields):
                 raise ValueError("search_fields must contain string fields.")
 
     def visible_fields(self, schema: ModelSchema) -> tuple[Field, ...]:
@@ -154,7 +158,7 @@ class ModelOptions:
                 is_sensitive_field(item.name) and item.name not in self.expose_sensitive_fields
             ):
                 continue
-            override = self.fields.get(item.name, FieldOptions())
+            override = self.fields.get(item.name, _DEFAULT_FIELD_OPTIONS)
             result.append(
                 replace(
                     item,

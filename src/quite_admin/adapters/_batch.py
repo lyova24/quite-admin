@@ -33,15 +33,12 @@ def batch_fields(schema, columns):
 
 def finish_batch(schema, target_schema, keys, rows, limit, columns=None):
     result = {schema.record_key(dict(key)): {} for key in keys}
+    fields = batch_fields(target_schema, columns)
+    query = Query(columns=columns)
     for row in rows:
         key = {field.name: row[f"qa_parent_{i}"] for i, field in enumerate(schema.primary_keys)}
-        record = {
-            field.name: row[f"qa_target_{i}"]
-            for i, field in enumerate(batch_fields(target_schema, columns))
-        }
-        result[schema.record_key(key)][target_schema.record_key(record)] = Query(
-            columns=columns
-        ).project(record)
+        record = {field.name: row[f"qa_target_{i}"] for i, field in enumerate(fields)}
+        result[schema.record_key(key)][target_schema.record_key(record)] = query.project(record)
     return RelatedBatch(
         {token: list(records.values()) for token, records in result.items()},
         truncated=len(rows) >= limit,

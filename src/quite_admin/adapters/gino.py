@@ -13,11 +13,11 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound, ValidationError
-from quite_admin.pagination import finish_window, validate_window, window_condition, window_ordering
+from quite_admin.pagination import finish_window, validate_window
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._gino_relations import GinoRelations
-from ._queries import ordering, predicates, search_predicate, validate_query
+from ._queries import paginate, predicates, search_predicate, validate_query
 from ._sql_types import integer_bounds
 
 # SQLAlchemy 1.3's entry-point loader depends on the removed pkg_resources module.
@@ -122,8 +122,11 @@ class GinoAdapter(CheckedWrites, GinoRelations):
             )
         return ModelSchema(name=table.name, fields=tuple(fields))
 
-    def _record(self, model: type, item: Any) -> dict[str, Any]:
-        return {field.name: getattr(item, field.name) for field in self.describe(model).fields}
+    def _record(self, model: type, item: Any, *, schema=None) -> dict[str, Any]:
+        return {
+            field.name: getattr(item, field.name)
+            for field in (schema or self.describe(model)).fields
+        }
 
     def _where(self, model: type, key: Mapping[str, Any]):
         self.describe(model).validate_key(key)
@@ -132,8 +135,7 @@ class GinoAdapter(CheckedWrites, GinoRelations):
     async def _page(
         self, model: type, query: Query, *, condition=None, after=None, before=None, window=False
     ) -> RecordPage:
-        schema = self.describe(model)
-        validate_query(self, model, query)
+        schema = validate_query(self, model, query)
         if window:
             validate_window(schema, query, after, before)
         statement = model.query
@@ -155,12 +157,6 @@ class GinoAdapter(CheckedWrites, GinoRelations):
         def column(name):
             return getattr(model, name)
 
-        if window:
-            seek = window_condition(
-                schema, query, after if after is not None else before, before is not None, column
-            )
-            if seek is not None:
-                conditions.append(seek)
         search = search_predicate(
             query,
             lambda name: getattr(model, name),
@@ -178,20 +174,14 @@ class GinoAdapter(CheckedWrites, GinoRelations):
                 else await connection.scalar(select([func.count()]).select_from(statement.alias()))
             )
             rows = await connection.all(
-                statement.order_by(
-                    *(
-                        window_ordering(schema, query, before is not None, column)
-                        if window
-                        else ordering(query, schema, column)
-                    )
+                paginate(
+                    statement, query, schema, column, after=after, before=before, window=window
                 )
-                .offset(query.offset)
-                .limit(query.limit + int(window))
             )
         records = (
             [dict(row) for row in rows]
             if query.columns
-            else [self._record(model, row) for row in rows]
+            else [self._record(model, row, schema=schema) for row in rows]
         )
         return (
             finish_window(schema, query, records, after, before)

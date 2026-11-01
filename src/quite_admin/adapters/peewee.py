@@ -16,14 +16,11 @@ from quite_admin.pagination import (
     WindowReads,
     finish_window,
     validate_window,
-    window_condition,
-    window_ordering,
 )
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._peewee_relations import PeeweeRelations
-from ._queries import ordering as order_expressions
-from ._queries import predicates, search_predicate, validate_query
+from ._queries import paginate, predicates, search_predicate, validate_query
 
 
 class PeeweeAdapter(CheckedWrites, PeeweeRelations, WindowReads):
@@ -112,8 +109,11 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations, WindowReads):
             )
         return ModelSchema(name=model._meta.table_name, fields=tuple(fields))
 
-    def _record(self, model: type, item: Any) -> dict[str, Any]:
-        return {field.name: item.__data__.get(field.name) for field in self.describe(model).fields}
+    def _record(self, model: type, item: Any, *, schema=None) -> dict[str, Any]:
+        return {
+            field.name: item.__data__.get(field.name)
+            for field in (schema or self.describe(model)).fields
+        }
 
     async def _run(self, model: type, operation: Callable[[], Any], *, write: bool = False) -> Any:
         def run() -> Any:
@@ -153,8 +153,7 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations, WindowReads):
         return await self._list(model, query)
 
     async def _list(self, model, query, *, after=None, before=None, window=False):
-        validate_query(self, model, query)
-        schema = self.describe(model)
+        schema = validate_query(self, model, query)
         if window:
             validate_window(schema, query, after, before)
 
@@ -178,23 +177,12 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations, WindowReads):
             def column(name):
                 return getattr(model, name)
 
-            if window:
-                condition = window_condition(
-                    schema,
-                    query,
-                    after if after is not None else before,
-                    before is not None,
-                    column,
-                )
-                if condition is not None:
-                    statement = statement.where(condition)
-                ordering = tuple(window_ordering(schema, query, before is not None, column))
-            else:
-                ordering = tuple(order_expressions(query, schema, column))
-            items = (
-                statement.order_by(*ordering).offset(query.offset).limit(query.limit + int(window))
+            statement = paginate(
+                statement, query, schema, column, after=after, before=before, window=window
             )
-            records = [query.project(self._record(model, item)) for item in items]
+            records = [
+                query.project(self._record(model, item, schema=schema)) for item in statement
+            ]
             return (
                 finish_window(schema, query, records, after, before)
                 if window

@@ -12,6 +12,7 @@ from quite_admin.schema import Query, RecordPage
 from ._batch import batch_fields, finish_batch, prepare_batch
 from ._queries import ordering as order_expressions
 from ._queries import predicates
+from ._relations import validate_selections
 from ._sql_batch import batch_statement
 from ._sql_metadata import SQLRelationMetadata
 
@@ -120,15 +121,8 @@ class SQLRelations(SQLRelationMetadata):
         self.describe(model).validate_values(values, creating=key is None)
         if key is not None:
             self.describe(model).validate_key(key)
-        available_targets = {item.name: item.target for item in self.relations(model)}
-        for relation_name, selected_keys in selections.items():
-            if relation_name in available_targets:
-                target_schema = self.describe(available_targets[relation_name])
-                for selected_key in selected_keys:
-                    target_schema.validate_key(selected_key)
         links = self._links(model)
-        if set(selections) - links.keys():
-            raise Conflict("Unknown relationship.")
+        validate_selections(self, (link.relation for link in links.values()), selections)
 
         def operation(connection):
             if key is not None and guarded():

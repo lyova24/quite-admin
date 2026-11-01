@@ -9,6 +9,7 @@ from quite_admin.schema import RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates, search_predicate
+from ._relations import validate_selections
 
 
 class PeeweeRelations:
@@ -168,7 +169,8 @@ class PeeweeRelations:
     async def related(self, model, name, key, query):
         relation = next(item for item in self.relations(model) if item.name == name)
         self.describe(model).validate_key(key)
-        query.validate(self.describe(relation.target))
+        schema = self.describe(relation.target)
+        query.validate(schema)
 
         def operation():
             parent = model.get_or_none(self._where(model, key))
@@ -193,13 +195,13 @@ class PeeweeRelations:
             statement = statement.order_by(
                 *order_expressions(
                     query,
-                    self.describe(relation.target),
+                    schema,
                     lambda field: getattr(relation.target, field),
                 )
             )
             return RecordPage(
                 [
-                    query.project(self._record(relation.target, row))
+                    query.project(self._record(relation.target, row, schema=schema))
                     for row in statement.offset(query.offset).limit(query.limit)
                 ],
                 total,
@@ -211,16 +213,8 @@ class PeeweeRelations:
         self.describe(model).validate_values(values, creating=key is None)
         if key is not None:
             self.describe(model).validate_key(key)
-        available_targets = {item.name: item.target for item in self.relations(model)}
-        for relation_name, selected_keys in selections.items():
-            if relation_name in available_targets:
-                target_schema = self.describe(available_targets[relation_name])
-                for selected_key in selected_keys:
-                    target_schema.validate_key(selected_key)
-        available = {item.name: item for item in self.relations(model)}
+        available = validate_selections(self, self.relations(model), selections)
         fields = self._relation_fields(model)
-        if set(selections) - available.keys():
-            raise Conflict("Unknown relationship.")
 
         def operation():
             parent = self._locked_get(model, key) if key is not None else model()
