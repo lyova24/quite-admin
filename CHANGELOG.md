@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Proportional compact listing gutters and full available table width.
+
 - Create record shares the listing toolbar with search, filter and export controls.
 
 - Boolean form switches with explicit nullable state and select fallback.

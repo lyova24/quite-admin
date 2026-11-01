@@ -506,3 +506,13 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .list-tools .search-form input { width: 100%; }
 .list-create { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; }
 @media (max-width: 480px) { .list-tools { flex-wrap: wrap; } .list-tools .list-query-form { flex: 1 1 160px; } }
+
+/* Keep list edges aligned at every density, including custom token overrides. */
+.listing-page .content { max-width: none; padding: var(--space-5) var(--space-4) var(--space-6); }
+.listing-page .list-heading { margin-bottom: var(--space-4); }
+.listing-page .list-table-scroll th:first-child, .listing-page .list-table-scroll td:first-child { padding-inline-start: var(--space-3); }
+.listing-page .list-table-scroll th:last-child, .listing-page .list-table-scroll td:last-child { padding-inline-end: var(--space-3); }
+.listing-page .active-filters { padding-inline: 0; }
+.listing-page .pagination { padding-inline: 0; min-height: var(--control-height); }
+@media (max-width: 480px) { .listing-page .content { padding-inline: var(--space-3); } }
+.listing-page .list-table-scroll { position: relative; isolation: isolate; }

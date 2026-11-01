@@ -146,3 +146,7 @@ The native date input remains available without JavaScript.
 
 The listing toolbar aligns search, filters, export and Create record in one row,
 with creation on the right. Controls wrap on narrow screens.
+
+Listings use the available main-column width with proportional token-based gutters.
+Table edge cells, heading, toolbar, active conditions and pagination align together;
+record forms retain their own reading-width limit.

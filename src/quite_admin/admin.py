@@ -877,6 +877,7 @@ class Admin:
         return await self._render(
             request,
             "quite_admin/list.html",
+            listing_page=True,
             inline_fields=inline_fields,
             inline_endpoint=lambda record, name: self._url(
                 request,

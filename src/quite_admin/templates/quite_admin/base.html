@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="{{ url('/theme.css') }}">
   {% block head %}{% endblock %}
 </head>
-<body>
+<body{% if listing_page %} class="listing-page"{% endif %}>
   <div class="shell {% if not identity %}shell-login{% endif %}">
   {% if identity %}
     <aside class="sidebar">
