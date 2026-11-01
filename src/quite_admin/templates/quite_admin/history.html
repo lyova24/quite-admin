@@ -21,6 +21,7 @@
   </details>
   {% elif item.write %}<p class="activity-note">{% if event.outcome == 'failure' %}{{ t('Changes were not saved.') }}{% elif event.details is none %}{{ t('Field details were not recorded for this event.') }}{% else %}{{ t('No visible field changes.') }}{% endif %}</p>{% endif %}
 {% endmacro %}
+{% from "quite_admin/_ui.html" import empty_state with context %}
 {% block content %}
 <div class="page-heading history-heading"><div><p class="eyebrow">{{ t('Activity journal') }}</p><h1>{{ t('Activity history') }}</h1><p class="subtitle">{{ t('Who changed what, with field values before and after.') }}</p></div><span class="history-timezone">{{ t('Time (UTC)') }}</span></div>
 <section class="record-list history-workspace">
@@ -43,7 +44,7 @@
   <thead><tr><th scope="col">{{ t('Time (UTC)') }}</th><th scope="col">{{ t('User') }}</th><th scope="col">{{ t('Collection') }}</th><th scope="col">{{ t('Action') }}</th><th scope="col">{{ t('Result') }}</th><th scope="col">{{ t('Field changes') }}</th></tr></thead>
   <tbody>{% for group in activity_groups %}{% for item in group.events %}{% set event = item.event %}
     <tr data-activity-id="{{ event.id }}"><td><time datetime="{{ event.occurred_at }}">{{ event.occurred_at[:19]|replace('T', ' ') }}</time></td><td><span>{{ event.display_name or event.subject }}</span>{% if event.display_name and event.display_name != event.subject %}<small class="history-subject">{{ event.subject }}</small>{% endif %}</td><td>{{ history_resources[event.collection].label if event.collection else t('Authentication') }}</td><td>{{ action_label(event) }}<div>{{ record_reference(item) }}</div></td><td><span class="boolean-badge {{ 'yes' if event.outcome == 'success' else 'no' }}">{{ t('Success' if event.outcome == 'success' else 'Failure') }}</span> <span class="muted">{{ event.status_code }}</span></td><td>{{ event_changes(item) }}</td></tr>
-  {% endfor %}{% else %}<tr><td colspan="6"><div class="empty-state"><h2>{{ t('No activity found') }}</h2><p>{{ t('Choose another user or collection, or clear the filters.') }}</p>{% if history_filters.action == 'changes' %}<a class="button secondary" href="{{ all_activity_url }}">{{ t('Show all activity') }}</a>{% endif %}</div></td></tr>{% endfor %}</tbody>
+  {% endfor %}{% else %}<tr><td colspan="6">{% call empty_state('No activity found', 'Choose another user or collection, or clear the filters.', 'empty-state') %}{% if history_filters.action == 'changes' %}<a class="button secondary" href="{{ all_activity_url }}">{{ t('Show all activity') }}</a>{% endif %}{% endcall %}</td></tr>{% endfor %}</tbody>
 </table></div></div>
 {% else %}
 <div class="activity-journal" aria-label="{{ t('Activity journal') }}">
@@ -62,7 +63,7 @@
 </article></li>
 {% endfor %}
 </ol></section>
-{% else %}<div class="history-empty"><span class="history-empty-icon" aria-hidden="true">↻</span><h2>{{ t('No activity found') }}</h2><p>{{ t('Choose another user or collection, or clear the filters.') }}</p>{% if history_filters.action == 'changes' %}<a class="button secondary" href="{{ all_activity_url }}">{{ t('Show all activity') }}</a>{% endif %}</div>{% endfor %}
+{% else %}{% call empty_state('No activity found', 'Choose another user or collection, or clear the filters.', 'history-empty', icon='↻') %}{% if history_filters.action == 'changes' %}<a class="button secondary" href="{{ all_activity_url }}">{{ t('Show all activity') }}</a>{% endif %}{% endcall %}{% endfor %}
 </div>
 {% endif %}
 <footer class="history-pagination{% if history_view == 'table' %} history-pagination-table{% endif %}"><span class="muted">{{ t('Time (UTC)') }}</span><div class="button-group">{% if request.query_params.get('before') %}<a class="button secondary" href="{{ latest_url }}">{{ t('Latest events') }}</a>{% endif %}{% if next_url %}<a class="button secondary" href="{{ next_url }}">{{ t('Older events') }} →</a>{% endif %}</div></footer>

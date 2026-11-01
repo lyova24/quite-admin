@@ -1,4 +1,5 @@
 {% from "quite_admin/_icons.html" import filter_icon %}
+{% from "quite_admin/_controls.html" import field_options, field_attributes with context %}
 <fieldset class="filter-fallback" data-filter-fallback>
 <details class="filter-disclosure"{% if filter_errors %} open{% endif %}>
   <summary class="button secondary icon-button" title="{{ t('Filters') }}" aria-label="{{ t('Filters') }}">{{ filter_icon() }}</summary>
@@ -13,8 +14,8 @@
     <label for="{{ name }}">{{ t(labels[op]) }}</label>
     {% if op in ('is_null','is_empty') %}<select id="{{ name }}" name="{{ name }}"><option value="">{{ t('Any value') }}</option><option value="true"{% if filter_values.get(name) == 'true' %} selected{% endif %}>{{ t('Is NULL' if op == 'is_null' else 'Is empty text') }}</option>{% if op == 'is_null' or 'f.' ~ field.name ~ '.ne' in filter_parameters %}<option value="false"{% if filter_values.get(name) == 'false' %} selected{% endif %}>{{ t('Is not NULL' if op == 'is_null' else 'Is not empty text') }}</option>{% endif %}</select>
     {% elif op == 'in' %}<textarea id="{{ name }}" name="{{ name }}" rows="2" maxlength="8192" placeholder='["open", "done"]'>{{ filter_values.get(name, '') }}</textarea>
-    {% elif (field.kind == 'boolean' or field.choices) and op in ('eq','ne') %}<select id="{{ name }}" name="{{ name }}"><option value="">{{ t('Any value') }}</option>{% if field.kind == 'boolean' %}{% for value,label in [('true','True'),('false','False')] %}<option value="{{ value }}"{% if filter_values.get(name) == value %} selected{% endif %}>{{ t(label) }}</option>{% endfor %}{% else %}{% for value in field.choices %}<option value="{{ value }}"{% if filter_values.get(name) == value %} selected{% endif %}>{{ value }}</option>{% endfor %}{% endif %}</select>
-    {% else %}<input id="{{ name }}" name="{{ name }}" type="{{ 'date' if field.kind == 'date' else 'text' }}" value="{{ filter_values.get(name, '') }}" maxlength="500"{% if op == 'on' %} placeholder="2026-11-01T00:00:00+03:00"{% endif %}{% if filter_errors.get(name) %} aria-invalid="true" aria-describedby="error-{{ name }}"{% endif %}>{% endif %}
+    {% elif (field.kind == 'boolean' or field.choices) and op in ('eq','ne') %}<select id="{{ name }}" name="{{ name }}"><option value="">{{ t('Any value') }}</option>{{ field_options(field, filter_values.get(name)) }}</select>
+    {% else %}<input id="{{ name }}" name="{{ name }}" type="{{ 'date' if field.kind == 'date' else 'text' }}" value="{{ filter_values.get(name, '') }}" maxlength="500"{% if op == 'on' %} placeholder="2026-11-01T00:00:00+03:00"{% endif %}{{ field_attributes('error-' ~ name if filter_errors.get(name) else '', filter_errors.get(name)) }}>{% endif %}
     {% if filter_errors.get(name) %}<p class="field-error" id="error-{{ name }}">{{ t(filter_errors[name]) }}</p>{% endif %}
     {% endfor %}
   </details>

@@ -123,7 +123,10 @@
   function calendar(host, {getValue, onChange, label, t, today, getRange = () => []}) {
     if (!today) today = localToday();
     const locale = doc.documentElement.lang;
-    const format = (date, options) => new Intl.DateTimeFormat(locale, {...options, timeZone: 'UTC'}).format(date);
+    const monthFormat = new Intl.DateTimeFormat(locale, {month: 'long', timeZone: 'UTC'});
+    const weekdayFormat = new Intl.DateTimeFormat(locale, {weekday: 'short', timeZone: 'UTC'});
+    const monthNames = Array.from({length: 12}, (_, n) => monthFormat.format(new Date(Date.UTC(2000, n, 1))));
+    const weekdayNames = Array.from({length: 7}, (_, n) => weekdayFormat.format(new Date(Date.UTC(2024, 0, n + 1))));
     host.setAttribute('role', 'group'); host.setAttribute('aria-label', t('Choose date') + ': ' + label);
     let year, month;
     const instance = {
@@ -146,7 +149,7 @@
         previous.disabled = year === 1 && month === 0; next.disabled = year === 9999 && month === 11;
         const months = element('select'); months.setAttribute('aria-label', t('Month') + ': ' + label);
         for (let n = 0; n < 12; n++) {
-          const option = element('option', '', format(new Date(Date.UTC(2000, n, 1)), {month: 'long'}));
+          const option = element('option', '', monthNames[n]);
           option.value = String(n); months.append(option);
         }
         months.value = String(month);
@@ -162,7 +165,7 @@
         });
         toolbar.append(previous, months, years, next);
         const grid = element('div', 'date-calendar-grid');
-        for (let n = 0; n < 7; n++) grid.append(element('span', '', format(new Date(Date.UTC(2024, 0, n + 1)), {weekday: 'short'})));
+        for (const name of weekdayNames) grid.append(element('span', '', name));
         const cells = monthCells(year, month), value = getValue();
         const first = String(year).padStart(4, '0') + '-' + String(month + 1).padStart(2, '0') + '-01';
         const selected = focus || (cells.includes(value) ? value : first);
@@ -206,6 +209,37 @@
     };
     instance.reset(); return instance;
   }
+  function precisionControls(fraction, offset) {
+    fraction.maxLength = 6; fraction.pattern = '[0-9]{1,6}'; fraction.inputMode = 'numeric'; fraction.placeholder = '123456';
+    offset.maxLength = 6; offset.placeholder = '+03:00'; offset.pattern = 'Z|(?:[+]|-)(?:[01][0-9]|2[0-3]):[0-5][0-9]';
+  }
+  function notify(input) {
+    input.dispatchEvent(new Event('input', {bubbles: true}));
+    input.dispatchEvent(new Event('change', {bubbles: true}));
+  }
+  function bindPopover(wrapper, panel, {close, position, onKeydown = () => {}}) {
+    const outside = event => { if (!wrapper.contains(event.target)) close(false); };
+    const keydown = event => {
+      if (!panel.hidden && event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation(); close(true); return;
+      }
+      onKeydown(event);
+    };
+    wrapper.addEventListener('keydown', keydown);
+    doc.addEventListener('pointerdown', outside);
+    root.addEventListener('resize', position);
+    return () => {
+      close(false);
+      wrapper.removeEventListener('keydown', keydown);
+      doc.removeEventListener('pointerdown', outside);
+      root.removeEventListener('resize', position);
+    };
+  }
+  function hidePanel(panel, trigger) {
+    panel.hidden = true; trigger.setAttribute('aria-expanded', 'false');
+    // Hidden draft controls must not participate in the enclosing form's validation.
+    panel.querySelectorAll('input,select').forEach(input => { input.disabled = true; });
+  }
   function attachForm(input, kind, t) {
     if (input.dataset.dateReady || input.disabled || input.readOnly) return () => {};
     const parts = parseValue(input.value, kind);
@@ -244,13 +278,19 @@
       const label = element('label', 'date-picker-field', t(text));
       const node = element('input'); node.type = 'text'; node.value = parts[property];
       node.addEventListener('input', () => { parts[property] = node.value; sync(); });
-      node.addEventListener('invalid', () => { options.open = true; });
+      node.addEventListener('invalid', () => {
+        options.open = true;
+        // WebKit needs the opened section laid out before it can focus its first error.
+        root.requestAnimationFrame(() => {
+          const first = node.form?.querySelector('input:invalid,select:invalid,textarea:invalid');
+          if (node.isConnected && (!first || first === node)) node.focus();
+        });
+      });
       label.append(node); fields.append(label); return node;
     }
     const fraction = option('Fractional seconds (optional)', 'fraction');
-    fraction.maxLength = 6; fraction.pattern = '[0-9]{1,6}'; fraction.inputMode = 'numeric'; fraction.placeholder = '123456';
     const offset = option('UTC offset (optional)', 'offset');
-    offset.maxLength = 6; offset.placeholder = '+03:00'; offset.pattern = 'Z|(?:[+]|-)(?:[01][0-9]|2[0-3]):[0-5][0-9]';
+    precisionControls(fraction, offset);
     const hint = element('p', 'field-help', t('Use Z or ±HH:MM; leave empty for no timezone.'));
     hint.id = input.id + '-timezone-help'; offset.setAttribute('aria-describedby', hint.id);
     options.append(summary, fields, hint);
@@ -265,7 +305,7 @@
       const value = empty ? '' : composeValue(parts, kind);
       if (value !== null) {
         input.value = value;
-        input.dispatchEvent(new Event('input', {bubbles: true})); input.dispatchEvent(new Event('change', {bubbles: true}));
+        notify(input);
       }
       presentation();
     }
@@ -299,11 +339,10 @@
     trigger.setAttribute('aria-controls', panel.id); wrapper.append(trigger, panel);
     let instance;
     function commit(value) {
-      input.value = value; input.dispatchEvent(new Event('input', {bubbles: true})); input.dispatchEvent(new Event('change', {bubbles: true})); close(true);
+      input.value = value; notify(input); close(true);
     }
     function close(focus) {
-      panel.hidden = true; trigger.setAttribute('aria-expanded', 'false');
-      panel.querySelectorAll('input,select').forEach(node => { node.disabled = true; });
+      hidePanel(panel, trigger);
       if (focus) input.focus({preventScroll: true});
     }
     function position() {
@@ -325,15 +364,12 @@
       panel.append(host, footer); panel.hidden = false; trigger.setAttribute('aria-expanded', 'true'); position();
       (panel.querySelector('[aria-pressed="true"]') || panel.querySelector('.date-calendar-grid button')).focus({preventScroll: true});
     }
-    const outside = event => { if (!wrapper.contains(event.target)) close(false); };
-    const keydown = event => {
-      if (!panel.hidden && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); }
-      if (event.target === input && event.altKey && event.key === 'ArrowDown') { event.preventDefault(); open(); }
-    };
     const refresh = () => { if (!panel.hidden) instance.reset(); };
-    wrapper.addEventListener('keydown', keydown); input.addEventListener('input', refresh);
-    doc.addEventListener('pointerdown', outside); root.addEventListener('resize', position);
-    return () => { close(false); wrapper.removeEventListener('keydown', keydown); input.removeEventListener('input', refresh); doc.removeEventListener('pointerdown', outside); root.removeEventListener('resize', position); };
+    input.addEventListener('input', refresh);
+    const unbind = bindPopover(wrapper, panel, {close, position, onKeydown: event => {
+      if (event.target === input && event.altKey && event.key === 'ArrowDown') { event.preventDefault(); open(); }
+    }});
+    return () => { unbind(); input.removeEventListener('input', refresh); };
   }
   function attach(inputs, kind, t) {
     if (!inputs.length || inputs.some(input => input.dataset.dateReady || input.disabled || input.readOnly)) return () => {};
@@ -357,9 +393,7 @@
     inputs.forEach(input => { input.dataset.dateReady = 'true'; });
     let drafts, calendars = [], controls = [];
     function close(focus) {
-      panel.hidden = true; trigger.setAttribute('aria-expanded', 'false');
-      // Draft controls must not participate in the enclosing form's validation.
-      panel.querySelectorAll('input,select').forEach(input => { input.disabled = true; });
+      hidePanel(panel, trigger);
       if (focus) trigger.focus();
     }
     function placePanel() {
@@ -415,9 +449,8 @@
           if (detail) summary.append(element('small', '', detail));
           const precision = element('div', 'date-picker-precision');
           const fraction = control('Fractional seconds (optional)', 'text', draft.fraction, 'fraction');
-          fraction.placeholder = '123456'; fraction.maxLength = 6; fraction.pattern = '[0-9]{1,6}'; fraction.inputMode = 'numeric';
           const offset = control('UTC offset (optional)', 'text', draft.offset, 'offset');
-          offset.placeholder = '+03:00'; offset.maxLength = 6; offset.pattern = 'Z|(?:[+]|-)(?:[01][0-9]|2[0-3]):[0-5][0-9]';
+          precisionControls(fraction, offset);
           precision.append(fraction.parentElement, offset.parentElement);
           advanced.append(summary, precision, element('p', 'field-help date-picker-zone-help', t('Use Z or ±HH:MM; leave empty for no timezone.')));
           advanced.addEventListener('toggle', placePanel);
@@ -436,16 +469,14 @@
         const invalid = values.some(value => value === null) ? 'Invalid date/time value.'
           : range && rangeReversed(...values, kind) ? 'The lower bound must not exceed the upper bound.' : '';
         if (invalid) { error.textContent = t(invalid); error.hidden = false; return; }
-        inputs.forEach((input, i) => {
-          input.value = values[i]; input.dispatchEvent(new Event('input', {bubbles: true})); input.dispatchEvent(new Event('change', {bubbles: true}));
-        });
+        commit(values);
+      }
+      function commit(values) {
+        inputs.forEach((input, i) => { input.value = values[i]; notify(input); });
         close(true);
       }
       const footer = element('footer', 'date-picker-footer');
-      const clear = button(t('Clear'), t('Clear'), () => {
-        drafts.forEach(draft => Object.assign(draft, {day: '', time: '', fraction: '', offset: ''}));
-        controls.forEach(input => { input.value = ''; }); apply();
-      }, 'link-button');
+      const clear = button(t('Clear'), t('Clear'), () => commit(inputs.map(() => '')), 'link-button');
       const actions = element('div', 'button-group');
       actions.append(button(t('Cancel'), t('Cancel'), () => close(true), 'link-button'), button(t('Apply'), t('Apply'), apply, 'button primary small'));
       footer.append(clear, actions); panel.append(columns, error, footer);
@@ -453,16 +484,11 @@
       (panel.querySelector('[aria-pressed="true"]') || panel.querySelector('.date-calendar-grid button') || controls[0]).focus({preventScroll: true});
       placePanel();
     }
-    const outside = event => { if (!wrapper.contains(event.target)) close(false); };
-    const keydown = event => {
-      if (panel.hidden) return;
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); }
-      if (event.key === 'Enter' && event.target.tagName === 'INPUT' && !event.defaultPrevented) {
+    return bindPopover(wrapper, panel, {close, position: placePanel, onKeydown: event => {
+      if (!panel.hidden && event.key === 'Enter' && event.target.tagName === 'INPUT' && !event.defaultPrevented) {
         event.preventDefault(); event.stopPropagation(); panel.querySelector('.date-picker-footer .primary').click();
       }
-    };
-    doc.addEventListener('pointerdown', outside); wrapper.addEventListener('keydown', keydown); root.addEventListener('resize', placePanel);
-    return () => { close(false); doc.removeEventListener('pointerdown', outside); wrapper.removeEventListener('keydown', keydown); root.removeEventListener('resize', placePanel); };
+    }});
   }
   Object.assign(api, {calendar, attach, attachForm});
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -77,10 +77,14 @@
       layers.forEach((layer) => layer.sort());
       for (let pass = 0; pass < 4; pass++) {
         const positions = new Map(); layers.forEach((layer) => layer.forEach((id, index) => positions.set(id, index)));
-        for (const layer of (pass % 2 ? [...layers].reverse() : layers)) layer.sort((a, b) => {
-          const score = (id) => { const neighbors = [...adjacency.get(id)].filter((next) => !layer.includes(next)); return neighbors.length ? neighbors.reduce((sum, next) => sum + positions.get(next), 0) / neighbors.length : positions.get(id); };
-          return score(a) - score(b) || a.localeCompare(b);
-        });
+        for (const layer of (pass % 2 ? [...layers].reverse() : layers)) {
+          const members = new Set(layer), scores = new Map();
+          for (const id of layer) {
+            const neighbors = [...adjacency.get(id)].filter(next => !members.has(next));
+            scores.set(id, neighbors.length ? neighbors.reduce((sum, next) => sum + positions.get(next), 0) / neighbors.length : positions.get(id));
+          }
+          layer.sort((a, b) => scores.get(a) - scores.get(b) || a.localeCompare(b));
+        }
       }
       const heights = layers.map((layer) => layer.reduce((sum, id) => sum + byId.get(id).height, 0) + Math.max(0, layer.length - 1) * 48);
       const height = Math.max(...heights), output = []; let x = 0;

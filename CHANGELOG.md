@@ -40,6 +40,12 @@
   Preserve existing local records when adding new demo collections. Add a bilingual 0.5
   interface tour, current screenshots and explicit browser/server coverage documentation.
 
+- Reuse presentation macros across built-in templates and one browser field factory
+  for inline edits and the demo. Make switch/JSON enhancement idempotent, share calendar
+  lifecycle/precision handling, cache calendar labels and schema ordering scores, and
+  synchronize relationship options with a single indexed pass. Preserve backend and
+  template API contracts, CSP, form values and no-script controls.
+
 - Reuse one themed calendar across forms, inline edits, filters, the browser demo and
   activity history. Use direct date/time inputs and a compact, one-click day calendar
   in record forms and inline edits, with optional precision/offset controls collapsed.
@@ -51,6 +57,9 @@
   for container deployment, shared stores and audit failure/transaction boundaries.
 
 ### Fixed
+
+- Keep invalid time precision fields focusable when reopening collapsed options in
+  WebKit, and clear date/time filter drafts without validating discarded values.
 
 - Push scalar projections into native database queries, relationship reads and batches.
   Lists, pickers and exports request only their fields plus necessary keys/labels,
