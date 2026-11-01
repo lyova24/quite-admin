@@ -1172,7 +1172,7 @@ class Admin:
                     if editable
                     and any(
                         item.name in resource.options.writable_fields(resource.schema, creating)
-                        and item.kind in {"json", "date", "datetime", "time"}
+                        and item.kind in {"json", "date", "datetime", "time", "boolean"}
                         for item in fields
                     )
                     else ()
@@ -1181,6 +1181,9 @@ class Admin:
             form_messages={
                 name: self.gettext(name)
                 for name in (
+                    "True",
+                    "False",
+                    "None",
                     "Choose date",
                     "Previous month",
                     "Next month",

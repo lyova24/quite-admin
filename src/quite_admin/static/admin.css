@@ -480,3 +480,12 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .list-tools .export-panel { position: relative; flex-shrink: 0; border: 0; margin: 0; padding: 0; }
 .export-panel .export-form { position: absolute; inset-inline-end: 0; inset-block-start: calc(100% + 6px); z-index: 8; width: min(560px, calc(100vw - 40px)); max-height: 70vh; overflow: auto; padding: var(--space-4); background: var(--paper); color: var(--text); border: var(--border); border-radius: var(--radius); box-shadow: 0 5px 20px var(--line); }
 .export-form fieldset { min-width: 0; padding: var(--space-2); border: var(--border); }
+
+.toggle-control { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); }
+.toggle-control .field-help { margin: 0; }
+.boolean-toggle { position: relative; flex: 0 0 34px; width: 34px; height: 20px; padding: 2px; border: var(--border); border-radius: 12px; background: var(--line); }
+.boolean-toggle::after { content: ''; display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--paper); transition: transform .12s; }
+.boolean-toggle[aria-checked=true] { background: var(--accent); border-color: var(--accent); }
+.boolean-toggle[aria-checked=true]::after { transform: translateX(14px); background: var(--on-accent); }
+.toggle-control [aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .boolean-toggle::after { transition: none; } }

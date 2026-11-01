@@ -128,6 +128,31 @@
     doc.addEventListener('click', e => {if(!wrapper.contains(e.target))close(false);});
   }
   for (const input of doc.querySelectorAll('[data-calendar-input]')) attachCalendar(input, false);
+  for (const select of doc.querySelectorAll('[data-boolean-toggle]')) {
+    const group = doc.createElement('div'); group.className = 'toggle-control';
+    const toggle = doc.createElement('button'); toggle.type = 'button'; toggle.className = 'boolean-toggle';
+    toggle.id = select.id + '-switch'; toggle.setAttribute('role','switch');
+    const label = doc.querySelector('label[for="' + CSS.escape(select.id) + '"]');
+    if(label){label.htmlFor=toggle.id;toggle.setAttribute('aria-labelledby',label.id);}
+    if(select.hasAttribute('aria-describedby')) toggle.setAttribute('aria-describedby',select.getAttribute('aria-describedby'));
+    if(select.hasAttribute('aria-invalid')) toggle.setAttribute('aria-invalid',select.getAttribute('aria-invalid'));
+    const state = doc.createElement('span'); state.className = 'field-help';
+    group.append(toggle,state);
+    let previous = select.value || 'false';
+    const nullButton = doc.createElement('button'); nullButton.type='button';
+    nullButton.className='button secondary small';nullButton.textContent=t('None');
+    const nullable = Array.from(select.options).some(option=>option.value==='');
+    function render(){
+      const empty=select.value==='';toggle.disabled=empty;
+      toggle.setAttribute('aria-checked',String(select.value==='true'));
+      state.textContent=t(empty?'None':select.value==='true'?'True':'False');
+      nullButton.setAttribute('aria-pressed',String(empty));
+    }
+    function change(value){select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));render();}
+    toggle.addEventListener('click',()=>{previous=select.value==='true'?'false':'true';change(previous);});
+    if(nullable){group.append(nullButton);nullButton.addEventListener('click',()=>{if(select.value){previous=select.value;change('');}else change(previous);});}
+    select.after(group);select.hidden=true;select.addEventListener('change',render);render();
+  }
   for (const input of doc.querySelectorAll('[data-json-editor]')) {
     const wrap = doc.createElement('div');
     wrap.className = 'json-editor';

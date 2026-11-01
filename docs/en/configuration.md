@@ -191,3 +191,7 @@ Groups follow first appearance, support keyboard collapse/expand and remember st
 admin mount when browser storage is available. The current collection's group opens
 automatically. Ungrouped collections appear under Other collections when grouping is used.
 Permissions filter collections before grouping; empty or inaccessible groups are omitted.
+
+Boolean fields use keyboard-operable switches. Nullable booleans have an explicit None
+button, preserving the distinction between false and SQL NULL. Read-only values stay
+read-only; without JavaScript the original select remains usable.

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Boolean form switches with explicit nullable state and select fallback.
+
 - Export options now open from a square download icon instead of occupying the list.
 
 - Compact square funnel controls for listing filters.
