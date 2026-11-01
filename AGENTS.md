@@ -4,7 +4,7 @@
 - Preserve authentication, authorization, CSRF, field restrictions and CSP. Never log passwords, tokens or record values.
 - Document user-facing changes in both Diplodoc languages: `docs/en` is primary, `docs/ru` is the translation. Update both navigation files when adding pages.
 - Verify changed behavior with integration tests. Do not suppress dependency warnings.
-- Python checks: `uv run pytest -q`, `uv run ruff check src tests examples`, `uv run ruff format --check src tests examples`, `uv build`.
+- Python checks: `uv run pytest -q`, `uv run ruff check src tests examples scripts`, `uv run ruff format --check src tests examples scripts`.
 - Run `npm run docs:build` after documentation changes.
 
 ## Versioning
@@ -15,9 +15,11 @@
 - `MAJOR`: incompatible public API or behavior changes, feature removal, or dropping Python / framework / ORM support. Before `1.0`, bump `MINOR` for these changes; moving to `1.0` requires a separate decision about API stability.
 - Reset `MINOR` and `PATCH` when bumping `MAJOR`; reset `PATCH` when bumping `MINOR`.
 - Documentation-only changes, tests, behavior-preserving refactoring and development tooling updates do not require a library version bump. A dependency upgrade alone does not imply `MAJOR`: assess the library's compatibility.
-- Plan the version relative to the latest released version, choosing the highest applicable bump. If there is no release, use the previous recorded version. Bump once per batch of changes; the latest finalized release is `0.3.0` (2026-11-01); subsequent changes must target a higher version using the rules above. Keep the version visible in README and record changes in CHANGELOG.md.
+- Plan the version relative to the latest released version, choosing the highest applicable bump. If there is no release, use the previous recorded version. Bump once per batch of changes; the latest finalized release is `0.4.0` (2026-11-01); subsequent changes must target a higher version using the rules above. Keep the version visible in README and record changes in CHANGELOG.md.
 - The source of truth is `project.version` in `pyproject.toml`. Update `src/quite_admin/__init__.py::__version__` in sync and regenerate `uv.lock` with `uv lock`; check version references in the UI and documentation.
 - Every version-changing commit must update `pyproject.toml`, README, `__version__` and `uv.lock` together. Never change only the displayed README version; verify that all library version references agree before committing.
 - `package.json` and `package-lock.json` belong to documentation tooling and need not match the Python package version. Update lockfiles through their package managers.
 - Document breaking changes and migration steps in EN/RU. Create release tags and publish only when explicitly requested by the user.
+- Preserve the public API baseline in `api/*-0.4.json`; run `python scripts/check_api.py --profile modern`. Keep required adapter methods separate from optional capabilities and preserve template API 1. See `docs/en/api-stability.md` for deprecation and migration rules.
 - Run `python scripts/check_release.py` before a version/release commit; finalize the changelog date before tagging. Tagged releases use `.github/workflows/release.yml`; version updates alone never publish.
+- Releases contain only GitHub's automatic source archives. Do not build/upload wheel or sdist artifacts or publish to PyPI in CI/release workflows. After the complete validation gate, a version-tag push creates/updates and publishes the GitHub release, marks it Latest and uses the matching CHANGELOG.md section as its description.

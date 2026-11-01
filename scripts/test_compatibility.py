@@ -102,6 +102,7 @@ def check(args, environment):
     args.report.write_text(json.dumps(report, indent=2) + "\n")
     names = {re.match(r"[\w.-]+", requirement)[0].lower() for requirement in runtime}
     print("Resolved runtime:", json.dumps({k: versions.get(k) for k in sorted(names)}, indent=2))
+    run([python, "scripts/check_api.py", "--profile", "gino" if args.legacy else "modern"])
     if args.legacy and not os.environ.get("QUITE_ADMIN_GINO_TEST_DATABASE_URL"):
         raise ValueError("Legacy contracts require a disposable PostgreSQL database, not skips.")
     tests = ["--confcutdir=tests/gino", "tests/gino"] if args.legacy else ["tests"]

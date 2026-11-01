@@ -1,8 +1,8 @@
 # Add an admin in two minutes
 
 Use CPython **3.11–3.15** and your existing application, database and models.
-For version **0.2.0**, install the source checkout into the application's
-virtual environment:
+For version **0.4.0**, unpack a GitHub source archive or use a source checkout,
+then install it into the application's virtual environment:
 
 ```bash
 pip install '/path/to/quite-admin[sqlalchemy,fastapi]'

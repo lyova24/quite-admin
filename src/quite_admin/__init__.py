@@ -1,6 +1,6 @@
 from .adapters.base import ADAPTER_API_VERSION
 from .adapters.delegating import DelegatingAdapter
-from .admin import Admin, Page
+from .admin import TEMPLATE_API_VERSION, Admin, Page
 from .auth import AuthBackend, Identity, PasswordAuth, hash_password, verify_password
 from .concurrency import CheckedAdapter, WriteGuard
 from .config import FieldOptions, ModelOptions, RecordAction
@@ -10,10 +10,11 @@ from .relations import Junction, Relation, RelationAdapter
 from .schema import Field, Filter, ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 __all__ = [
     "ADAPTER_API_VERSION",
+    "TEMPLATE_API_VERSION",
     "Admin",
     "CheckedAdapter",
     "WriteGuard",

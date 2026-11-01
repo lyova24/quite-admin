@@ -30,12 +30,16 @@ The authenticated page is available at `/admin/pages/reports` and appears in the
 Context callbacks may be synchronous or asynchronous; synchronous callbacks run in a worker thread.
 Custom pages currently support GET requests only.
 
-The shared context reserves `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
+The shared context reserves `template_api_version`, `resource_groups`, `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
 `pages`, `scripts`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` and `tn`.
 Use `url("/models/orders/")` to generate a link with the correct mount prefix.
 The base template inherits your [language and appearance](customization.md) settings.
 Breadcrumbs link to the overview, collection and parent record, preserving mount/proxy prefixes.
 The current page is marked with `aria-current="page"`.
+
+Callback values named `request`, `template`, `page`, `status` or `trusted_scripts` are
+ignored so application context cannot replace renderer arguments. See the
+[template API 1 contract](api-stability.md#template-api-1) for guaranteed blocks and contexts.
 
 ## Override built-in screens
 
@@ -44,9 +48,10 @@ For example, `templates/quite_admin/list.html` overrides the default list screen
 User templates take precedence over packaged templates.
 
 No frontend build or external CDN is required for the admin interface.
-Custom pages retain `script-src 'none'`. Built-in filter editors, relationship pickers and the database schema use narrowly
+Custom pages permit the built-in grouped-navigation script when needed; otherwise they
+retain `script-src 'none'`. Built-in filter editors, relationship pickers and the database schema use narrowly
 scoped SHA-256 hashes and SRI on the pages that need them; inline scripts and arbitrary
-same-origin scripts remain blocked. Custom pages do not inherit those permissions.
+same-origin scripts remain blocked. Custom pages do not inherit field/filter/schema script permissions.
 
 The source checkout includes `examples/templates/report.html` and its context callback
 in `examples/common.py` as a complete custom-page example.

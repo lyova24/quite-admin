@@ -46,6 +46,7 @@ from .schema import ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
 
 SLUG = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
+TEMPLATE_API_VERSION = 1
 FORM_BODY_LIMIT = 1024 * 1024
 LOGO_TYPES = {
     ".svg": "image/svg+xml",
@@ -582,6 +583,7 @@ class Admin:
             )
         request.state.quite_admin_script_hashes = tuple(item["integrity"] for item in scripts)
         shared = {
+            "template_api_version": TEMPLATE_API_VERSION,
             "scripts": scripts,
             "request": request,
             "admin": self,
@@ -759,6 +761,10 @@ class Admin:
             context = await to_thread.run_sync(page.context, request)
         if inspect.isawaitable(context):
             context = await context
+        context = dict(context)
+        # Page data cannot replace renderer arguments or grant script permissions.
+        for name in ("request", "template", "page", "status", "trusted_scripts"):
+            context.pop(name, None)
         return await self._render(request, page.template, page=page, **context)
 
     async def _list(self, request: Request) -> Response:

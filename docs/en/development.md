@@ -16,10 +16,10 @@ Use explicit branches and loops for transaction selection and compound query con
 Keep ORM reflection and async boundaries where their contracts require them; avoid
 introducing an abstraction solely to save a few lines.
 
-The finalized baseline is **0.3.0** (2026-11-01); subsequent work targets a higher version. See the repository's `CHANGELOG.md` for changes
-since 0.1.0. The minor bump includes relationship editors, list filters, stale-edit
-protection, the database schema and interface customization. A version update does not
-create or publish a release.
+The finalized baseline is **0.4.0** (2026-11-01); subsequent work targets a higher version.
+See `CHANGELOG.md` and [public API guarantees](api-stability.md) for migration and
+compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
+GINO checks run separately with `--profile gino`. Version updates do not publish a release.
 
 ## Python support
 
@@ -55,7 +55,6 @@ uv sync --locked
 uv run pytest -q
 uv run ruff check src tests examples
 uv run ruff format --check src tests examples
-uv build
 ```
 
 Integration tests exercise SQLite CRUD with synchronous and asynchronous SQL reflection,
@@ -109,9 +108,10 @@ Install the pinned browsers first with `npx playwright install --with-deps`.
 The fixture uses only fictional data in a temporary SQLite database. Browser jobs run
 Chromium, Firefox and WebKit in CI and retain failure screenshots/traces.
 
-After `uv build`, run `uv run python scripts/check_distributions.py` to install both
-current artifacts into clean temporary environments and exercise packaged HTTP/assets.
-These installation checks require registry access for dependencies and build tooling.
+CI tests the source checkout without building library distributions. GitHub releases
+provide only source-code ZIP/tar.gz archives. For optional local packaging diagnostics,
+`uv build` followed by `uv run python scripts/check_distributions.py` remains available;
+it is not part of CI or release publication and requires registry access.
 
 ## Current limitations
 

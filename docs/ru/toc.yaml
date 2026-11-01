@@ -55,6 +55,8 @@ items:
     items:
       - name: Поддержка другой ORM
         href: custom-adapters.md
+      - name: Гарантии публичного API
+        href: api-stability.md
       - name: Архитектура
         href: architecture.md
       - name: Разработка и проверки

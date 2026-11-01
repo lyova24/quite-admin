@@ -1,0 +1,2541 @@
+{
+  "baseline": "0.4.0",
+  "exports": {
+    "quite_admin": [
+      "ADAPTER_API_VERSION",
+      "TEMPLATE_API_VERSION",
+      "Admin",
+      "CheckedAdapter",
+      "WriteGuard",
+      "AuthBackend",
+      "DelegatingAdapter",
+      "Field",
+      "FieldOptions",
+      "Filter",
+      "Identity",
+      "LoggerProtocol",
+      "ModelOptions",
+      "ModelSchema",
+      "Operation",
+      "OperationHooks",
+      "Page",
+      "PasswordAuth",
+      "Query",
+      "RecordPage",
+      "RecordAction",
+      "RelatedFilter",
+      "Junction",
+      "Relation",
+      "RelationAdapter",
+      "Theme",
+      "hash_password",
+      "verify_password",
+      "current_operation"
+    ]
+  },
+  "constants": {
+    "quite_admin:ADAPTER_API_VERSION": 1,
+    "quite_admin:TEMPLATE_API_VERSION": 1,
+    "quite_admin.errors:AdminError.status_code": 400,
+    "quite_admin.errors:NotFound.status_code": 404,
+    "quite_admin.errors:Conflict.status_code": 409,
+    "quite_admin.errors:ValidationError.status_code": 422
+  },
+  "symbols": {
+    "quite_admin:Admin": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "__call__": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "scope",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Scope"
+            },
+            {
+              "name": "receive",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Receive"
+            },
+            {
+              "name": "send",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Send"
+            }
+          ],
+          "async": true,
+          "returns": "None"
+        },
+        "add_adapter": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "adapter",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Adapter"
+            },
+            {
+              "name": "discover",
+              "kind": "KEYWORD_ONLY",
+              "default": "True",
+              "annotation": "bool"
+            },
+            {
+              "name": "namespace",
+              "kind": "KEYWORD_ONLY",
+              "default": "None",
+              "annotation": "str | None"
+            }
+          ],
+          "async": false,
+          "returns": "Admin"
+        },
+        "add_page": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "page",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Page"
+            }
+          ],
+          "async": false,
+          "returns": "Admin"
+        },
+        "configure": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "collection",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "options",
+              "kind": "KEYWORD_ONLY",
+              "annotation": "ModelOptions"
+            }
+          ],
+          "async": false,
+          "returns": "Admin"
+        },
+        "gettext": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "message",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "values",
+              "kind": "VAR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "str"
+        },
+        "litestar_route": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "path",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "default": "'/admin'",
+              "annotation": "str"
+            }
+          ],
+          "async": false,
+          "returns": "Any"
+        },
+        "mount_fastapi": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "app",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "path",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "default": "'/admin'",
+              "annotation": "str"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        },
+        "mount_litestar": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "app",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "path",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "default": "'/admin'",
+              "annotation": "str"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        },
+        "ngettext": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "singular",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "plural",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "count",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "int"
+            }
+          ],
+          "async": false,
+          "returns": "str"
+        },
+        "register": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "adapter",
+              "kind": "KEYWORD_ONLY",
+              "default": "None",
+              "annotation": "Adapter | None"
+            },
+            {
+              "name": "options",
+              "kind": "KEYWORD_ONLY",
+              "default": "None",
+              "annotation": "ModelOptions | None"
+            }
+          ],
+          "async": false,
+          "returns": "Admin"
+        },
+        "resources": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Resource]"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "auth",
+            "kind": "KEYWORD_ONLY",
+            "annotation": "AuthBackend"
+          },
+          {
+            "name": "secret_key",
+            "kind": "KEYWORD_ONLY",
+            "annotation": "str"
+          },
+          {
+            "name": "adapters",
+            "kind": "KEYWORD_ONLY",
+            "default": "()",
+            "annotation": "Iterable[Adapter]"
+          },
+          {
+            "name": "title",
+            "kind": "KEYWORD_ONLY",
+            "default": "'Quite Admin'",
+            "annotation": "str"
+          },
+          {
+            "name": "description",
+            "kind": "KEYWORD_ONLY",
+            "default": "''",
+            "annotation": "str"
+          },
+          {
+            "name": "language",
+            "kind": "KEYWORD_ONLY",
+            "default": "'en'",
+            "annotation": "Language"
+          },
+          {
+            "name": "theme",
+            "kind": "KEYWORD_ONLY",
+            "default": "None",
+            "annotation": "Theme | None"
+          },
+          {
+            "name": "logo",
+            "kind": "KEYWORD_ONLY",
+            "default": "None",
+            "annotation": "str | Path | None"
+          },
+          {
+            "name": "templates_dir",
+            "kind": "KEYWORD_ONLY",
+            "default": "None",
+            "annotation": "str | Path | None"
+          },
+          {
+            "name": "secure_cookies",
+            "kind": "KEYWORD_ONLY",
+            "default": "True",
+            "annotation": "bool"
+          },
+          {
+            "name": "session_cookie",
+            "kind": "KEYWORD_ONLY",
+            "default": "'quite_admin_session'",
+            "annotation": "str"
+          },
+          {
+            "name": "session_max_age",
+            "kind": "KEYWORD_ONLY",
+            "default": "28800",
+            "annotation": "int"
+          },
+          {
+            "name": "logger",
+            "kind": "KEYWORD_ONLY",
+            "default": "None",
+            "annotation": "LoggerProtocol | None"
+          },
+          {
+            "name": "log_structured",
+            "kind": "KEYWORD_ONLY",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "hooks",
+            "kind": "KEYWORD_ONLY",
+            "default": "None",
+            "annotation": "OperationHooks | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      }
+    },
+    "quite_admin:CheckedAdapter": {
+      "kind": "class",
+      "protocol": true,
+      "methods": {
+        "save_checked": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "selections",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, list[Mapping[str, Any]]]"
+            },
+            {
+              "name": "guard",
+              "kind": "KEYWORD_ONLY",
+              "annotation": "WriteGuard"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any]"
+        }
+      },
+      "properties": {},
+      "attributes": {}
+    },
+    "quite_admin:WriteGuard": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "check_record": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "record",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        },
+        "check_relation": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "name",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "record_keys",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Sequence[str]"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "record_digest",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "relation_digests",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, str]"
+          },
+          {
+            "name": "fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "fingerprint",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Callable[[Any], str]"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "record_digest",
+        "relation_digests",
+        "fields",
+        "fingerprint"
+      ],
+      "frozen": true
+    },
+    "quite_admin:AuthBackend": {
+      "kind": "class",
+      "protocol": true,
+      "methods": {
+        "authenticate": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "request",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Request"
+            },
+            {
+              "name": "username",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "password",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            }
+          ],
+          "async": true,
+          "returns": "Identity | None"
+        },
+        "get_identity": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "request",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Request"
+            },
+            {
+              "name": "subject",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            }
+          ],
+          "async": true,
+          "returns": "Identity | None"
+        }
+      },
+      "properties": {},
+      "attributes": {}
+    },
+    "quite_admin:DelegatingAdapter": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "create": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true
+        },
+        "delete": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true
+        },
+        "describe": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false
+        },
+        "discover": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false
+        },
+        "get": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true
+        },
+        "list": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "query",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Query"
+            }
+          ],
+          "async": true,
+          "returns": "RecordPage"
+        },
+        "update": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true
+        }
+      },
+      "properties": {
+        "supported_filter_operators": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false
+        },
+        "supports_key_search": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false
+        }
+      },
+      "signature": {
+        "parameters": [
+          {
+            "name": "delegate",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Adapter"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      }
+    },
+    "quite_admin:Field": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "format": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "value",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "str"
+        },
+        "parse": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "value",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "Any"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "name",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "python_type",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "<class 'str'>",
+            "annotation": "type"
+          },
+          {
+            "name": "label",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "kind",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "nullable",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "primary_key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "generated",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "read_only",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "has_default",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "max_length",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "int | None"
+          },
+          {
+            "name": "choices",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "foreign_key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "parser",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Callable[[Any], Any] | None"
+          },
+          {
+            "name": "formatter",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Callable[[Any], str] | None"
+          },
+          {
+            "name": "multiline",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "name",
+        "python_type",
+        "label",
+        "kind",
+        "nullable",
+        "primary_key",
+        "generated",
+        "read_only",
+        "has_default",
+        "max_length",
+        "choices",
+        "foreign_key",
+        "parser",
+        "formatter",
+        "multiline"
+      ],
+      "frozen": false
+    },
+    "quite_admin:FieldOptions": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "label",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "read_only",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "help_text",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "''",
+            "annotation": "str"
+          },
+          {
+            "name": "kind",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "parser",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Callable[[Any], Any] | None"
+          },
+          {
+            "name": "formatter",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Callable[[Any], str] | None"
+          },
+          {
+            "name": "template",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "label",
+        "read_only",
+        "help_text",
+        "kind",
+        "parser",
+        "formatter",
+        "template"
+      ],
+      "frozen": true
+    },
+    "quite_admin:Filter": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "validate": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "field",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "operator",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "'eq'",
+            "annotation": "Literal['eq', 'ne', 'lt', 'lte', 'gt', 'gte', 'in', 'is_null', 'icontains', 'not_icontains', 'istartswith', 'iendswith']"
+          },
+          {
+            "name": "value",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Any"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "frozen": true
+    },
+    "quite_admin:Identity": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "subject",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "display_name",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "''",
+            "annotation": "str"
+          },
+          {
+            "name": "roles",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "frozenset()",
+            "annotation": "frozenset[str]"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "subject",
+        "display_name",
+        "roles"
+      ],
+      "frozen": true
+    },
+    "quite_admin:LoggerProtocol": {
+      "kind": "class",
+      "protocol": true,
+      "methods": {
+        "debug": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "event",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "kwargs",
+              "kind": "VAR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "Any"
+        },
+        "info": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "event",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "kwargs",
+              "kind": "VAR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "Any"
+        },
+        "warning": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "event",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "kwargs",
+              "kind": "VAR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "Any"
+        }
+      },
+      "properties": {},
+      "attributes": {}
+    },
+    "quite_admin:ModelOptions": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "form_fields": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            },
+            {
+              "name": "creating",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "bool"
+            }
+          ],
+          "async": false,
+          "returns": "tuple[Field, ...]"
+        },
+        "parse_values": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            },
+            {
+              "name": "data",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "creating",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "bool"
+            },
+            {
+              "name": "managed_fields",
+              "kind": "KEYWORD_ONLY",
+              "default": "frozenset()",
+              "annotation": "frozenset[str]"
+            }
+          ],
+          "async": false,
+          "returns": "dict[str, Any]"
+        },
+        "validate": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        },
+        "visible_fields": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            }
+          ],
+          "async": false,
+          "returns": "tuple[Field, ...]"
+        },
+        "writable_fields": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            },
+            {
+              "name": "creating",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "bool"
+            }
+          ],
+          "async": false,
+          "returns": "dict[str, Field]"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "slug",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "label",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "list_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "edit_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "create_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "readonly_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "exclude",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "search_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "<factory>",
+            "annotation": "Mapping[str, FieldOptions]"
+          },
+          {
+            "name": "can_create",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "True",
+            "annotation": "bool"
+          },
+          {
+            "name": "can_edit",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "True",
+            "annotation": "bool"
+          },
+          {
+            "name": "can_delete",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "True",
+            "annotation": "bool"
+          },
+          {
+            "name": "permission",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Permission | None"
+          },
+          {
+            "name": "relations",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "readonly_relations",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "record_label",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "expose_sensitive_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "writable_protected_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "actions",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[RecordAction, ...]"
+          },
+          {
+            "name": "filter_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "group",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "list_editable",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "slug",
+        "label",
+        "list_fields",
+        "edit_fields",
+        "create_fields",
+        "readonly_fields",
+        "exclude",
+        "search_fields",
+        "fields",
+        "can_create",
+        "can_edit",
+        "can_delete",
+        "permission",
+        "relations",
+        "readonly_relations",
+        "record_label",
+        "expose_sensitive_fields",
+        "writable_protected_fields",
+        "actions",
+        "filter_fields",
+        "group",
+        "list_editable"
+      ],
+      "frozen": true
+    },
+    "quite_admin:ModelSchema": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "parse_key": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "token",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            }
+          ],
+          "async": false,
+          "returns": "dict[str, Any]"
+        },
+        "record_key": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "record",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "dict[str, Any]"
+            }
+          ],
+          "async": false,
+          "returns": "str"
+        },
+        "validate_key": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        },
+        "validate_values": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "creating",
+              "kind": "KEYWORD_ONLY",
+              "annotation": "bool"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        }
+      },
+      "properties": {
+        "by_name": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false,
+          "returns": "dict[str, Field]"
+        },
+        "primary_keys": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false,
+          "returns": "tuple[Field, ...]"
+        }
+      },
+      "signature": {
+        "parameters": [
+          {
+            "name": "name",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "tuple[Field, ...]"
+          },
+          {
+            "name": "label",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "name",
+        "fields",
+        "label"
+      ],
+      "frozen": false
+    },
+    "quite_admin:Operation": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "request",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Request"
+          },
+          {
+            "name": "identity",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Identity"
+          },
+          {
+            "name": "collection",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "model",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Any"
+          },
+          {
+            "name": "action",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, Any] | None"
+          },
+          {
+            "name": "values",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, Any]"
+          },
+          {
+            "name": "relations",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, tuple[Mapping[str, Any], ...]]"
+          },
+          {
+            "name": "record",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, Any]"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "request",
+        "identity",
+        "collection",
+        "model",
+        "action",
+        "key",
+        "values",
+        "relations",
+        "record"
+      ],
+      "frozen": true
+    },
+    "quite_admin:OperationHooks": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "before_write",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "BeforeWrite | None"
+          },
+          {
+            "name": "after_write",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "AfterWrite | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "before_write",
+        "after_write"
+      ],
+      "frozen": true
+    },
+    "quite_admin:Page": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "slug",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "title",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "template",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "PageContext | None"
+          },
+          {
+            "name": "permission",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Permission | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "slug",
+        "title",
+        "template",
+        "context",
+        "permission"
+      ],
+      "frozen": true
+    },
+    "quite_admin:PasswordAuth": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "authenticate": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "request",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Request"
+            },
+            {
+              "name": "username",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "password",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            }
+          ],
+          "async": true,
+          "returns": "Identity | None"
+        },
+        "get_identity": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "request",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Request"
+            },
+            {
+              "name": "subject",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            }
+          ],
+          "async": true,
+          "returns": "Identity | None"
+        },
+        "single_user": {
+          "parameters": [
+            {
+              "name": "username",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "password",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            }
+          ],
+          "async": false,
+          "returns": "PasswordAuth"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "users",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, str]"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      }
+    },
+    "quite_admin:Query": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "project": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "record",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": false,
+          "returns": "dict[str, Any]"
+        },
+        "validate": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "schema",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "ModelSchema"
+            },
+            {
+              "name": "related_schemas",
+              "kind": "KEYWORD_ONLY",
+              "default": "None",
+              "annotation": "Mapping[str, ModelSchema] | None"
+            }
+          ],
+          "async": false,
+          "returns": "None"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "offset",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "0",
+            "annotation": "int"
+          },
+          {
+            "name": "limit",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "25",
+            "annotation": "int"
+          },
+          {
+            "name": "search",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "''",
+            "annotation": "str"
+          },
+          {
+            "name": "search_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "order_by",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "descending",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "filters",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[Filter, ...]"
+          },
+          {
+            "name": "columns",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "tuple[str, ...] | None"
+          },
+          {
+            "name": "related",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[RelatedFilter, ...]"
+          },
+          {
+            "name": "search_key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Mapping[str, Any] | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "offset",
+        "limit",
+        "search",
+        "search_fields",
+        "order_by",
+        "descending",
+        "filters",
+        "columns",
+        "related",
+        "search_key"
+      ],
+      "frozen": true
+    },
+    "quite_admin:RecordPage": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "records",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "list[dict[str, Any]]"
+          },
+          {
+            "name": "total",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "int"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "records",
+        "total"
+      ],
+      "frozen": true
+    },
+    "quite_admin:RecordAction": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "slug",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "label",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "handler",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Callable[[Operation], Mapping[str, Any] | None | Awaitable[Mapping[str, Any] | None]]"
+          },
+          {
+            "name": "permission",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Permission | None"
+          },
+          {
+            "name": "required_permission",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "'edit'",
+            "annotation": "Action"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "slug",
+        "label",
+        "handler",
+        "permission",
+        "required_permission"
+      ],
+      "frozen": false
+    },
+    "quite_admin:RelatedFilter": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "relation",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Mapping[str, Any]"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "relation",
+        "key"
+      ],
+      "frozen": true
+    },
+    "quite_admin:Junction": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "name",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "tuple[Field, ...]"
+          },
+          {
+            "name": "source_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "target_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "model",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Any"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "name",
+        "fields",
+        "source_fields",
+        "target_fields",
+        "model"
+      ],
+      "frozen": true
+    },
+    "quite_admin:Relation": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {
+        "label": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false,
+          "returns": "str"
+        }
+      },
+      "signature": {
+        "parameters": [
+          {
+            "name": "name",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "target",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Any"
+          },
+          {
+            "name": "kind",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Literal['one_to_one', 'many_to_one', 'one_to_many', 'many_to_many']"
+          },
+          {
+            "name": "source_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "target_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "can_detach",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "True",
+            "annotation": "bool"
+          },
+          {
+            "name": "read_only",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "mutates_target",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "False",
+            "annotation": "bool"
+          },
+          {
+            "name": "source_key_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "target_key_fields",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "()",
+            "annotation": "tuple[str, ...]"
+          },
+          {
+            "name": "through",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "str | None"
+          },
+          {
+            "name": "junction",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None",
+            "annotation": "Junction | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "name",
+        "target",
+        "kind",
+        "source_fields",
+        "target_fields",
+        "can_detach",
+        "read_only",
+        "mutates_target",
+        "source_key_fields",
+        "target_key_fields",
+        "through",
+        "junction"
+      ],
+      "frozen": true
+    },
+    "quite_admin:RelationAdapter": {
+      "kind": "class",
+      "protocol": true,
+      "methods": {
+        "related": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "name",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "str"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "query",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Query"
+            }
+          ],
+          "async": true,
+          "returns": "RecordPage"
+        },
+        "relations": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "Iterable[Relation] | Awaitable[Iterable[Relation]]"
+        },
+        "save_relations": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "selections",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, list[Mapping[str, Any]]]"
+            },
+            {
+              "name": "key",
+              "kind": "KEYWORD_ONLY",
+              "default": "None",
+              "annotation": "Mapping[str, Any] | None"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any]"
+        }
+      },
+      "properties": {},
+      "attributes": {}
+    },
+    "quite_admin:Theme": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "stylesheet": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false,
+          "returns": "str"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "primary",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#3e6656'",
+            "annotation": "str"
+          },
+          {
+            "name": "background",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#f5f6f8'",
+            "annotation": "str"
+          },
+          {
+            "name": "surface",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#ffffff'",
+            "annotation": "str"
+          },
+          {
+            "name": "text",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#20252b'",
+            "annotation": "str"
+          },
+          {
+            "name": "muted",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#626b76'",
+            "annotation": "str"
+          },
+          {
+            "name": "border",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#dce0e5'",
+            "annotation": "str"
+          },
+          {
+            "name": "danger",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#b43e3e'",
+            "annotation": "str"
+          },
+          {
+            "name": "on_primary",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#ffffff'",
+            "annotation": "str"
+          },
+          {
+            "name": "on_danger",
+            "kind": "KEYWORD_ONLY",
+            "default": "'#ffffff'",
+            "annotation": "str"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      },
+      "fields": [
+        "primary",
+        "background",
+        "surface",
+        "text",
+        "muted",
+        "border",
+        "danger",
+        "on_primary",
+        "on_danger"
+      ],
+      "frozen": false
+    },
+    "quite_admin:hash_password": {
+      "kind": "function",
+      "signature": {
+        "parameters": [
+          {
+            "name": "password",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          }
+        ],
+        "async": false,
+        "returns": "str"
+      }
+    },
+    "quite_admin:verify_password": {
+      "kind": "function",
+      "signature": {
+        "parameters": [
+          {
+            "name": "password",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          },
+          {
+            "name": "encoded",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "str"
+          }
+        ],
+        "async": false,
+        "returns": "bool"
+      }
+    },
+    "quite_admin:current_operation": {
+      "kind": "function",
+      "signature": {
+        "parameters": [],
+        "async": false,
+        "returns": "Operation | None"
+      }
+    },
+    "quite_admin.adapters.base:Adapter": {
+      "kind": "class",
+      "protocol": true,
+      "methods": {
+        "create": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any]"
+        },
+        "delete": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "None"
+        },
+        "describe": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            }
+          ],
+          "async": false,
+          "returns": "ModelSchema"
+        },
+        "discover": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false,
+          "returns": "Iterable[Any] | Awaitable[Iterable[Any]]"
+        },
+        "get": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any] | None"
+        },
+        "list": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "query",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Query"
+            }
+          ],
+          "async": true,
+          "returns": "RecordPage"
+        },
+        "update": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Any"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any]"
+        }
+      },
+      "properties": {},
+      "attributes": {}
+    },
+    "quite_admin.errors:AdminError": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "self",
+            "kind": "POSITIONAL_ONLY"
+          },
+          {
+            "name": "args",
+            "kind": "VAR_POSITIONAL"
+          },
+          {
+            "name": "kwargs",
+            "kind": "VAR_KEYWORD"
+          }
+        ],
+        "async": false
+      }
+    },
+    "quite_admin.errors:NotFound": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "self",
+            "kind": "POSITIONAL_ONLY"
+          },
+          {
+            "name": "args",
+            "kind": "VAR_POSITIONAL"
+          },
+          {
+            "name": "kwargs",
+            "kind": "VAR_KEYWORD"
+          }
+        ],
+        "async": false
+      }
+    },
+    "quite_admin.errors:Conflict": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "self",
+            "kind": "POSITIONAL_ONLY"
+          },
+          {
+            "name": "args",
+            "kind": "VAR_POSITIONAL"
+          },
+          {
+            "name": "kwargs",
+            "kind": "VAR_KEYWORD"
+          }
+        ],
+        "async": false
+      }
+    },
+    "quite_admin.errors:ValidationError": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "errors",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "dict[str, str]"
+          }
+        ],
+        "async": false
+      }
+    },
+    "quite_admin.concurrency:StaleRecord": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {},
+      "properties": {},
+      "signature": {
+        "parameters": [],
+        "async": false,
+        "returns": "None"
+      }
+    }
+  },
+  "templates": {
+    "quite_admin/base.html": [
+      "title",
+      "head",
+      "content"
+    ],
+    "quite_admin/login.html": [
+      "content"
+    ],
+    "quite_admin/dashboard.html": [
+      "content"
+    ],
+    "quite_admin/list.html": [
+      "content"
+    ],
+    "quite_admin/form.html": [
+      "content"
+    ],
+    "quite_admin/delete.html": [
+      "content"
+    ],
+    "quite_admin/error.html": [
+      "content"
+    ],
+    "quite_admin/schema.html": [
+      "content"
+    ]
+  }
+}

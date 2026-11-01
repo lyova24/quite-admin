@@ -2,15 +2,13 @@ name: release
 on:
   push:
     tags: ['v*']
-  release:
-    types: [published]
 permissions:
   contents: read
 concurrency:
-  group: release-${{ github.event_name }}-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 env:
-  RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+  RELEASE_TAG: ${{ github.ref_name }}
 
 jobs:
   metadata:
@@ -29,9 +27,11 @@ jobs:
     needs: metadata
     uses: ./.github/workflows/ci.yml
 
-  build:
+  publish:
     needs: [metadata, checks]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,43 +41,14 @@ jobs:
           version: '0.13.6'
           python-version: '3.12'
       - run: uv run --no-project python scripts/check_release.py --tag "$RELEASE_TAG" --notes release-notes.md
-      - run: uv build
-      - name: Install and exercise the built distributions outside the source checkout
-        run: uv run --no-project python scripts/check_distributions.py
-      - run: uvx --from 'twine>=6,<7' twine check dist/*
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-distributions
-          path: |
-            dist/
-            release-notes.md
-          if-no-files-found: error
-
-  github-draft:
-    if: github.event_name == 'push'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-distributions
-      - name: Create a draft release with changelog and distributions
+      - name: Publish release with changelog; GitHub supplies source archives
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$RELEASE_TAG" dist/* --verify-tag --draft --title "$RELEASE_TAG" --notes-file release-notes.md
-
-  pypi:
-    if: github.event_name == 'release'
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-distributions
-      - uses: pypa/gh-action-pypi-publish@release/v1
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "Quite Admin $RELEASE_TAG" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Quite Admin $RELEASE_TAG" --notes-file release-notes.md
+          fi
+          gh release edit "$RELEASE_TAG" --draft=false --latest

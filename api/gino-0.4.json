@@ -1,0 +1,270 @@
+{
+  "baseline": "0.4.0",
+  "symbols": {
+    "quite_admin.adapters.gino:GinoAdapter": {
+      "kind": "class",
+      "protocol": false,
+      "methods": {
+        "create": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "type"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any]"
+        },
+        "delete": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "type"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "None"
+        },
+        "describe": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "type"
+            }
+          ],
+          "async": false,
+          "returns": "ModelSchema"
+        },
+        "discover": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false,
+          "returns": "Iterable[type]"
+        },
+        "get": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "type"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any] | None"
+        },
+        "list": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "type"
+            },
+            {
+              "name": "query",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Query"
+            }
+          ],
+          "async": true,
+          "returns": "RecordPage"
+        },
+        "related": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "name",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "query",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": true
+        },
+        "relations": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            }
+          ],
+          "async": false
+        },
+        "save_checked": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "selections",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "guard",
+              "kind": "KEYWORD_ONLY"
+            }
+          ],
+          "async": true
+        },
+        "save_relations": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "selections",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "key",
+              "kind": "KEYWORD_ONLY",
+              "default": "None"
+            }
+          ],
+          "async": true
+        },
+        "update": {
+          "parameters": [
+            {
+              "name": "self",
+              "kind": "POSITIONAL_OR_KEYWORD"
+            },
+            {
+              "name": "model",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "type"
+            },
+            {
+              "name": "key",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            },
+            {
+              "name": "values",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "annotation": "Mapping[str, Any]"
+            }
+          ],
+          "async": true,
+          "returns": "dict[str, Any]"
+        }
+      },
+      "properties": {},
+      "signature": {
+        "parameters": [
+          {
+            "name": "db",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "annotation": "Gino"
+          },
+          {
+            "name": "models",
+            "kind": "KEYWORD_ONLY",
+            "default": "None",
+            "annotation": "Iterable[type] | None"
+          }
+        ],
+        "async": false,
+        "returns": "None"
+      }
+    }
+  },
+  "capabilities": {
+    "quite_admin.adapters.gino:GinoAdapter.supports_related_filters": true,
+    "quite_admin.adapters.gino:GinoAdapter.supports_key_search": true,
+    "quite_admin.adapters.gino:GinoAdapter.supported_filter_operators": [
+      "eq",
+      "gt",
+      "gte",
+      "icontains",
+      "iendswith",
+      "in",
+      "is_null",
+      "istartswith",
+      "lt",
+      "lte",
+      "ne",
+      "not_icontains"
+    ]
+  }
+}

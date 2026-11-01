@@ -1,8 +1,34 @@
 # Changelog
 
-## 0.3.1 — Unreleased
+## 0.4.0 — 2026-11-01
+
+### Added
+
+- Explicit public API guarantees for the 0.4.x line, documented deprecation rules and
+  migration notes in English/Russian. Required adapter API stays at version 1; optional
+  capabilities remain opt-in. Template API 1 covers base blocks and documented contexts.
+- Committed Python API baselines and a CI compatibility guard for exports, signatures,
+  defaults, protocol methods, data fields, mutability, adapter capabilities, error statuses
+  and template extension blocks. Modern and isolated GINO endpoint checks enforce it.
+
+### Migration from 0.3.x
+
+- Field, ModelSchema, RecordAction and Theme are mutable, unhashable configuration
+  objects with explicit constructors. Stop relying on FrozenInstanceError or using them
+  as dictionary/set keys; configure metadata before requests. Constructor calls,
+  validation, equality and dataclasses.replace stay compatible. No database migration
+  or new mandatory custom-adapter method is needed.
+- Custom page callbacks cannot override renderer arguments (request, template, page,
+  status, trusted_scripts) or reserved shared context. Keep application values under
+  their own names. Template API version is exposed as template_api_version.
 
 ### Changed
+
+- GitHub releases contain only the automatic source-code ZIP/tar.gz archives. Remove
+  package builds from the Python matrix and release workflow, distribution uploads,
+  Twine validation and PyPI publication. Pushing a version tag creates/updates and
+  publishes the GitHub release automatically, marks it Latest and copies that version's
+  changelog section into its description, including when a draft already exists.
 
 - Replace hidden post-initialization and frozen-object mutation in Field, ModelSchema,
   RecordAction and Theme with explicit constructors and ordinary assignments. Constructor
@@ -14,12 +40,14 @@
 
 ### Fixed
 
+- Ignore reserved renderer arguments in custom page data, preventing duplicate-argument
+  errors, accidental status overrides and extra built-in script permissions.
+
 - Patch the Diplodoc dependency chain and refresh its lockfile; npm audit reports zero
   vulnerabilities, with strict EN/RU builds and a scoped CommonJS/ESM compatibility shim.
-- Require the complete reusable CI gate before release builds and PyPI publication;
+- Require the complete reusable CI gate before publishing a source-only GitHub release;
   deploy Pages only from a successful CI run for the current master commit.
-- Run Chromium/Firefox/WebKit regression scenarios and install wheel/sdist in clean
-  environments to verify packaged resources and FastAPI/Litestar integration.
+- Run Chromium/Firefox/WebKit regression scenarios and FastAPI/Litestar integration tests.
 
 ## 0.3.0 — 2026-11-01
 

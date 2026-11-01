@@ -22,11 +22,8 @@ jobs:
       - run: uv run ruff check src tests examples scripts
       - run: uv run ruff format --check src tests examples scripts
       - run: uv run python scripts/check_release.py
+      - run: uv run python scripts/check_api.py --profile modern
       - run: uv run pytest -q
-      - run: uv build
-      - name: Install wheel and sdist in clean environments and exercise both frameworks
-        if: matrix.python-version == '3.12'
-        run: uv run --no-project python scripts/check_distributions.py
 
   logging-backends:
     runs-on: ubuntu-latest

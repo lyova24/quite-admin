@@ -55,6 +55,8 @@ items:
     items:
       - name: Support another ORM
         href: custom-adapters.md
+      - name: Public API guarantees
+        href: api-stability.md
       - name: Architecture
         href: architecture.md
       - name: Development and checks

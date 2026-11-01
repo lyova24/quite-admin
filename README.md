@@ -1,6 +1,6 @@
 # quite-admin
 
-**Version: 0.3.1** (development; finalized baseline: 0.3.0) · [Changelog](CHANGELOG.md)
+**Version: 0.4.0** (finalized 2026-11-01) · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -11,7 +11,7 @@ Supports **CPython 3.11–3.15**. MIT licensed.
 Its fictional records stay in browser storage; **Reset demo** restores the examples.
 The site workflow publishes this standalone demo alongside the documentation.
 
-[Add to an existing app in two minutes](docs/en/quickstart.md)
+[Add to an existing app in two minutes](docs/en/quickstart.md) · [Public API guarantees](docs/en/api-stability.md)
 
 ![quite-admin record list](docs/assets/screenshots/products.png)
 
@@ -55,7 +55,7 @@ Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
 
 | Project | When its documented approach fits |
 |---|---|
-| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.3.1; check the compatibility evidence and limits. |
+| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.4.0; see the public API guarantees and compatibility evidence. |
 | [SQLAdmin](https://github.com/smithyhq/sqladmin) | A SQLAlchemy/SQLModel application using its model views, sync/async engines and WTForms controls with FastAPI/Starlette. |
 | [Starlette Admin](https://github.com/jowilf/starlette-admin) | Its contrib backend/model-view approach, MongoDB integrations, bulk actions, file handling or import/export fit the application. |
 
@@ -93,8 +93,11 @@ See [integration](docs/en/integration.md), [field configuration](docs/en/configu
 uv run pytest -q
 uv run ruff check src tests examples
 uv run ruff format --check src tests examples
-uv build
 ```
+
+GitHub releases provide source-code ZIP/tar.gz archives. CI does not build library
+distributions or publish to PyPI. Pushing a version tag publishes the validated GitHub
+release automatically, marks it Latest and fills its description from CHANGELOG.md.
 
 CI tests CPython 3.11, 3.12, 3.13, 3.14 and 3.15 with the pinned dependencies.
 The full test suite uses SQLite; PostgreSQL 17 and MySQL 8.4 have dedicated contract jobs.
