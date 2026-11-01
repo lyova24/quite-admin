@@ -3,8 +3,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Table, create_engine, event
 
-from quite_admin import Admin, PasswordAuth, Query
-from quite_admin.adapters.sql import SQLAdapter
+from quite_admin import Admin, PasswordAuth, Query, RelatedFilter
 from quite_admin.relations import BatchRelationAdapter
 
 from .helpers import login
@@ -26,6 +25,13 @@ async def test_batched_relationships_match_individual_reads_and_report_truncatio
         selections[relation.name] = [key(adapter, target, record) for record in records]
     await adapter.save_relations(source, {}, selections, key=key(adapter, source, parent))
     await adapter.create(source, {"name": "No links"})
+    tag_relation = relation_to(adapter, source, models["tags"], "many_to_many")
+    filtered = Query(
+        limit=1, related=(RelatedFilter(tag_relation.name, key(adapter, models["tags"], tags[0])),)
+    )
+    assert (await adapter.list_window(source, filtered)).records == (
+        await adapter.list(source, filtered)
+    ).records
     for model in models.values():
         records = (await adapter.list(model, Query(limit=10))).records
         keys = [key(adapter, model, record) for record in records]
@@ -58,6 +64,8 @@ async def test_batched_relationships_match_individual_reads_and_report_truncatio
 async def test_export_uses_one_join_per_relation_instead_of_per_record_queries(
     tmp_path, monkeypatch
 ):
+    from quite_admin.adapters.sql import SQLAdapter
+
     engine = create_engine(f"sqlite:///{tmp_path}/batch.db")
     metadata = MetaData()
     parent = Table(
@@ -127,6 +135,7 @@ async def test_batch_join_preserves_composite_and_self_referencing_keys(tmp_path
     from sqlalchemy import ForeignKeyConstraint
     from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
 
+    from quite_admin.adapters.sql import SQLAdapter
     from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 
     class Base(DeclarativeBase):

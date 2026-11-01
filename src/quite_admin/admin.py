@@ -41,6 +41,7 @@ from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
 from .logging import EventLogger, LoggerProtocol
 from .operations import Operation, OperationHooks, _operation
+from .pagination import WindowAdapter
 from .relations import BatchRelationAdapter, RelationAdapter
 from .schema import ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
@@ -202,6 +203,7 @@ class Admin:
             secret_key, salt="quite-admin-record-revision"
         )
         self._revision_secret = secret_key.encode()
+        self._cursor_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-list-cursor")
         self._revision_max_age = session_max_age
         self.auth = auth
         self.title = title
@@ -799,6 +801,7 @@ class Admin:
 
     async def _list(self, request: Request) -> Response:
         resource = await self._resource(request, "list")
+        cursor_mode = resource.options.pagination == "cursor"
         try:
             page = max(1, int(request.query_params.get("page", "1")))
             limit = min(100, max(1, int(request.query_params.get("limit", "25"))))
@@ -817,6 +820,10 @@ class Admin:
         order = request.query_params.get("sort")
         if order is not None and order not in visible:
             raise HTTPException(400, "Invalid sort field.")
+        if cursor_mode and (page != 1 or order not in {None, resource.schema.primary_keys[0].name}):
+            raise HTTPException(
+                400, "Cursor pagination requires primary-key ordering and no page number."
+            )
         search = request.query_params.get("q", "")[:500]
         search_fields = resource.options.search_fields
         if search_fields is None:
@@ -872,7 +879,7 @@ class Admin:
             )
             return self._redirect(request, f"/models/{resource.slug}/?{params}")
         query = Query(
-            offset=(page - 1) * limit,
+            offset=0 if cursor_mode else (page - 1) * limit,
             limit=limit,
             search=search,
             search_fields=search_fields,
@@ -886,11 +893,21 @@ class Admin:
             if filter_errors:
                 raise HTTPException(422, "Correct the filters before exporting.")
             return await self._export(request, resource, query)
-        result = (
-            RecordPage([], 0)
-            if filter_errors
-            else await resource.adapter.list(resource.model, query)
-        )
+        window = None
+        if filter_errors:
+            result = RecordPage([], 0)
+        elif cursor_mode:
+            if not isinstance(resource.adapter, WindowAdapter):
+                raise HTTPException(400, "This adapter does not support cursor pagination.")
+            after, before = self._window_boundaries(request, resource)
+            window = await resource.adapter.list_window(
+                resource.model, query, after=after, before=before
+            )
+            result = window
+        else:
+            if "after" in request.query_params or "before" in request.query_params:
+                raise HTTPException(400, "Cursor parameters require cursor pagination.")
+            result = await resource.adapter.list(resource.model, query)
         permissions = {
             action: await self._allowed(request, resource, action)
             for action in ("view", "create", "edit", "delete")
@@ -898,6 +915,9 @@ class Admin:
         base = self._url(request, f"/models/{resource.slug}/")
 
         def query_url(**updates: Any) -> str:
+            if cursor_mode and any(name not in {"after", "before", "page"} for name in updates):
+                updates.setdefault("after", None)
+                updates.setdefault("before", None)
             params = [
                 (key, value)
                 for key, value in request.query_params.multi_items()
@@ -933,7 +953,7 @@ class Admin:
             export_params=[
                 (key, value)
                 for key, value in request.query_params.multi_items()
-                if key not in {"page", "export", "columns"}
+                if key not in {"page", "export", "columns", "after", "before"}
             ],
             status=422 if filter_errors else 200,
             trusted_scripts=("listing.js",)
@@ -956,12 +976,71 @@ class Admin:
             resource=resource,
             columns=columns,
             result=result,
+            cursor_mode=cursor_mode,
+            cursor_sortable={resource.schema.primary_keys[0].name},
+            cursor_next_url=query_url(
+                after=self._window_token(request, resource, window.next_key), before=None, page=None
+            )
+            if window and window.next_key is not None
+            else None,
+            cursor_previous_url=query_url(
+                before=self._window_token(request, resource, window.previous_key),
+                after=None,
+                page=None,
+            )
+            if window and window.previous_key is not None
+            else None,
             page_number=page,
             limit=limit,
             query=query,
             query_url=query_url,
             permissions=permissions,
         )
+
+    def _window_shape(self, request):
+        return self._fingerprint(
+            sorted(
+                (name, value)
+                for name, value in request.query_params.multi_items()
+                if name not in {"after", "before", "page", "export", "columns"}
+            )
+        )
+
+    def _window_token(self, request, resource, key):
+        return self._cursor_signer.dumps(
+            {
+                "collection": resource.slug,
+                "subject": request.state.identity.subject,
+                "shape": self._window_shape(request),
+                "key": resource.schema.record_key(dict(key)),
+            }
+        )
+
+    def _window_boundaries(self, request, resource):
+        result = []
+        for name in ("after", "before"):
+            values = request.query_params.getlist(name)
+            if len(values) > 1:
+                raise HTTPException(400, "Invalid pagination cursor.")
+            if not values or not values[0]:
+                result.append(None)
+                continue
+            try:
+                if len(values[0]) > 16384:
+                    raise ValueError
+                data = self._cursor_signer.loads(values[0], max_age=self._revision_max_age)
+                if (
+                    data["collection"] != resource.slug
+                    or data["subject"] != request.state.identity.subject
+                    or data["shape"] != self._window_shape(request)
+                ):
+                    raise ValueError
+                result.append(resource.schema.parse_key(data["key"]))
+            except (BadData, KeyError, TypeError, ValueError, NotFound) as exc:
+                raise HTTPException(400, "Invalid pagination cursor.") from exc
+        if all(boundary is not None for boundary in result):
+            raise HTTPException(400, "Choose either after or before.")
+        return tuple(result)
 
     def _inline_fields(self, resource):
         visible = resource.options.visible_fields(resource.schema)

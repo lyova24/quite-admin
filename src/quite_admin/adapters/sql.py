@@ -25,16 +25,24 @@ from sqlalchemy.types import TypeEngine
 
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound, ValidationError
+from quite_admin.pagination import (
+    WindowReads,
+    finish_window,
+    validate_window,
+    window_condition,
+    window_ordering,
+)
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates, search_predicate, validate_query
 from ._sql_metadata import related_predicates
 from ._sql_relations import SQLRelations
+from ._sql_timeout import read_timeout, validate_timeout
 from ._sql_types import integer_bounds
 
 
-class SQLAdapter(CheckedWrites, SQLRelations):
+class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
     """Reflect SQL tables without importing any ORM models.
 
     Works with any ORM's database, using a separate SQLAlchemy Engine for access.
@@ -53,8 +61,10 @@ class SQLAdapter(CheckedWrites, SQLRelations):
         exclude_tables: Iterable[str] = (),
         schema: str | None = None,
         column_types: Mapping[str, Mapping[str, TypeEngine[Any]]] | None = None,
+        query_timeout: float | None = None,
     ) -> None:
         self.engine = engine
+        self.query_timeout = validate_timeout(query_timeout)
         self.include_tables = tuple(include_tables) if include_tables is not None else None
         self.exclude_tables = frozenset(exclude_tables)
         self.schema = schema
@@ -76,7 +86,8 @@ class SQLAdapter(CheckedWrites, SQLRelations):
                     def execute(sync_connection):
                         if write and guarded() and sync_connection.dialect.name == "sqlite":
                             sync_connection.exec_driver_sql("BEGIN IMMEDIATE")
-                        return operation(sync_connection)
+                        with read_timeout(sync_connection, None if write else self.query_timeout):
+                            return operation(sync_connection)
 
                     return await connection.run_sync(execute)
 
@@ -84,7 +95,8 @@ class SQLAdapter(CheckedWrites, SQLRelations):
                 with self.engine.begin() if write else self.engine.connect() as connection:
                     if write and guarded() and connection.dialect.name == "sqlite":
                         connection.exec_driver_sql("BEGIN IMMEDIATE")
-                    return operation(connection)
+                    with read_timeout(connection, None if write else self.query_timeout):
+                        return operation(connection)
 
             return await to_thread.run_sync(run)
         except IntegrityError as exc:
@@ -193,7 +205,13 @@ class SQLAdapter(CheckedWrites, SQLRelations):
         return and_(*(model.c[name] == value for name, value in key.items()))
 
     async def list(self, model: Table, query: Query) -> RecordPage:
+        return await self._list(model, query)
+
+    async def _list(self, model, query, *, after=None, before=None, window=False):
         validate_query(self, model, query)
+        schema = self.describe(model)
+        if window:
+            validate_window(schema, query, after, before)
 
         def operation(connection: Connection) -> RecordPage:
             statement = (
@@ -213,12 +231,35 @@ class SQLAdapter(CheckedWrites, SQLRelations):
             )
             if search is not None:
                 statement = statement.where(search)
-            total = connection.scalar(select(func.count()).select_from(statement.subquery()))
-            ordering = tuple(order_expressions(query, self.describe(model), model.c.__getitem__))
+            total = (
+                None
+                if window
+                else connection.scalar(select(func.count()).select_from(statement.subquery()))
+            )
+            if window:
+                condition = window_condition(
+                    schema,
+                    query,
+                    after if after is not None else before,
+                    before is not None,
+                    model.c.__getitem__,
+                )
+                if condition is not None:
+                    statement = statement.where(condition)
+                ordering = tuple(
+                    window_ordering(schema, query, before is not None, model.c.__getitem__)
+                )
+            else:
+                ordering = tuple(order_expressions(query, schema, model.c.__getitem__))
             rows = connection.execute(
-                statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+                statement.order_by(*ordering).offset(query.offset).limit(query.limit + int(window))
             ).mappings()
-            return RecordPage([query.project(row) for row in rows], total or 0)
+            records = [query.project(row) for row in rows]
+            return (
+                finish_window(schema, query, records, after, before)
+                if window
+                else RecordPage(records, total or 0)
+            )
 
         return await self._run(operation)
 

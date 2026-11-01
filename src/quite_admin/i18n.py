@@ -21,6 +21,11 @@ class Message(str):
 
 
 RUSSIAN = {
+    "{count} on this page": "{count} на этой странице",
+    "Browse records": "Просмотр записей",
+    "The database query timed out. Narrow the filters and try again.": (
+        "Превышено время запроса к БД. Уточните фильтры и повторите попытку."
+    ),
     "Enter a value of at least {minimum}.": "Введите значение не меньше {minimum}.",
     "Enter a value of at most {maximum}.": "Введите значение не больше {maximum}.",
     "The database rejected these values.": "База данных отклонила эти значения.",

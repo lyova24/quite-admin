@@ -122,3 +122,9 @@ or using them as dictionary/set keys. Constructor validation, equality and
 does not rerun validation. Use `Admin.configure()` for collection options, not mutation
 of shared metadata during a request. Operation snapshots and write guards retain
 their protections. No database migration or new mandatory adapter method is required.
+
+The optional cursor list mode supplies `result` as `RecordWindow` instead of
+`RecordPage`: use `result.records` and the `cursor_mode`, `cursor_previous_url`,
+`cursor_next_url` context entries. A window has no exact total. Templates opting into
+this collection mode must avoid `result.total`; default offset lists retain their
+existing context and Template API 1.

@@ -12,6 +12,13 @@ from anyio import to_thread
 
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound, ValidationError
+from quite_admin.pagination import (
+    WindowReads,
+    finish_window,
+    validate_window,
+    window_condition,
+    window_ordering,
+)
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._peewee_relations import PeeweeRelations
@@ -19,7 +26,7 @@ from ._queries import ordering as order_expressions
 from ._queries import predicates, search_predicate, validate_query
 
 
-class PeeweeAdapter(CheckedWrites, PeeweeRelations):
+class PeeweeAdapter(CheckedWrites, PeeweeRelations, WindowReads):
     """Pass models explicitly or a project-specific base. Never scans unrelated global models."""
 
     supports_related_filters = True
@@ -143,7 +150,13 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
         return query.first()
 
     async def list(self, model: type, query: Query) -> RecordPage:
+        return await self._list(model, query)
+
+    async def _list(self, model, query, *, after=None, before=None, window=False):
         validate_query(self, model, query)
+        schema = self.describe(model)
+        if window:
+            validate_window(schema, query, after, before)
 
         def operation() -> RecordPage:
             statement = (
@@ -160,12 +173,33 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
             search = search_predicate(query, lambda name: getattr(model, name), peewee=True)
             if search is not None:
                 statement = statement.where(search)
-            total = statement.count()
-            ordering = tuple(
-                order_expressions(query, self.describe(model), lambda name: getattr(model, name))
+            total = None if window else statement.count()
+
+            def column(name):
+                return getattr(model, name)
+
+            if window:
+                condition = window_condition(
+                    schema,
+                    query,
+                    after if after is not None else before,
+                    before is not None,
+                    column,
+                )
+                if condition is not None:
+                    statement = statement.where(condition)
+                ordering = tuple(window_ordering(schema, query, before is not None, column))
+            else:
+                ordering = tuple(order_expressions(query, schema, column))
+            items = (
+                statement.order_by(*ordering).offset(query.offset).limit(query.limit + int(window))
             )
-            items = statement.order_by(*ordering).offset(query.offset).limit(query.limit)
-            return RecordPage([query.project(self._record(model, item)) for item in items], total)
+            records = [query.project(self._record(model, item)) for item in items]
+            return (
+                finish_window(schema, query, records, after, before)
+                if window
+                else RecordPage(records, total)
+            )
 
         return await self._run(model, operation)
 

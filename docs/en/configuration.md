@@ -217,3 +217,32 @@ Boolean listing cells also use switches. Editable switches save immediately thro
 the guarded inline endpoint; read-only switches are disabled. Nullable cells expose an
 explicit ∅ button and None state. Failed/conflicting writes leave the displayed state
 unchanged and show an error; rapid repeated clicks are disabled during saving.
+
+## Large collections and query deadlines
+
+For a large collection, use `ModelOptions(pagination="cursor")`. Every built-in adapter
+supports this mode. It reads at most one extra record to show Next/Previous, without an
+exact `COUNT(*)` or a growing OFFSET. It orders by the complete primary key (first part
+ascending/descending, remaining parts ascending), including composite keys. Other columns
+do not offer sort controls in this mode. The default `pagination="offset"` retains exact
+totals, page numbers and arbitrary visible-field sorting.
+
+Cursor links are signed, expire with the configured session age and are bound to the
+collection, identity, filters, search, ordering and page size. Changing a filter/search
+starts a new traversal. They do not freeze database contents; concurrent inserts/deletes
+can change the visible pages. Exports still include all matching records within export
+limits, regardless of the current cursor.
+
+Custom adapters can implement `WindowAdapter.list_window(model, query, after=...,
+before=...)` from `quite_admin.pagination`. It returns `RecordWindow(records, has_next,
+has_previous, next_key, previous_key)`, with typed complete source keys. Use only one
+boundary, a zero query offset and primary-key ordering. A projected window must include
+all primary-key fields. This method is separate from the required Adapter API.
+
+SQL reflection and SQLAlchemy/SQLModel also accept `query_timeout=2.0` in the adapter
+constructor. The positive number of seconds limits reads on SQLite, PostgreSQL and MySQL;
+`None` disables it. SQLite uses an operation-scoped progress handler, PostgreSQL a local
+statement timeout and MySQL a temporary SELECT timeout. Connection settings are restored
+or the connection is invalidated before pool reuse; failed reads return a safe 504.
+Writes retain their own transaction behavior. Pool acquisition and Python rendering are
+not covered; configure request/pool timeouts in the host application when needed.

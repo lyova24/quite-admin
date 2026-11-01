@@ -7,7 +7,6 @@ from sqlalchemy.dialects.mysql import BIGINT, MEDIUMINT, TINYINT
 from sqlalchemy.exc import DataError
 
 from quite_admin import Admin, Field
-from quite_admin.adapters.sql import SQLAdapter
 from quite_admin.errors import ValidationError
 
 from .helpers import csrf, login, revision
@@ -67,6 +66,8 @@ async def test_integer_overflow_returns_validation_errors_and_keeps_storage_usab
     ],
 )
 def test_reflected_integer_ranges_include_mysql_unsigned_types(type_, minimum, maximum):
+    from quite_admin.adapters.sql import SQLAdapter
+
     engine = create_engine("sqlite://")
     try:
         table = Table(
@@ -89,6 +90,8 @@ def test_custom_integer_fields_remain_unbounded_without_explicit_limits():
 
 
 async def test_driver_data_errors_are_sanitized_and_transactions_recover(tmp_path):
+    from quite_admin.adapters.sql import SQLAdapter
+
     engine = create_engine(f"sqlite:///{tmp_path}/errors.db")
     metadata = MetaData()
     table = Table("records", metadata, Column("id", Integer, primary_key=True))

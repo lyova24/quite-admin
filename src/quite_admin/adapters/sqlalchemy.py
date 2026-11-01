@@ -11,15 +11,23 @@ from sqlalchemy.orm import Session
 
 from quite_admin.concurrency import CheckedWrites, check_record, sqlite_session_lock
 from quite_admin.errors import Conflict, NotFound, ValidationError
+from quite_admin.pagination import (
+    WindowReads,
+    finish_window,
+    validate_window,
+    window_condition,
+    window_ordering,
+)
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates, search_predicate, validate_query
+from ._sql_timeout import read_timeout, validate_timeout
 from ._sql_types import integer_bounds
 from ._sqlalchemy_relations import SQLAlchemyRelations
 
 
-class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
+class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations, WindowReads):
     """SQLAlchemy 2.x / SQLModel, sync or async. Pass a session *factory*, not a session."""
 
     supports_related_filters = True
@@ -33,8 +41,10 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
         base: Any = None,
         models: Iterable[type] = (),
         async_mode: bool | None = None,
+        query_timeout: float | None = None,
     ) -> None:
         self.session_factory = session_factory
+        self.query_timeout = validate_timeout(query_timeout)
         self.base = base
         self.models = tuple(models)
         session_class = getattr(session_factory, "class_", Session)
@@ -122,15 +132,21 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
             )
         return ModelSchema(name=mapper.local_table.name, fields=tuple(fields))
 
-    async def _run(self, operation: Callable[[Session], Any]) -> Any:
+    async def _run(self, operation: Callable[[Session], Any], *, read: bool = False) -> Any:
+        def execute(session):
+            if read and self.query_timeout is not None:
+                with read_timeout(session.connection(), self.query_timeout):
+                    return operation(session)
+            return operation(session)
+
         try:
             if self.async_mode:
                 async with self.session_factory() as session:
-                    return await session.run_sync(operation)
+                    return await session.run_sync(execute)
 
             def run() -> Any:
                 with self.session_factory() as session:
-                    return operation(session)
+                    return execute(session)
 
             return await to_thread.run_sync(run)
         except IntegrityError as exc:
@@ -142,7 +158,13 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
         return {field.name: getattr(instance, field.name) for field in self.describe(model).fields}
 
     async def list(self, model: type, query: Query) -> RecordPage:
+        return await self._list(model, query)
+
+    async def _list(self, model, query, *, after=None, before=None, window=False):
         validate_query(self, model, query)
+        schema = self.describe(model)
+        if window:
+            validate_window(schema, query, after, before)
 
         def operation(session: Session) -> RecordPage:
             statement = (
@@ -176,22 +198,43 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
             )
             if search is not None:
                 statement = statement.where(search)
-            count = session.scalar(select(func.count()).select_from(statement.subquery()))
-            ordering = tuple(
-                order_expressions(query, self.describe(model), lambda name: getattr(model, name))
-            )
-            statement = statement.order_by(*ordering)
-            statement = statement.offset(query.offset).limit(query.limit)
-            if query.columns:
-                return RecordPage(
-                    [dict(row) for row in session.execute(statement).mappings()], count or 0
-                )
-            items = session.scalars(statement).unique().all()
-            return RecordPage(
-                [query.project(self._record(model, item)) for item in items], count or 0
+            count = (
+                None
+                if window
+                else session.scalar(select(func.count()).select_from(statement.subquery()))
             )
 
-        return await self._run(operation)
+            def column(name):
+                return getattr(model, name)
+
+            if window:
+                condition = window_condition(
+                    schema,
+                    query,
+                    after if after is not None else before,
+                    before is not None,
+                    column,
+                )
+                if condition is not None:
+                    statement = statement.where(condition)
+                ordering = tuple(window_ordering(schema, query, before is not None, column))
+            else:
+                ordering = tuple(order_expressions(query, schema, column))
+            statement = statement.order_by(*ordering)
+            statement = statement.offset(query.offset).limit(query.limit + int(window))
+            if query.columns:
+                records = [dict(row) for row in session.execute(statement).mappings()]
+            else:
+                records = [
+                    self._record(model, item) for item in session.scalars(statement).unique().all()
+                ]
+            return (
+                finish_window(schema, query, records, after, before)
+                if window
+                else RecordPage(records, count or 0)
+            )
+
+        return await self._run(operation, read=True)
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:
         self.describe(model).validate_key(key)
@@ -200,7 +243,7 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
             item = session.get(model, dict(key))
             return self._record(model, item) if item is not None else None
 
-        return await self._run(operation)
+        return await self._run(operation, read=True)
 
     async def create(self, model: type, values: Mapping[str, Any]) -> dict[str, Any]:
         self.describe(model).validate_values(values, creating=True)

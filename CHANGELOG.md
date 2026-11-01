@@ -4,6 +4,12 @@
 
 ### Added
 
+- Count-free bidirectional keyset pagination on every native adapter and opt-in cursor
+  collection lists with signed user/filter-bound cursors. Keep ordinary offset lists
+  available for arbitrary sorting and exact totals.
+- Configurable read query deadlines for SQL reflection and SQLAlchemy/SQLModel on
+  SQLite, PostgreSQL and MySQL, with sanitized 504 responses and connection cleanup.
+
 - Bounded BatchRelationAdapter reads enabled by default on all native adapters. Related exports
   use one joined query per relationship instead of per-record count/load queries;
   related exports require batch support. Remove the per-record fallback; retain all

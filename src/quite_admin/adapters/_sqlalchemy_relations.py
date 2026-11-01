@@ -61,7 +61,7 @@ class SQLAlchemyRelations:
                 columns,
             )
 
-        return await self._run(operation)
+        return await self._run(operation, read=True)
 
     def relations(self, model: type) -> tuple[Relation, ...]:
         result = []
@@ -249,7 +249,7 @@ class SQLAlchemyRelations:
             rows = session.scalars(statement).unique().all()
             return RecordPage([query.project(self._record(target, row)) for row in rows], total)
 
-        return await self._run(operation)
+        return await self._run(operation, read=True)
 
     async def save_relations(
         self,

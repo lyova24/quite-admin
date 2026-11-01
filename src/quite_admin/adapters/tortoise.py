@@ -12,13 +12,14 @@ from tortoise.transactions import in_transaction
 from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
+from quite_admin.pagination import WindowReads, finish_window, validate_window
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import tortoise_filters, validate_query
 from ._tortoise_relations import TortoiseRelations
 
 
-class TortoiseAdapter(CheckedWrites, TortoiseRelations):
+class TortoiseAdapter(CheckedWrites, TortoiseRelations, WindowReads):
     """Discovery happens after host startup, when Tortoise has initialized raw FK fields."""
 
     supports_related_filters = True
@@ -80,7 +81,13 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
         return {field.name: getattr(item, field.name) for field in self.describe(model).fields}
 
     async def list(self, model: type, query: Query) -> RecordPage:
+        return await self._list(model, query)
+
+    async def _list(self, model, query, *, after=None, before=None, window=False):
         validate_query(self, model, query)
+        schema = self.describe(model)
+        if window:
+            validate_window(schema, query, after, before)
         statement = tortoise_filters(model.all(), query)
         for item in query.related:
             statement = statement.filter(
@@ -95,17 +102,30 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
             search.append(Q(**query.search_key))
         if search:
             statement = statement.filter(Q(*search, join_type="OR"))
-        total = await statement.count()
+        total = None if window else await statement.count()
         pk = model._meta.pk_attr
         order = query.order_by or pk
-        ordering = [("-" if query.descending else "") + order]
+        reverse = window and before is not None
+        if window:
+            boundary = after if after is not None else before
+            if boundary is not None:
+                suffix = "__lt" if query.descending != reverse else "__gt"
+                statement = statement.filter(**{pk + suffix: boundary[pk]})
+        ordering = [("-" if query.descending != reverse else "") + order]
         if order != pk:
             ordering.append(pk)
-        statement = statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+        statement = (
+            statement.order_by(*ordering).offset(query.offset).limit(query.limit + int(window))
+        )
         if query.columns:
-            return RecordPage(await statement.values(*query.columns), total)
-        items = await statement
-        return RecordPage([query.project(self._record(model, item)) for item in items], total)
+            records = await statement.values(*query.columns)
+        else:
+            records = [self._record(model, item) for item in await statement]
+        return (
+            finish_window(schema, query, records, after, before)
+            if window
+            else RecordPage(records, total)
+        )
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:
         self.describe(model).validate_key(key)

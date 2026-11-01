@@ -23,6 +23,7 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - CSV/XLSX export with column selection, filters and related-table data.
 - Authenticated CRUD, automatic search, sorting and pagination; typed filters for text
   fragments, ranges, sets, dates, NULL and related records with name/exact-ID lookup.
+- Count-free cursor pagination for large collections and configurable SQL read deadlines.
 - Interactive database schema and atomic stale-edit detection.
 - Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
 - Editable, read-only and hidden fields, with server-side enforcement.

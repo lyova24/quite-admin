@@ -13,6 +13,13 @@ class Conflict(AdminError):
     status_code = 409
 
 
+class QueryTimeout(AdminError):
+    status_code = 504
+
+    def __init__(self):
+        super().__init__("The database query timed out. Narrow the filters and try again.")
+
+
 class ValidationError(AdminError):
     status_code = 422
 

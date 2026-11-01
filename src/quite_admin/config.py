@@ -116,8 +116,11 @@ class ModelOptions:
     filter_fields: tuple[str, ...] | None = None
     group: str | None = None
     list_editable: tuple[str, ...] | None = None
+    pagination: Literal["offset", "cursor"] = "offset"
 
     def validate(self, schema: ModelSchema) -> None:
+        if self.pagination not in {"offset", "cursor"}:
+            raise ValueError("pagination must be offset or cursor.")
         if self.group is not None and (not isinstance(self.group, str) or not self.group.strip()):
             raise ValueError("group must be a nonempty label or None.")
         names = set(schema.by_name)
