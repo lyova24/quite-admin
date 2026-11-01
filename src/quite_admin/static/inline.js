@@ -7,6 +7,53 @@
   const cancel=dialog.querySelector('[data-inline-cancel]'),title=dialog.querySelector('h2');
   const messages=JSON.parse(dialog.dataset.messages);
   dialog.setAttribute('aria-labelledby',title.id);
+  function updateRow(row,result){
+      for(const td of row.querySelectorAll('[data-list-field]')){
+        const cell=result.cells[td.dataset.listField]; if(!cell)continue;
+        const group=td.querySelector('[data-list-toggle-control]');
+        if(group){
+          group.dataset.value=cell.null?'null':cell.boolean?'true':'false';
+          const toggle=group.querySelector('[data-list-switch]');
+          toggle.setAttribute('aria-checked',String(cell.boolean));
+          toggle.setAttribute('aria-label',toggle.dataset.fieldLabel+(cell.null?': '+messages.none:''));
+          group.querySelector('.toggle-null-state').hidden=!cell.null;
+          group.querySelector('[data-list-null]')?.setAttribute('aria-pressed',String(cell.null));
+          continue;
+        }
+        const span=td.querySelector('[data-cell-value]');if(!span)continue;
+        span.textContent=cell.text.length>90?cell.text.slice(0,87)+'…':cell.text;
+        span.title=cell.text.slice(0,4096);
+        if(cell.null)span.className='null-value';
+        else if(!span.classList.contains('record-id'))span.className='cell-value';
+      }
+      for(const link of row.querySelectorAll('.record-row-link'))link.setAttribute('aria-label',result.label_record);
+  }
+  const status=document.querySelector('[data-list-save-status]');
+  for(const group of document.querySelectorAll('[data-toggle-endpoint]')){
+    let saving=false;
+    const toggle=group.querySelector('[data-list-switch]'),nil=group.querySelector('[data-list-null]');
+    async function setValue(value){
+      if(saving)return;saving=true;toggle.disabled=true;if(nil)nil.disabled=true;status.hidden=true;
+      try{
+        const stateResponse=await fetch(group.dataset.toggleEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'}});
+        if(!stateResponse.ok)throw new Error(messages.error);
+        const state=await stateResponse.json();
+        // The displayed state must still match before choosing a new value.
+        // The signed revision then protects the subsequent write atomically.
+        const displayed=group.dataset.value==='null'?'':group.dataset.value;
+        const actual=state.raw_boolean===null?'':state.raw_boolean?'true':'false';
+        if(actual!==displayed)throw new Error(messages.conflict);
+        const data=new URLSearchParams({__csrf:state.csrf,__revision:state.revision,[state.name]:value});
+        const response=await fetch(group.dataset.toggleEndpoint,{method:'POST',credentials:'same-origin',body:data,headers:{Accept:'application/json'}});
+        const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
+        if(!response.ok)throw new Error(result?.errors?Object.values(result.errors).join(' '):messages.error);
+        updateRow(group.closest('tr'),result);
+      }catch(e){status.textContent=e.message||messages.error;status.hidden=false;}
+      finally{saving=false;toggle.disabled=false;if(nil)nil.disabled=false;}
+    }
+    toggle.addEventListener('click',()=>setValue(group.dataset.value==='true'?'false':'true'));
+    nil?.addEventListener('click',()=>setValue(group.dataset.value==='null'?'false':''));
+  }
   let source,model,control,busy=false,controller,cleanup;
   function close(){if(!busy){controller?.abort();cleanup?.();cleanup=null;dialog.close();source?.focus();}}
   cancel.addEventListener('click',close);
@@ -52,17 +99,7 @@
       const response=await fetch(source.dataset.inlineEndpoint,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'},body:data});
       const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
       if(!response.ok){error.textContent=result?.errors?Object.values(result.errors).join(' '):messages.error;return;}
-      const row=source.closest('tr');
-      for(const td of row.querySelectorAll('[data-list-field]')){
-        const cell=result.cells[td.dataset.listField],span=td.querySelector('[data-cell-value]');
-        if(!cell||!span)continue;
-        span.textContent=cell.text.length>90?cell.text.slice(0,87)+'…':cell.text;
-        span.title=cell.text.slice(0,4096);
-        if(cell.null)span.className='null-value';
-        else if(cell.kind==='boolean')span.className='boolean-badge '+(cell.boolean?'yes':'no');
-        else if(!span.classList.contains('record-id'))span.className='cell-value';
-      }
-      for(const link of row.querySelectorAll('.record-row-link'))link.setAttribute('aria-label',result.label_record);
+      updateRow(source.closest("tr"), result);
       busy=false;close();
     }catch(_){error.textContent=messages.error;}
     finally{busy=false;save.disabled=false;cancel.disabled=false;}

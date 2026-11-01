@@ -21,6 +21,9 @@ class Message(str):
 
 
 RUSSIAN = {
+    "The record changed. Reload the list before switching again.": (
+        "Запись изменилась. Обновите список перед повторным переключением."
+    ),
     "Edit field": "Изменить поле",
     "Unable to save. Review permissions or reload the list.": (
         "Не удалось сохранить. Проверьте права или обновите список."

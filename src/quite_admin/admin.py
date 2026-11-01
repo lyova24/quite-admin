@@ -1007,6 +1007,7 @@ class Admin:
                 "choices": field.choices,
                 "max_length": field.max_length,
                 "value": field.format(record.get(name)),
+                "raw_boolean": record.get(name) if field.kind == "boolean" else None,
                 "csrf": self._csrf(request),
                 "revision": self._revision_token(request, resource, record, []),
                 "label_record": resource.record_label(record),

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Boolean list switches with immediate guarded saves, disabled read-only state and explicit NULL.
+
 - Proportional compact listing gutters and full available table width.
 
 - Create record shares the listing toolbar with search, filter and export controls.

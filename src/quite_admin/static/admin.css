@@ -516,3 +516,9 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .listing-page .pagination { padding-inline: 0; min-height: var(--control-height); }
 @media (max-width: 480px) { .listing-page .content { padding-inline: var(--space-3); } }
 .listing-page .list-table-scroll { position: relative; isolation: isolate; }
+
+.list-toggle-control { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--space-1); vertical-align: middle; }
+.list-toggle-control[data-value=null] .boolean-toggle { background: transparent; border-style: dashed; }
+.list-null-button { padding: 1px 3px; border: 0; background: transparent; color: var(--muted); border-radius: var(--radius-sm); font: inherit; }
+.list-null-button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); }
+.toggle-null-state { color: var(--muted); font-size: var(--text-xs); }

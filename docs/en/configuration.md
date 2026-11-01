@@ -211,3 +211,8 @@ uses write hooks and preserves atomic stale-edit checks. A stale revision return
 invalid values return 422 without clearing the editor. Reload the list after a conflict
 before retrying. Custom adapters need `CheckedAdapter` for atomic stale-edit detection,
 as for full record forms. No JavaScript is required to use the full record page.
+
+Boolean listing cells also use switches. Editable switches save immediately through
+the guarded inline endpoint; read-only switches are disabled. Nullable cells expose an
+explicit ∅ button and None state. Failed/conflicting writes leave the displayed state
+unchanged and show an error; rapid repeated clicks are disabled during saving.
