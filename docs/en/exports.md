@@ -47,3 +47,6 @@ Narrow filters or use CSV for very long cell values. Invalid filters return 422.
 Reads can observe concurrent changes: this is not a database snapshot. Related lookups
 run per source record and relationship. Export has no write side effects, and uses the
 same authentication and read permissions as record browsing.
+
+The square download icon beside search opens a compact export panel. Escape or a click
+outside closes it; the panel also works without JavaScript through native disclosure.

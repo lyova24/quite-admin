@@ -21,4 +21,15 @@
   input.addEventListener('compositionend', () => {composing=false;clearTimeout(timer);timer=setTimeout(submit,900);});
   input.addEventListener('keydown', e => {if(e.key==='Enter' && !composing){e.preventDefault();submit();}});
   form.addEventListener('submit', () => clearTimeout(timer));
+  const exporter = document.querySelector('.export-panel');
+  if (exporter) {
+    exporter.addEventListener('keydown', e => {if(e.key==='Escape'){exporter.open=false;exporter.querySelector('summary').focus();}});
+    document.addEventListener('click', e => {if(!exporter.contains(e.target))exporter.open=false;});
+    exporter.querySelector('form').addEventListener('submit', () => {
+      clearTimeout(timer);
+      let search = exporter.querySelector('input[name=q]');
+      if(!search){search=document.createElement('input');search.type='hidden';search.name='q';exporter.querySelector('form').append(search);}
+      search.value=input.value;
+    });
+  }
 })();

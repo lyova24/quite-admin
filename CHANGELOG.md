@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Export options now open from a square download icon instead of occupying the list.
+
 - Compact square funnel controls for listing filters.
 
 - Automatic listing search after a 900 ms typing pause, with IME and Enter support.
