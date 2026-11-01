@@ -19,18 +19,19 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.engine import Connection, Engine
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.types import TypeEngine
 
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
-from quite_admin.errors import Conflict, NotFound
+from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates, search_predicate, validate_query
 from ._sql_metadata import related_predicates
 from ._sql_relations import SQLRelations
+from ._sql_types import integer_bounds
 
 
 class SQLAdapter(CheckedWrites, SQLRelations):
@@ -88,6 +89,8 @@ class SQLAdapter(CheckedWrites, SQLRelations):
             return await to_thread.run_sync(run)
         except IntegrityError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
+        except (DataError, OverflowError) as exc:
+            raise ValidationError({"__all__": "The database rejected these values."}) from exc
 
     async def refresh(self) -> None:
         """Atomically replace cached metadata, e.g. after a host-managed migration."""
@@ -180,6 +183,7 @@ class SQLAdapter(CheckedWrites, SQLRelations):
                     multiline=isinstance(column.type, Text),
                     choices=() if enum_class else tuple(getattr(column.type, "enums", ()) or ()),
                     foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None),
+                    **integer_bounds(column.type),
                 )
             )
         return ModelSchema(model.name, tuple(fields))

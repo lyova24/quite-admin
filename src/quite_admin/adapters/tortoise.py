@@ -70,6 +70,8 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
                     max_length=getattr(item, "max_length", None),
                     multiline=isinstance(item, TextField),
                     foreign_key=foreign_keys.get(name),
+                    minimum=item.constraints.get("ge") if python_type is int else None,
+                    maximum=item.constraints.get("le") if python_type is int else None,
                 )
             )
         return ModelSchema(name=model._meta.db_table, fields=tuple(fields))
@@ -138,6 +140,8 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
             raise Conflict("The operation conflicts with a database constraint.") from exc
         except ValidationError as exc:
             raise AdminValidationError({"__all__": "The model rejected these values."}) from exc
+        except OverflowError as exc:
+            raise AdminValidationError({"__all__": "The database rejected these values."}) from exc
 
     async def create(self, model: type, values: Mapping[str, Any]) -> dict[str, Any]:
         self.describe(model).validate_values(values, creating=True)

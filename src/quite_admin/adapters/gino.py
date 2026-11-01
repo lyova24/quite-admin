@@ -5,18 +5,19 @@ from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
-from asyncpg import IntegrityConstraintViolationError
+from asyncpg import DataError, IntegrityConstraintViolationError
 from gino import Gino
 from sqlalchemy import JSON, String, Text, and_, func, select
 from sqlalchemy.dialects import registry
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from quite_admin.concurrency import CheckedWrites, check_record
-from quite_admin.errors import Conflict, NotFound
+from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._gino_relations import GinoRelations
 from ._queries import ordering, predicates, search_predicate, validate_query
+from ._sql_types import integer_bounds
 
 # SQLAlchemy 1.3's entry-point loader depends on the removed pkg_resources module.
 # Register GINO's own dialect through SQLAlchemy's public API instead. Import this
@@ -115,6 +116,7 @@ class GinoAdapter(CheckedWrites, GinoRelations):
                     multiline=isinstance(column.type, Text),
                     choices=choices,
                     foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None),
+                    **integer_bounds(column.type),
                 )
             )
         return ModelSchema(name=table.name, fields=tuple(fields))
@@ -177,6 +179,8 @@ class GinoAdapter(CheckedWrites, GinoRelations):
                 yield transaction.connection
         except IntegrityConstraintViolationError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
+        except (DataError, OverflowError) as exc:
+            raise ValidationError({"__all__": "The database rejected these values."}) from exc
 
     async def _persist(self, connection, model, values, *, key=None):
         if key is None:

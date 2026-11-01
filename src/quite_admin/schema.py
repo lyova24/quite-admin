@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Literal, get_origin
 from uuid import UUID
 
-from .errors import NotFound
+from .errors import NotFound, ValidationError
 from .i18n import Message
 
 
@@ -51,6 +51,8 @@ class Field:
     parser: Callable[[Any], Any] | None = None
     formatter: Callable[[Any], str] | None = None
     multiline: bool = False
+    minimum: int | None = None
+    maximum: int | None = None
 
     def __init__(
         self,
@@ -69,6 +71,8 @@ class Field:
         parser: Callable[[Any], Any] | None = None,
         formatter: Callable[[Any], str] | None = None,
         multiline: bool = False,
+        minimum: int | None = None,
+        maximum: int | None = None,
     ) -> None:
         if not name or name.startswith("__"):
             raise ValueError("Field names must be nonempty and cannot start with '__'.")
@@ -87,6 +91,10 @@ class Field:
         self.parser = parser
         self.formatter = formatter
         self.multiline = multiline
+        self.minimum = minimum
+        self.maximum = maximum
+        if minimum is not None and maximum is not None and minimum > maximum:
+            raise ValueError("minimum must not exceed maximum.")
         if self.kind in {"unsupported", "binary"}:
             self.read_only = True
         if self.kind == "enum" and not self.choices:
@@ -126,6 +134,8 @@ class Field:
                     isinstance(result, float) and not math.isfinite(result)
                 ):
                     raise ValueError(Message("Enter a finite number."))
+            if isinstance(result, int) and not isinstance(result, bool):
+                self._check_bounds(result)
             if self.kind != "enum" and self.max_length is not None and len(raw) > self.max_length:
                 raise ValueError(Message("Use at most {count} characters.", count=self.max_length))
             if self.choices and raw not in self.choices:
@@ -135,6 +145,12 @@ class Field:
             if exc.args and isinstance(exc.args[0], Message):
                 raise
             raise ValueError(Message("Enter a valid {kind}.", kind=self.kind)) from exc
+
+    def _check_bounds(self, value: int) -> None:
+        if self.minimum is not None and value < self.minimum:
+            raise ValueError(Message("Enter a value of at least {minimum}.", minimum=self.minimum))
+        if self.maximum is not None and value > self.maximum:
+            raise ValueError(Message("Enter a value of at most {maximum}.", maximum=self.maximum))
 
     def format(self, value: Any) -> str:
         if value is None:
@@ -207,6 +223,9 @@ class ModelSchema:
             value is None for value in key.values()
         ):
             raise ValueError("A complete, non-null primary key is required.")
+        for name, value in key.items():
+            if isinstance(value, int):
+                self.by_name[name]._check_bounds(value)
 
     def validate_values(self, values: Mapping[str, Any], *, creating: bool) -> None:
         unknown = set(values) - self.by_name.keys()
@@ -214,6 +233,15 @@ class ModelSchema:
             raise ValueError(f"Unknown fields: {', '.join(sorted(unknown))}")
         if not creating and set(values) & {field.name for field in self.primary_keys}:
             raise ValueError("Primary keys cannot be changed.")
+        errors = {}
+        for name, value in values.items():
+            if isinstance(value, int) and not isinstance(value, bool):
+                try:
+                    self.by_name[name]._check_bounds(value)
+                except ValueError as exc:
+                    errors[name] = exc.args[0]
+        if errors:
+            raise ValidationError(errors)
 
 
 LEGACY_FILTER_OPERATORS = frozenset({"eq", "lt", "lte", "gt", "gte", "in", "is_null"})

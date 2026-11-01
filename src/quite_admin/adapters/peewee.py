@@ -11,7 +11,7 @@ import peewee as pw
 from anyio import to_thread
 
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
-from quite_admin.errors import Conflict, NotFound
+from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._peewee_relations import PeeweeRelations
@@ -74,6 +74,17 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
         )
         fields = []
         for item in model._meta.sorted_fields:
+            numeric = item.rel_field if isinstance(item, pw.ForeignKeyField) else item
+            bounds = {}
+            if isinstance(numeric, pw.IntegerField):
+                bits = (
+                    64
+                    if isinstance(numeric, pw.BigIntegerField)
+                    else 16
+                    if isinstance(numeric, pw.SmallIntegerField)
+                    else 32
+                )
+                bounds = {"minimum": -(2 ** (bits - 1)), "maximum": 2 ** (bits - 1) - 1}
             # Use __data__ rather than relationship attributes to avoid lazy queries.
             fields.append(
                 Field(
@@ -89,6 +100,7 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
                     foreign_key=f"{item.rel_model._meta.table_name}.{item.rel_field.name}"
                     if isinstance(item, pw.ForeignKeyField)
                     else None,
+                    **bounds,
                 )
             )
         return ModelSchema(name=model._meta.table_name, fields=tuple(fields))
@@ -114,6 +126,8 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
             return await to_thread.run_sync(run)
         except pw.IntegrityError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
+        except (pw.DataError, OverflowError) as exc:
+            raise ValidationError({"__all__": "The database rejected these values."}) from exc
 
     def _where(self, model: type, key: Mapping[str, Any]) -> Any:
         conditions = [getattr(model, name) == value for name, value in key.items()]

@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Validate declared integer ranges before writes and filters, including MySQL unsigned
+  integers, and translate expected SQL data/overflow errors into safe validation errors.
+
 - Keep explicitly registered SQL tables and their options attached to fresh reflected
   descriptors after refresh(), with and without automatic discovery.
 

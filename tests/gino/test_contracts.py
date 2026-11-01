@@ -25,6 +25,9 @@ from tests.test_concurrency import test_checked_write_contract
 from tests.test_diagram import (
     test_schema_uses_metadata_with_visible_fields_and_expandable_junctions,
 )
+from tests.test_numeric_limits import (
+    test_integer_overflow_returns_validation_errors_and_keeps_storage_usable,
+)
 from tests.test_relations import (
     test_checked_relationship_changes_are_atomic,
     test_create_with_forward_and_collection_relationships,

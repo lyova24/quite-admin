@@ -21,6 +21,9 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Enter a value of at least {minimum}.": "Введите значение не меньше {minimum}.",
+    "Enter a value of at most {maximum}.": "Введите значение не больше {maximum}.",
+    "The database rejected these values.": "База данных отклонила эти значения.",
     "Close": "Закрыть",
     "Does not equal": "Не равно",
     "Contains": "Содержит",

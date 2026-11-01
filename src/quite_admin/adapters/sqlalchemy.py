@@ -5,16 +5,17 @@ from typing import Any
 
 from anyio import to_thread
 from sqlalchemy import JSON, Column, String, Text, and_, func, inspect, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
 from quite_admin.concurrency import CheckedWrites, check_record, sqlite_session_lock
-from quite_admin.errors import Conflict, NotFound
+from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
 from ._queries import predicates, search_predicate, validate_query
+from ._sql_types import integer_bounds
 from ._sqlalchemy_relations import SQLAlchemyRelations
 
 
@@ -116,6 +117,7 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
                     foreign_key=next((fk.target_fullname for fk in column.foreign_keys), None)
                     if is_column
                     else None,
+                    **integer_bounds(column.type),
                 )
             )
         return ModelSchema(name=mapper.local_table.name, fields=tuple(fields))
@@ -133,6 +135,8 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
             return await to_thread.run_sync(run)
         except IntegrityError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
+        except (DataError, OverflowError) as exc:
+            raise ValidationError({"__all__": "The database rejected these values."}) from exc
 
     def _record(self, model: type, instance: Any) -> dict[str, Any]:
         return {field.name: getattr(instance, field.name) for field in self.describe(model).fields}

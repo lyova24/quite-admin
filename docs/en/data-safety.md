@@ -125,3 +125,13 @@ asyncpg 0.32.0 with PostgreSQL 16, plus the extended concurrency/filter/diagram 
 on PostgreSQL 17. The dedicated CI service uses PostgreSQL 17; configuration alone
 does not establish a passed remote run. Test counts change as contracts grow; the
 commands above and the workflow specify which suites are included.
+
+## Integer ranges and rejected database values
+
+Built-in adapters expose declared integer bounds as `Field.minimum` / `maximum`; forms,
+filters, keys and adapter writes validate them before database access. SQL types retain
+their declared width, including MySQL unsigned types, even when SQLite accepts a wider
+value. Out-of-range form/filter input returns 422 and preserves entered values. Expected
+SQL data/overflow errors are sanitized, and failed writes roll back. Custom fields remain
+unbounded unless their adapter supplies bounds. Database precision and other constraints
+still apply.
