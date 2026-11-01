@@ -21,6 +21,53 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Close": "Закрыть",
+    "Does not equal": "Не равно",
+    "Contains": "Содержит",
+    "Does not contain": "Не содержит",
+    "Starts with": "Начинается с",
+    "Ends with": "Заканчивается на",
+    "Is one of": "Одно из значений",
+    "On date": "За дату",
+    "Is empty text": "Пустая строка",
+    "Is not empty text": "Непустая строка",
+    "Add another condition": "Добавить ещё условие",
+    "Search values": "Поиск значений",
+    "One value per line": "По одному значению на строку",
+    "Match any selected value; other conditions must also match.": (
+        "Подходит любое выбранное значение; остальные условия также должны выполняться."
+    ),
+    "Date": "Дата",
+    (
+        "Includes the whole day. Leave the offset empty for database-local "
+        "time, or enter Z / ±HH:MM."
+    ): ("Включает весь день. Пустое смещение — время БД; либо укажите Z / ±HH:MM."),
+    "For example, Alex": "Например, Alex",
+    "Partial text ignores case. %, _ and ! are literal characters; NULL is separate.": (
+        "Поиск по части текста без учёта регистра. %, _ и ! — обычные "
+        "символы; NULL задаётся отдельно."
+    ),
+    "Enter valid values.": "Введите корректные значения.",
+    "Choose between 1 and 100 values.": "Выберите от 1 до 100 значений.",
+    "Search text or an exact ID. Searchable fields:": (
+        "Поиск по тексту или точному ID. Текстовые поля:"
+    ),
+    "Searchable fields:": "Поля поиска:",
+    "Text": "Текст",
+    "Integer": "Целое число",
+    "Number": "Число",
+    "Boolean": "Логическое значение",
+    "Choice": "Выбор",
+    "Date and time": "Дата и время",
+    "Time": "Время",
+    "Related record": "Связанная запись",
+    "Binary": "Двоичные данные",
+    "Other": "Другое",
+    "Enter a JSON list of text values.": "Введите JSON-массив текстовых значений.",
+    "Choose a date, with an optional UTC offset.": (
+        "Выберите дату и при необходимости смещение UTC."
+    ),
+    "This adapter does not support this condition.": "Адаптер не поддерживает это условие.",
     "The record changed. Reload the list before switching again.": (
         "Запись изменилась. Обновите список перед повторным переключением."
     ),

@@ -522,3 +522,30 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .list-null-button { padding: 1px 3px; border: 0; background: transparent; color: var(--muted); border-radius: var(--radius-sm); font: inherit; }
 .list-null-button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); }
 .toggle-null-state { color: var(--muted); font-size: var(--text-xs); }
+
+.filter-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: var(--border); border-radius: var(--radius); color: var(--text); background: var(--paper); }
+.filter-dialog::backdrop { background: color-mix(in srgb, var(--text) 25%, transparent); }
+.filter-dialog-heading { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: var(--border); }
+.filter-dialog-layout { display: grid; grid-template-columns: 210px minmax(0,1fr); max-height: calc(100dvh - 160px); overflow-y: auto; }
+.filter-dialog-sidebar { padding: var(--space-3); border-inline-end: var(--border); background: var(--subtle); min-width: 0; }
+.filter-dialog-sidebar .filter-field-menu { max-height: 55vh; overflow-y: auto; margin-top: var(--space-2); }
+.filter-dialog-pane { min-width: 0; }
+.filter-dialog .filter-editor-heading { justify-content: space-between; }
+.filter-dialog .filter-field-option[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); }
+.filter-dialog-sidebar .filter-field-option { flex-wrap: wrap; gap: 2px 8px; }
+.filter-dialog-sidebar .filter-option-label { flex: 1 0 80px; min-width: 0; }
+.filter-dialog-sidebar .filter-option-note { max-width: 100%; margin-left: 0; font-size: var(--text-xs); }
+.filter-dialog-hint { padding: var(--space-2) var(--space-4); border-top: var(--border); color: var(--muted); font-size: var(--text-xs); }
+.filter-saved-conditions { display: flex; gap: var(--space-1); flex-wrap: wrap; padding: var(--space-2) var(--space-4) 0; }
+.filter-saved-conditions:empty { display: none; }
+.filter-saved-condition { border: var(--border); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); font: inherit; font-size: var(--text-xs); color: var(--muted); background: var(--paper); max-width: 100%; overflow-wrap: anywhere; text-align: start; }
+.filter-saved-condition.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.filter-preview { margin-top: var(--space-3); padding: var(--space-2); border-radius: var(--radius-sm); color: var(--accent); background: var(--accent-soft); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.filter-choice-list { max-height: 200px; overflow: auto; padding-block: var(--space-2); }
+.filter-dialog .filter-related-results .filter-field-option { flex-direction: column; align-items: stretch; }
+.filter-result-description { color: var(--muted); font-size: var(--text-xs); font-weight: 400; overflow-wrap: anywhere; }
+.filter-dialog .filter-editor-values { min-width: 0; }
+.filter-dialog .calendar-control { display: grid; grid-template-columns: minmax(0,1fr) var(--control-height); }
+.filter-dialog .calendar-panel { position: static; grid-column: 1 / -1; justify-self: end; width: min(290px, 100%); box-shadow: none; }
+.filter-dialog .filter-editor-footer { flex-wrap: wrap; }
+@media (max-width: 600px) { .filter-dialog-layout { grid-template-columns: minmax(0,1fr); } .filter-dialog-sidebar { border-inline-end: 0; border-bottom: var(--border); } .filter-dialog-sidebar .filter-field-menu { max-height: 130px; } }

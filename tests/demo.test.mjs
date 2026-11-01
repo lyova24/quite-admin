@@ -122,3 +122,22 @@ test("numeric equality, zero and strict comparisons filter the demo correctly", 
   const rows = store.filter("products", new URLSearchParams("f.price.gt=18&f.price.lt=28"));
   assert.equal(rows.length, 2);
 });
+
+
+test("text fragments, repeated conditions, membership and NULL work in the demo", () => {
+  const store = new Store(seed);
+  store.save("notes", null, {title:"Second note",body:null,pinned:"false"}, {});
+  const collection = store.collection("notes");
+  collection.records[0].values.title = "Alex Smith%_!";
+  collection.records[0].values.body = "";
+  collection.records[1].values.title = "alex Brown";
+  collection.records[1].values.body = null;
+  const partial = store.filter("notes", new URLSearchParams({"f.title.icontains":"ALEX"}));
+  assert.equal(partial.length, 2);
+  const repeated = store.filter("notes", new URLSearchParams({"f.title.icontains":"Alex", "f.title.icontains~1":"Smith"}));
+  assert.equal(repeated.length, 1);
+  assert.equal(store.filter("notes", new URLSearchParams({"f.title.iendswith":"%_!"})).length, 1);
+  assert.equal(store.filter("notes", new URLSearchParams({"f.body.is_empty":"true"})).length, 1);
+  assert.equal(store.filter("notes", new URLSearchParams({"f.body.is_empty":"false"})).some(row=>row.values.body==null), false);
+  assert.equal(store.filter("notes", new URLSearchParams({"f.title.in":JSON.stringify(["alex Brown"])})).length, 1);
+});

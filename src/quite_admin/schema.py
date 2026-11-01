@@ -185,16 +185,40 @@ class ModelSchema:
             raise ValueError("Primary keys cannot be changed.")
 
 
+LEGACY_FILTER_OPERATORS = frozenset({"eq", "lt", "lte", "gt", "gte", "in", "is_null"})
+FILTER_OPERATORS = LEGACY_FILTER_OPERATORS | {
+    "ne",
+    "icontains",
+    "not_icontains",
+    "istartswith",
+    "iendswith",
+}
+TEXT_FILTER_OPERATORS = frozenset({"icontains", "not_icontains", "istartswith", "iendswith"})
+
+
 @dataclass(frozen=True)
 class Filter:
     field: str
-    operator: Literal["eq", "lt", "lte", "gt", "gte", "in", "is_null"] = "eq"
+    operator: Literal[
+        "eq",
+        "ne",
+        "lt",
+        "lte",
+        "gt",
+        "gte",
+        "in",
+        "is_null",
+        "icontains",
+        "not_icontains",
+        "istartswith",
+        "iendswith",
+    ] = "eq"
     value: Any = None
 
     def validate(self, schema: ModelSchema) -> None:
         if self.field not in schema.by_name:
             raise ValueError("Unknown filter field.")
-        if self.operator not in {"eq", "lt", "lte", "gt", "gte", "in", "is_null"}:
+        if self.operator not in FILTER_OPERATORS:
             raise ValueError("Unknown filter operator.")
         if self.operator == "is_null":
             if type(self.value) is not bool:
@@ -203,6 +227,10 @@ class Filter:
         field = schema.by_name[self.field]
         if field.kind in {"json", "binary", "unsupported"}:
             raise ValueError("This field supports only is_null filters.")
+        if self.operator in TEXT_FILTER_OPERATORS:
+            if field.kind != "string" or not isinstance(self.value, str) or len(self.value) > 4096:
+                raise ValueError("Text matching requires a string field and a string value.")
+            return
         if self.operator == "in":
             if not isinstance(self.value, (tuple, list)) or len(self.value) > 1000:
                 raise ValueError("in requires a sequence of at most 1000 scalar values.")
@@ -239,6 +267,7 @@ class Query:
     filters: tuple[Filter, ...] = ()
     columns: tuple[str, ...] | None = None
     related: tuple[RelatedFilter, ...] = ()
+    search_key: Mapping[str, Any] | None = None
 
     def validate(
         self, schema: ModelSchema, *, related_schemas: Mapping[str, ModelSchema] | None = None
@@ -258,6 +287,12 @@ class Query:
             for name in self.search_fields
         ):
             raise ValueError("search_fields must contain known string fields.")
+        if self.search_key is not None:
+            if not self.search:
+                raise ValueError("search_key requires search text.")
+            schema.validate_key(self.search_key)
+            for name, value in self.search_key.items():
+                Filter(name, "eq", value).validate(schema)
         if len(self.filters) > 50:
             raise ValueError("At most 50 filters are supported.")
         for item in self.filters:

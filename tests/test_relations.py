@@ -508,8 +508,15 @@ async def test_searchable_picker_pagination_and_permissions(auth, related_backen
             i["key"] for i in second.json()["items"]
         )
         found = await client.get(url, params={"q": "Outside"})
-        assert found.json()["items"] == [{"key": last_token, "label": last["name"]}]
-        assert set(found.json()["items"][0]) == {"key", "label"}
+        assert found.json()["items"] == [
+            {
+                "key": last_token,
+                "label": last["name"],
+                "identity": str(last["id"]),
+                "description": last["name"],
+            }
+        ]
+        assert set(found.json()["items"][0]) == {"key", "label", "identity", "description"}
         assert (await client.get(url, params={"page": "bad"})).status_code == 400
         assert (await client.get(url, params={"q": "a" * 501})).status_code == 400
         token = adapter.describe(model).record_key(parent)
@@ -572,7 +579,8 @@ async def test_picker_search_reaches_records_beyond_the_old_1000_limit(auth, rel
         await login(client)
         url = f"/admin/models/parents/relationships/{relation.name}/options"
         found = await client.get(url, params={"q": "1005"})
-        assert found.json()["items"][0]["label"] == "Candidate 1005"
+        assert "Candidate 1005" in {item["label"] for item in found.json()["items"]}
+        assert any(item["identity"] == "1005" for item in found.json()["items"])
         final_page = await client.get(url, params={"page": 41})
         assert final_page.json()["total"] == 1006
         assert len(final_page.json()["items"]) == 6
@@ -666,3 +674,105 @@ async def test_read_only_users_can_filter_by_related_records(auth, related_backe
         )
         assert (await client.get(path, params={"r." + relation.name: token})).status_code == 400
         assert (await client.get(options, params={"purpose": "filter"})).status_code == 403
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_related_filter_lookup_matches_visible_ids_and_searchable_labels(
+    auth, related_backend, framework
+):
+    adapter, models = related_backend
+    target, model = models["tags"], models["parents"]
+    alex = await adapter.create(target, {"name": "Alex Smith"})
+    await adapter.create(target, {"name": "alex Brown"})
+    by_text = await adapter.create(target, {"name": f"Code {alex['id']}"})
+    relation = relation_to(adapter, model, target, "many_to_many")
+    admin = Admin(auth=auth, secret_key="s" * 48, secure_cookies=False, adapters=[adapter])
+    admin.configure("tags", options=ModelOptions(record_label="id", search_fields=("name",)))
+    app = FastAPI() if framework == "fastapi" else Litestar()
+    getattr(admin, "mount_" + framework)(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await login(client)
+        url = f"/admin/models/parents/relationships/{relation.name}/options"
+        response = await client.get(url, params={"purpose": "filter", "q": "Alex"})
+        assert response.status_code == 200 and response.json()["total"] == 2
+        assert {item["description"] for item in response.json()["items"]} == {
+            "Alex Smith",
+            "alex Brown",
+        }
+        response = await client.get(url, params={"purpose": "filter", "q": str(alex["id"])})
+        assert response.json()["total"] == 2
+        assert {item["key"] for item in response.json()["items"]} == {
+            adapter.describe(target).record_key(alex),
+            adapter.describe(target).record_key(by_text),
+        }
+        # Hidden keys cannot be probed through the new lookup path or secondary label.
+        admin.configure("tags", options=ModelOptions(exclude=("id",), search_fields=("name",)))
+        response = await client.get(url, params={"purpose": "filter", "q": str(alex["id"])})
+        assert response.json()["total"] == 1
+        assert all(item["identity"] == "" for item in response.json()["items"])
+        assert response.json()["items"][0]["description"] == by_text["name"]
+        admin.configure("tags", options=ModelOptions(permission=lambda r, i, a: False))
+        assert (
+            await client.get(url, params={"purpose": "filter", "q": str(alex["id"])})
+        ).status_code in {403, 404}
+
+
+@pytest.mark.parametrize("composite", [False, True])
+async def test_related_lookup_accepts_uuid_and_complete_composite_keys(auth, tmp_path, composite):
+    import json
+    from uuid import uuid4
+
+    from sqlalchemy import ForeignKeyConstraint, Integer, String, Uuid, create_engine
+    from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, sessionmaker
+
+    from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
+
+    class Base(DeclarativeBase):
+        pass
+
+    class Target(Base):
+        __tablename__ = "lookup_targets"
+        id = mapped_column(Uuid, primary_key=True)
+        code = mapped_column(String(40), primary_key=composite, nullable=False)
+        caption = mapped_column(String(100))
+
+    class Source(Base):
+        __tablename__ = "lookup_sources"
+        id = mapped_column(Integer, primary_key=True)
+        target_id = mapped_column(Uuid)
+        target_code = mapped_column(String(40))
+        __table_args__ = (
+            ForeignKeyConstraint(
+                ["target_id", "target_code"] if composite else ["target_id"],
+                ["lookup_targets.id", "lookup_targets.code"]
+                if composite
+                else ["lookup_targets.id"],
+            ),
+        )
+        target = relationship(Target)
+
+    engine = create_engine(f"sqlite:///{tmp_path}/lookup.db")
+    Base.metadata.create_all(engine)
+    try:
+        adapter = SQLAlchemyAdapter(sessionmaker(engine), base=Base)
+        identity = uuid4()
+        row = await adapter.create(Target, {"id": identity, "code": "a/b", "caption": "Alex Smith"})
+        admin = Admin(auth=auth, secret_key="s" * 48, secure_cookies=False, adapters=[adapter])
+        admin.configure("lookup_targets", options=ModelOptions(search_fields=("caption",)))
+        app = FastAPI()
+        admin.mount_fastapi(app)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await login(client)
+            url = "/admin/models/lookup_sources/relationships/target/options"
+            raw = json.dumps({"id": str(identity), "code": "a/b"}) if composite else str(identity)
+            result = await client.get(url, params={"purpose": "filter", "q": raw})
+            assert result.status_code == 200 and result.json()["total"] == 1
+            item = result.json()["items"][0]
+            assert item["key"] == adapter.describe(Target).record_key(row)
+            assert item["label"] == item["description"] == "Alex Smith"
+            assert str(identity) in item["identity"]
+            for invalid in (str(uuid4()), '{"id":"invalid"}', "1 OR 1=1"):
+                result = await client.get(url, params={"purpose": "filter", "q": invalid})
+                assert result.status_code == 200 and result.json()["total"] == 0
+    finally:
+        engine.dispose()

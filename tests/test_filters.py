@@ -121,7 +121,11 @@ async def test_list_filters_combine_and_survive_navigation(admin, backend, frame
             response = await client.get(path, params={"q": "Row", "f.count." + operator: value})
             assert response.status_code == 200
             assert f"{expected} " + ("record" if expected == 1 else "records") in response.text
-        for bad in ({"f.internal.eq": "hidden"}, {"f.name__contains.eq": "x"}, {"f.count.ne": "0"}):
+        for bad in (
+            {"f.internal.eq": "hidden"},
+            {"f.name__contains.eq": "x"},
+            {"f.count.raw_sql": "0"},
+        ):
             assert (await client.get(path, params=bad)).status_code == 400
         duplicate = await client.get(path + "?f.active.eq=true&f.active.eq=false")
         assert duplicate.status_code == 400
@@ -174,5 +178,109 @@ async def test_filter_assets_are_integrity_checked_and_metadata_is_safe(admin):
     assert "unsafe-inline" not in csp and "unsafe-eval" not in csp
     assert f'integrity="sha256-{digest}"' in response.text
     assert "data-filter-builder" in response.text
+    assert response.text.index("assets/forms.js") < response.text.index("assets/filters.js")
     assert "<script>'&" not in response.text
     assert "\\u003cscript\\u003e" in response.text
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_text_membership_empty_filters_compose_with_search_and_export(
+    admin, backend, framework
+):
+    adapter, model = backend
+    await adapter.create(model, {"name": "Alex Smith", "note": "", "count": 9007199254740993})
+    await adapter.create(model, {"name": "alex Brown", "note": None, "count": 2})
+    await adapter.create(model, {"name": "Other", "note": "", "count": 3})
+    app = FastAPI() if framework == "fastapi" else Litestar()
+    getattr(admin, "mount_" + framework)(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await login(client)
+        path = "/admin/models/items/"
+        result = await client.get(path, params={"f.name.icontains": "Alex", "limit": "1"})
+        assert result.status_code == 200 and "2 records" in result.text
+        assert "f.name.icontains" in result.text
+        assert '"icontains"' in html.unescape(result.text)
+        selected = {"f.name.icontains": "Alex", "f.note.is_empty": "true"}
+        response = await client.get(path, params={**selected, "export": "csv", "columns": "name"})
+        assert response.status_code == 200
+        assert "Alex Smith" in response.text and "alex Brown" not in response.text
+        result = await client.get(path, params={"f.count.in": '["9007199254740993", "3"]'})
+        assert "2 records" in result.text
+        result = await client.get(path, params={"f.note.is_empty": "false"})
+        assert result.status_code == 200 and "0 records" in result.text
+        for params in ({"f.count.in": "bad"}, {"f.count.in": "[]"}, {"f.count.in": "[1]"}):
+            assert (await client.get(path, params=params)).status_code == 422
+        for params in ({"f.internal.icontains": "hidden"}, {"f.count.icontains": "1"}):
+            assert (await client.get(path, params=params)).status_code == 400
+
+
+def test_whole_day_filters_use_half_open_bounds_and_keep_explicit_timezone():
+    from datetime import datetime, timedelta, timezone
+
+    from quite_admin.schema import FILTER_OPERATORS
+
+    resource = SimpleNamespace(
+        options=ModelOptions(),
+        adapter=SimpleNamespace(supported_filter_operators=FILTER_OPERATORS),
+        schema=ModelSchema(
+            "events", (Field("id", int, primary_key=True), Field("created", datetime))
+        ),
+    )
+    result, errors, active = ui_filters.parse(
+        resource,
+        ui_filters.controls(resource),
+        QueryParams({"f.created.on": "2026-11-01T00:00:00+03:00"}),
+    )
+    assert not errors and [item.operator for item in result] == ["gte", "lt"]
+    assert result[0].value == datetime(2026, 11, 1, tzinfo=timezone(timedelta(hours=3)))
+    assert result[1].value == result[0].value + timedelta(days=1)
+    assert len(active) == 1
+    _, errors, _ = ui_filters.parse(
+        resource,
+        ui_filters.controls(resource),
+        QueryParams({"f.created.on": "2026-11-01T12:00:00"}),
+    )
+    assert "f.created.on" in errors
+
+
+def test_custom_adapters_opt_in_to_new_operators():
+    resource = SimpleNamespace(
+        options=ModelOptions(),
+        schema=ModelSchema("items", (Field("id", int, primary_key=True), Field("name", str))),
+    )
+    with pytest.raises(ValueError):
+        ui_filters.parse(
+            resource, ui_filters.controls(resource), QueryParams({"f.name.icontains": "Alex"})
+        )
+    descriptors, _ = ui_filters.presentation(
+        ui_filters.controls(resource), [], [], str, ui_filters.supported(resource)
+    )
+    assert "icontains" not in descriptors[1]["operators"]
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_repeated_conditions_are_independent_and_survive_export(admin, backend, framework):
+    adapter, model = backend
+    await adapter.create(model, {"name": "Alex Smith", "count": 15})
+    await adapter.create(model, {"name": "Alex Brown", "count": 16})
+    app = FastAPI() if framework == "fastapi" else Litestar()
+    getattr(admin, "mount_" + framework)(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await login(client)
+        path = "/admin/models/items/"
+        params = {"f.name.icontains": "Alex", "f.name.icontains~1": "Smith"}
+        result = await client.get(path, params=params)
+        assert result.status_code == 200 and "1 record" in result.text
+        assert result.text.count("data-filter-edit=") == 2
+        result = await client.get(path, params={**params, "export": "csv", "columns": "name"})
+        assert "Alex Smith" in result.text and "Alex Brown" not in result.text
+        result = await client.get(path, params={"f.count.gte~1": "15", "f.count.lte~1": "16"})
+        assert result.status_code == 200 and result.text.count("data-filter-edit=") == 1
+        result = await client.get(path, params={"f.count.gte~1": "16", "f.count.lte~1": "15"})
+        assert result.status_code == 422 and "upper bound" in result.text
+        for invalid in (
+            {"f.name.icontains~0": "Alex"},
+            {"f.name.icontains~51": "Alex"},
+            {"f.name.icontains~1": "Alex", "f.name.icontains~1~2": "Smith"},
+        ):
+            assert (await client.get(path, params=invalid)).status_code == 400

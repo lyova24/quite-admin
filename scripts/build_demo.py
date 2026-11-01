@@ -17,6 +17,7 @@ from sqlalchemy import inspect  # noqa: E402
 
 from examples.common import make_demo, seed  # noqa: E402
 from quite_admin import Query, __version__  # noqa: E402
+from quite_admin import filters as list_filters  # noqa: E402
 from quite_admin.diagram import schema_graph  # noqa: E402
 from quite_admin.i18n import RUSSIAN, Translator  # noqa: E402
 
@@ -82,6 +83,8 @@ async def build(output):
                             "hasDefault": field.has_default,
                             "maxLength": field.max_length,
                             "choices": field.choices,
+                            "operators": list_filters.field_operators(field),
+                            "supports_not_empty": True,
                             "primaryKey": field.primary_key,
                         }
                         for field in fields
@@ -142,6 +145,7 @@ async def build(output):
                         "version": __version__,
                         "title": admin.title,
                         "translations": RUSSIAN,
+                        "filterMessages": {lang: list_filters.messages(Translator(lang).gettext) for lang in ("en", "ru")},
                         "collections": collections,
                         "schemaPages": schema_pages,
                     },

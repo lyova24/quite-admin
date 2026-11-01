@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..schema import Query, RecordPage
+from ..schema import LEGACY_FILTER_OPERATORS, Query, RecordPage
 from .base import Adapter
 
 
@@ -17,6 +17,14 @@ class DelegatingAdapter:
 
     def __init__(self, delegate: Adapter) -> None:
         self.delegate = delegate
+
+    @property
+    def supported_filter_operators(self):
+        return getattr(self.delegate, "supported_filter_operators", LEGACY_FILTER_OPERATORS)
+
+    @property
+    def supports_key_search(self):
+        return getattr(self.delegate, "supports_key_search", False)
 
     def discover(self):
         return self.delegate.discover()

@@ -7,16 +7,16 @@ from uuid import UUID
 
 from asyncpg import IntegrityConstraintViolationError
 from gino import Gino
-from sqlalchemy import JSON, String, Text, and_, func, or_, select
+from sqlalchemy import JSON, String, Text, and_, func, select
 from sqlalchemy.dialects import registry
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.schema import Field, ModelSchema, Query, RecordPage
+from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._gino_relations import GinoRelations
-from ._queries import ordering, predicates, validate_query
+from ._queries import ordering, predicates, search_predicate, validate_query
 
 # SQLAlchemy 1.3's entry-point loader depends on the removed pkg_resources module.
 # Register GINO's own dialect through SQLAlchemy's public API instead. Import this
@@ -34,6 +34,8 @@ class GinoAdapter(CheckedWrites, GinoRelations):
     """
 
     supports_related_filters = True
+    supports_key_search = True
+    supported_filter_operators = FILTER_OPERATORS
 
     def __init__(self, db: Gino, *, models: Iterable[type] | None = None) -> None:
         self.db = db
@@ -128,26 +130,23 @@ class GinoAdapter(CheckedWrites, GinoRelations):
         schema = self.describe(model)
         validate_query(self, model, query)
         statement = model.query
-        conditions = list(predicates(query, lambda name: getattr(model, name)))
+        conditions = list(
+            predicates(
+                query,
+                lambda name: getattr(model, name),
+                text_column=lambda name: getattr(model, name).cast(String),
+            )
+        )
         conditions.extend(self._filter_conditions(model, query))
         if condition is not None:
             conditions.append(condition)
-        if query.search and query.search_fields:
-            conditions.append(
-                or_(
-                    *(
-                        getattr(model, name)
-                        .cast(String)
-                        .ilike(
-                            "%"
-                            + query.search.replace("!", "!!").replace("%", "!%").replace("_", "!_")
-                            + "%",
-                            escape="!",
-                        )
-                        for name in query.search_fields
-                    )
-                )
-            )
+        search = search_predicate(
+            query,
+            lambda name: getattr(model, name),
+            text_column=lambda name: getattr(model, name).cast(String),
+        )
+        if search is not None:
+            conditions.append(search)
         for expression in conditions:
             statement = statement.where(expression)
         # One operation-scoped connection; reads never open/commit a transaction.

@@ -14,17 +14,19 @@ from anyio import to_thread
 
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.schema import Field, ModelSchema, Query, RecordPage
+from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._peewee_relations import PeeweeRelations
 from ._queries import ordering as order_expressions
-from ._queries import predicates, validate_query
+from ._queries import predicates, search_predicate, validate_query
 
 
 class PeeweeAdapter(CheckedWrites, PeeweeRelations):
     """Pass models explicitly or a project-specific base. Never scans unrelated global models."""
 
     supports_related_filters = True
+    supports_key_search = True
+    supported_filter_operators = FILTER_OPERATORS
 
     def __init__(self, *, models: Iterable[type] = (), base: type | None = None) -> None:
         self.models = tuple(models)
@@ -137,17 +139,9 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
                 statement = statement.where(
                     *predicates(query, lambda name: getattr(model, name), peewee=True)
                 )
-            if query.search and query.search_fields:
-                # Peewee contains() escapes LIKE wildcards internally.
-                statement = statement.where(
-                    reduce(
-                        operator.or_,
-                        (
-                            getattr(model, name).contains(query.search)
-                            for name in query.search_fields
-                        ),
-                    )
-                )
+            search = search_predicate(query, lambda name: getattr(model, name), peewee=True)
+            if search is not None:
+                statement = statement.where(search)
             total = statement.count()
             ordering = tuple(
                 order_expressions(query, self.describe(model), lambda name: getattr(model, name))

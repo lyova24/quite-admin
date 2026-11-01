@@ -4,7 +4,19 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from anyio import Lock, to_thread
-from sqlalchemy import JSON, MetaData, Table, Text, and_, delete, func, insert, or_, select, update
+from sqlalchemy import (
+    JSON,
+    MetaData,
+    String,
+    Table,
+    Text,
+    and_,
+    delete,
+    func,
+    insert,
+    select,
+    update,
+)
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -12,10 +24,10 @@ from sqlalchemy.types import TypeEngine
 
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.schema import Field, ModelSchema, Query, RecordPage
+from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
-from ._queries import predicates, validate_query
+from ._queries import predicates, search_predicate, validate_query
 from ._sql_metadata import related_predicates
 from ._sql_relations import SQLRelations
 
@@ -28,6 +40,8 @@ class SQLAdapter(CheckedWrites, SQLRelations):
     """
 
     supports_related_filters = True
+    supports_key_search = True
+    supported_filter_operators = FILTER_OPERATORS
 
     def __init__(
         self,
@@ -163,18 +177,18 @@ class SQLAdapter(CheckedWrites, SQLRelations):
 
         def operation(connection: Connection) -> RecordPage:
             statement = select(model)
-            statement = statement.where(*predicates(query, model.c.__getitem__))
+            statement = statement.where(
+                *predicates(
+                    query, model.c.__getitem__, text_column=lambda name: model.c[name].cast(String)
+                )
+            )
             if query.related:
                 statement = statement.where(*related_predicates(model, query, self._links(model)))
-            if query.search and query.search_fields:
-                statement = statement.where(
-                    or_(
-                        *(
-                            model.c[name].icontains(query.search, autoescape=True)
-                            for name in query.search_fields
-                        )
-                    )
-                )
+            search = search_predicate(
+                query, model.c.__getitem__, text_column=lambda name: model.c[name].cast(String)
+            )
+            if search is not None:
+                statement = statement.where(search)
             total = connection.scalar(select(func.count()).select_from(statement.subquery()))
             ordering = tuple(order_expressions(query, self.describe(model), model.c.__getitem__))
             rows = connection.execute(

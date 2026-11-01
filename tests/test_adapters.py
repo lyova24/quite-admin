@@ -148,3 +148,43 @@ async def test_service_adapter_keeps_writes_behind_business_rules(backend):
     assert "negative stock" in rejected.value.errors["count"]
     assert await service.get(model, key) == record
     assert (await service.update(model, key, {"count": 2}))["count"] == 2
+
+
+@pytest.mark.parametrize(
+    ("op", "value", "expected"),
+    [
+        ("icontains", "alex", {"Alex Smith", "alex Brown", "Alice Alex"}),
+        ("istartswith", "alex", {"Alex Smith", "alex Brown"}),
+        ("iendswith", "alex", {"Alice Alex"}),
+        ("not_icontains", "alex", {"A%lex", "A_lex", "A!lex"}),
+        ("icontains", "%", {"A%lex"}),
+        ("icontains", "_", {"A_lex"}),
+        ("icontains", "!", {"A!lex"}),
+        ("ne", "Alex Smith", {"alex Brown", "Alice Alex", "A%lex", "A_lex", "A!lex"}),
+    ],
+)
+async def test_text_filter_contract_is_literal_and_case_insensitive(backend, op, value, expected):
+    adapter, model = backend
+    for name in ("Alex Smith", "alex Brown", "Alice Alex", "A%lex", "A_lex", "A!lex"):
+        await adapter.create(model, {"name": name})
+    result = await adapter.list(model, Query(filters=(Filter("name", op, value),)))
+    assert {row["name"] for row in result.records} == expected
+    assert result.total == len(expected)
+    # NULL is never silently included by an exclusion predicate.
+    result = await adapter.list(model, Query(filters=(Filter("note", "not_icontains", "x"),)))
+    assert result.total == 0
+
+
+async def test_search_key_unions_text_matches_before_counting_and_pagination(backend):
+    adapter, model = backend
+    exact = await adapter.create(model, {"name": "Identifier match"})
+    by_text = await adapter.create(model, {"name": f"Label {exact['id']}"})
+    await adapter.create(model, {"name": "Other"})
+    options = dict(search=str(exact["id"]), search_fields=("name",), search_key={"id": exact["id"]})
+    first = await adapter.list(model, Query(**options, limit=1))
+    second = await adapter.list(model, Query(**options, offset=1, limit=1))
+    assert first.total == second.total == 2
+    assert {first.records[0]["id"], second.records[0]["id"]} == {exact["id"], by_text["id"]}
+    for search_key in ({}, {"id": "bad"}, {"secret": 1}):
+        with pytest.raises(ValueError):
+            await adapter.list(model, Query(search="1", search_key=search_key))

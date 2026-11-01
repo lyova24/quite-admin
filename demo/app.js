@@ -81,26 +81,26 @@ function demoFilters(slug, query, queryUrl) {
   fields.push(...c.relations.map((relation) => {
     const key = query.get("r." + relation.name), target = store.collection(relation.target);
     const row = target.records.find((item) => item.key === key);
-    return {id: "r." + relation.name, label: relation.label, kind: "relation", endpoint: "./", choices: row ? [[key, store.label(relation.target, row)]] : []};
+    return {id: "r." + relation.name, label: relation.label, kind: "relation", endpoint: "./", key_search:true, search_labels:target.fields.filter(f=>f.kind==='string').map(f=>f.label), choices: row ? [[key, store.label(relation.target, row)]] : []};
   }));
   const active = [], consumed = new Set();
   for (const [name, value] of query) {
     if (!value || consumed.has(name)) continue;
-    const match = /^f\.(.+)\.(eq|gt|gte|lt|lte|is_null)$/.exec(name);
+    const match = /^f\.(.+)\.(eq|ne|gt|gte|lt|lte|is_null|is_empty|in|on|icontains|not_icontains|istartswith|iendswith)(~[1-9][0-9]?)?$/.exec(name);
     const field = fields.find((field) => field.id === (match ? "f." + match[1] : name));
     if (!field) continue;
     const condition = {id: field.id, operator: match ? match[2] : "eq", parameters: [name], values: [value]};
-    const lower = field.id + ".gte", upper = field.id + ".lte";
+    const lower = field.id + ".gte" + (match?.[3]||''), upper = field.id + ".lte" + (match?.[3]||'');
     if (["gte", "lte"].includes(condition.operator) && query.get(lower) && query.get(upper)) {
       condition.operator = "between"; condition.parameters = [lower, upper]; condition.values = [query.get(lower), query.get(upper)];
       consumed.add(lower); consumed.add(upper);
       condition.label = field.label + " " + condition.values.join(" – ");
     } else if (field.kind === "relation") condition.label = field.label + ": " + (field.choices[0]?.[1] || "—");
-    else condition.label = field.label + " " + (condition.operator === "is_null" ? t(value === "true" ? "Is NULL" : "Is not NULL") : ({eq:"=",gt:">",gte:"≥",lt:"<",lte:"≤"}[condition.operator] + " " + (field.kind === "boolean" ? t(value === "true" ? "True" : "False") : value)));
+    else condition.label = field.label + " " + (condition.operator === "is_null" ? t(value === "true" ? "Is NULL" : "Is not NULL") : condition.operator === 'is_empty' ? t(value === 'true' ? 'Is empty text' : 'Is not empty text') : (seed.filterMessages[language][condition.operator] || condition.operator) + " " + (field.kind === "boolean" ? t(value === "true" ? "True" : "False") : value));
     condition.remove_url = queryUrl({...Object.fromEntries(condition.parameters.map((key) => [key,null])), page:1});
     active.push(condition);
   }
-  const messages = Object.fromEntries(Object.entries({add:"Add filter",find:"Find a field…",back:"Back",operator:"Condition",value:"Value",eq:"Equals",gt:"Greater than",gte:"At least",lt:"Less than",lte:"At most",between:"Between",null:"Is NULL",not_null:"Is not NULL",from:"From",to:"To",apply:"Apply filter",cancel:"Cancel",required:"A value is required.",empty:"No matching fields.",search:"Search related records",loading:"Loading…",no_records:"No matching records.",failed:"Could not load records. Try again.",retry:"Retry",previous:"Previous",next:"Next",true:"True",false:"False",selected:"Selected",conflict:"This condition already exists. Edit the existing filter.",hint:"All conditions must match.",iso:"Use an ISO date or time, including a timezone if needed."}).map(([key,value]) => [key,t(value)]));
+  const messages = seed.filterMessages[language];
   const clear = Object.fromEntries([...query.keys()].filter((name) => name === "q" || name.startsWith("f.") || name.startsWith("r.")).map((name) => [name,null]));
   return {
     attributes: `data-filter-builder data-fields="${e(JSON.stringify(fields))}" data-conditions="${e(JSON.stringify(active))}" data-messages="${e(JSON.stringify(messages))}"`,
@@ -277,8 +277,9 @@ function render() {
     };
     search.loadOptions = async (field, {search: term, page}) => {
       const relation = store.collection(slug).relations.find((item) => "r." + item.name === field.id);
-      const rows = store.collection(relation.target).records.filter((row) => store.label(relation.target, row).toLowerCase().includes(term.toLowerCase()));
-      return {items: rows.slice((page - 1) * 25, page * 25).map((row) => ({key:row.key,label:store.label(relation.target,row)})), total:rows.length,has_next:page * 25 < rows.length};
+      const target = store.collection(relation.target);
+      const rows = target.records.filter(row => target.fields.some(f => f.kind === 'string' && String(row.values[f.name] || '').toLowerCase().includes(term.toLowerCase())) || target.fields.filter(f=>f.primaryKey).every(f=>String(row.values[f.name])===term));
+      return {items: rows.slice((page - 1) * 25, page * 25).map((row) => ({key:row.key,label:store.label(relation.target,row),identity:target.fields.filter(f=>f.primaryKey).map(f=>row.values[f.name]).join(" · "),description:target.fields.filter(f=>f.kind==='string').map(f=>row.values[f.name]).filter(Boolean).join(" · ")})), total:rows.length,has_next:page * 25 < rows.length};
     };
     window.QuiteAdmin.initFilters();
   }

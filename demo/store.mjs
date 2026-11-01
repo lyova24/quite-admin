@@ -145,16 +145,26 @@ export class Store {
       if (!raw) return true;
       if (name.startsWith("r.")) return (row.links[name.slice(2)] || []).includes(raw);
       if (!name.startsWith("f.")) return true;
-      const match = /^f\.(.+)\.(eq|gt|gte|lt|lte|is_null)$/.exec(name);
+      const match = /^f\.(.+)\.(eq|ne|gt|gte|lt|lte|is_null|is_empty|in|on|icontains|not_icontains|istartswith|iendswith)(?:~[1-9][0-9]?)?$/.exec(name);
       if (!match) return false;
       const field = collection.fields.find((item) => item.name === match[1]);
       if (!field) return false;
       const value = row.values[field.name], operator = match[2];
       if (operator === "is_null") return (value == null) === (raw === "true");
       if (value == null) return false;
+      if(operator==='is_empty') return (value==='')===(raw==='true');
+      if(['icontains','not_icontains','istartswith','iendswith'].includes(operator)){
+        const a=String(value).toLowerCase(),b=raw.toLowerCase();
+        return operator==='icontains'?a.includes(b):operator==='not_icontains'?!a.includes(b):operator==='istartswith'?a.startsWith(b):a.endsWith(b);
+      }
+      if(operator==='in'){try {const values=JSON.parse(raw);return values.some(v=>['integer','number'].includes(field.kind)?Number(v)===Number(value):v===value);}catch(_){return false;}}
+      if(operator==='on'){
+        if(!/[Z+-]\d{2}:?\d{2}$/.test(raw)&&!raw.endsWith('Z'))return String(value).slice(0,10)===raw.slice(0,10);
+        const start=Date.parse(raw),actual=Date.parse(value);return actual>=start&&actual<start+86400000;
+      }
       const numeric = ["integer", "number"].includes(field.kind);
       const a = numeric ? Number(value) : String(value), b = numeric ? Number(raw) : raw;
-      return operator === "gt" ? a > b : operator === "gte" ? a >= b : operator === "lt" ? a < b : operator === "lte" ? a <= b : a === b;
+      return operator === "ne" ? a !== b : operator === "gt" ? a > b : operator === "gte" ? a >= b : operator === "lt" ? a < b : operator === "lte" ? a <= b : a === b;
     }));
   }
 

@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import inspect
+import json
 import re
 import secrets
 from collections.abc import Awaitable, Callable, Iterable, Mapping
@@ -87,6 +88,12 @@ class Resource:
             "label",
             "display_name",
             "username",
+            *(self.options.search_fields or ()),
+            *(
+                name
+                for name, item in visible.items()
+                if item.kind == "string" and not item.primary_key
+            ),
         ):
             if name in visible and record.get(name) is not None:
                 return visible[name].format(record[name])[:200]
@@ -865,7 +872,7 @@ class Admin:
         clear = {item["parameter"]: None for item in active}
         clear.update(q=None, page=1)
         filter_descriptors, active = list_filters.presentation(
-            filter_fields, relation_filters, active, self.gettext
+            filter_fields, relation_filters, active, self.gettext, list_filters.supported(resource)
         )
         for item in active:
             item["remove_url"] = query_url(**{**dict.fromkeys(item["parameters"]), "page": 1})
@@ -893,12 +900,16 @@ class Admin:
             ],
             status=422 if filter_errors else 200,
             trusted_scripts=("listing.js",)
+            + (("forms.js",) if inline_fields or filter_descriptors else ())
             + (("filters.js",) if filter_descriptors else ())
-            + (("forms.js", "inline.js") if inline_fields else ()),
+            + (("inline.js",) if inline_fields else ()),
             filter_descriptors=filter_descriptors,
             filter_messages=list_filters.messages(self.gettext),
             filter_errors_json={key: self.gettext(value) for key, value in filter_errors.items()},
             filter_fields=filter_fields,
+            filter_parameters=list_filters.parameters(
+                filter_fields, list_filters.supported(resource), request.query_params
+            ),
             filter_values=dict(request.query_params),
             filter_errors=filter_errors,
             active_filters=active,
@@ -1628,17 +1639,46 @@ class Admin:
         searchable = target.options.search_fields
         if searchable is None:
             searchable = tuple(name for name, item in visible.items() if item.kind == "string")
+        key_search = None
+        if (
+            search
+            and getattr(target.adapter, "supports_key_search", False)
+            and all(item.name in visible for item in target.schema.primary_keys)
+        ):
+            try:
+                keys = target.schema.primary_keys
+                raw = {keys[0].name: search} if len(keys) == 1 else json.loads(search)
+                if not isinstance(raw, dict) or set(raw) != {item.name for item in keys}:
+                    raise ValueError
+                key_search = {item.name: item.parse(raw[item.name]) for item in keys}
+                target.schema.validate_key(key_search)
+            except (ValueError, TypeError):
+                key_search = None
         query = Query(
             offset=(page - 1) * 25,
             limit=25,
             search=search,
+            search_key=key_search,
             search_fields=tuple(name for name in searchable if name in visible),
         )
         result = await target.adapter.list(target.model, query)
         return JSONResponse(
             {
                 "items": [
-                    {"key": target.schema.record_key(row), "label": target.record_label(row)}
+                    {
+                        "key": target.schema.record_key(row),
+                        "label": target.record_label(row),
+                        "identity": " · ".join(
+                            item.format(row[item.name])
+                            for item in target.schema.primary_keys
+                            if item.name in visible
+                        ),
+                        "description": " · ".join(
+                            visible[name].format(row.get(name))[:120]
+                            for name in searchable
+                            if name in visible and row.get(name) is not None
+                        )[:300],
+                    }
                     for row in result.records
                 ],
                 "page": page,

@@ -4,17 +4,17 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from anyio import to_thread
-from sqlalchemy import JSON, Column, String, Text, and_, func, inspect, or_, select
+from sqlalchemy import JSON, Column, String, Text, and_, func, inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
 from quite_admin.concurrency import CheckedWrites, check_record, sqlite_session_lock
 from quite_admin.errors import Conflict, NotFound
-from quite_admin.schema import Field, ModelSchema, Query, RecordPage
+from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import ordering as order_expressions
-from ._queries import predicates, validate_query
+from ._queries import predicates, search_predicate, validate_query
 from ._sqlalchemy_relations import SQLAlchemyRelations
 
 
@@ -22,6 +22,8 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
     """SQLAlchemy 2.x / SQLModel, sync or async. Pass a session *factory*, not a session."""
 
     supports_related_filters = True
+    supports_key_search = True
+    supported_filter_operators = FILTER_OPERATORS
 
     def __init__(
         self,
@@ -140,7 +142,13 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
 
         def operation(session: Session) -> RecordPage:
             statement = select(model)
-            statement = statement.where(*predicates(query, lambda name: getattr(model, name)))
+            statement = statement.where(
+                *predicates(
+                    query,
+                    lambda name: getattr(model, name),
+                    text_column=lambda name: getattr(model, name).cast(String),
+                )
+            )
             for item in query.related:
                 prop = inspect(model).relationships[item.relation]
                 condition = and_(
@@ -153,18 +161,13 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
                 statement = statement.where(
                     relation.any(condition) if prop.uselist else relation.has(condition)
                 )
-            if query.search and query.search_fields:
-                # autoescape makes '%' and '_' literal search text.
-                statement = statement.where(
-                    or_(
-                        *(
-                            getattr(model, name)
-                            .cast(String)
-                            .icontains(query.search, autoescape=True)
-                            for name in query.search_fields
-                        )
-                    )
-                )
+            search = search_predicate(
+                query,
+                lambda name: getattr(model, name),
+                text_column=lambda name: getattr(model, name).cast(String),
+            )
+            if search is not None:
+                statement = statement.where(search)
             count = session.scalar(select(func.count()).select_from(statement.subquery()))
             ordering = tuple(
                 order_expressions(query, self.describe(model), lambda name: getattr(model, name))

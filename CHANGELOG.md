@@ -4,6 +4,12 @@
 
 ### Changed
 
+- Type-aware filter dialog with case-insensitive text fragments, exclusions, prefixes/
+  suffixes, multi-value selection, whole-day datetime bounds and explicit empty text.
+  Multiple conditions on one scalar field remain independently editable and exportable.
+- Related-record lookup searches exact visible numeric/UUID/composite keys alongside
+  text, and filter results show searchable descriptions and IDs with permission checks.
+
 - Boolean list switches with immediate guarded saves, disabled read-only state and explicit NULL.
 
 - Proportional compact listing gutters and full available table width.

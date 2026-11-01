@@ -21,6 +21,8 @@
   input.addEventListener('compositionend', () => {composing=false;clearTimeout(timer);timer=setTimeout(submit,900);});
   input.addEventListener('keydown', e => {if(e.key==='Enter' && !composing){e.preventDefault();submit();}});
   form.addEventListener('submit', () => clearTimeout(timer));
+  form.addEventListener('quite-admin:filter-open', () => clearTimeout(timer));
+  form.addEventListener('quite-admin:filter-close', () => {if(input.value!==initial)timer=setTimeout(submit,900);});
   const exporter = document.querySelector('.export-panel');
   if (exporter) {
     exporter.addEventListener('keydown', e => {if(e.key==='Escape'){exporter.open=false;exporter.querySelector('summary').focus();}});

@@ -12,7 +12,7 @@ from tortoise.transactions import in_transaction
 from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
-from quite_admin.schema import Field, ModelSchema, Query, RecordPage
+from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import tortoise_filters, validate_query
 from ._tortoise_relations import TortoiseRelations
@@ -22,6 +22,8 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
     """Discovery happens after host startup, when Tortoise has initialized raw FK fields."""
 
     supports_related_filters = True
+    supports_key_search = True
+    supported_filter_operators = FILTER_OPERATORS
 
     def __init__(self, *, models: Iterable[type] = (), apps: Iterable[str] | None = None) -> None:
         self.models = tuple(models)
@@ -82,13 +84,15 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
             statement = statement.filter(
                 **{item.relation + "__" + name: value for name, value in item.key.items()}
             )
-        if query.search and query.search_fields:
-            statement = statement.filter(
-                Q(
-                    *(Q(**{f"{name}__icontains": query.search}) for name in query.search_fields),
-                    join_type="OR",
-                )
-            )
+        search = (
+            [Q(**{f"{name}__icontains": query.search}) for name in query.search_fields]
+            if query.search
+            else []
+        )
+        if query.search_key is not None:
+            search.append(Q(**query.search_key))
+        if search:
+            statement = statement.filter(Q(*search, join_type="OR"))
         total = await statement.count()
         pk = model._meta.pk_attr
         order = query.order_by or pk

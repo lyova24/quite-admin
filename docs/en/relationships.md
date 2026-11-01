@@ -40,7 +40,11 @@ Invalid keys, unavailable targets and failed constraints reject the entire save.
 Use **Choose records** to open a picker. Search uses the target collection's visible
 `search_fields` (visible strings by default); results load 25 at a time in stable
 primary-key order. Previous/Next reaches the complete candidate set, including records
-beyond the old 1000-candidate limit. Only keys and permitted record labels reach the browser.
+beyond the old 1000-candidate limit. Built-in adapters also search an exact numeric or
+UUID primary key, combined with text matches before pagination. Enter a complete JSON
+object for a composite key. Hidden keys do not enable this shortcut. The options endpoint
+returns keys, permitted labels, visible identity and searchable-field descriptions;
+[list filters](filters.md#related-records) display the additional context.
 Selected chips stay selected across search queries and pages; × removes a selection.
 The picker supports Tab, Space/Enter and Escape. Searching never submits the record form.
 Selections are committed together with scalar fields by **Save changes**.

@@ -16,7 +16,9 @@ from tests.test_adapters import (
     test_literal_search_wildcards,
     test_rejects_filter_operators_and_column_expressions,
     test_schema_keys_are_typed,
+    test_search_key_unions_text_matches_before_counting_and_pagination,
     test_service_adapter_keeps_writes_behind_business_rules,
+    test_text_filter_contract_is_literal_and_case_insensitive,
     test_typed_filters_and_projection,
 )
 from tests.test_concurrency import (
@@ -29,12 +31,17 @@ from tests.test_concurrency import (
 from tests.test_diagram import (
     test_schema_uses_metadata_with_visible_fields_and_expandable_junctions,
 )
-from tests.test_filters import test_list_filters_combine_and_survive_navigation
+from tests.test_filters import (
+    test_list_filters_combine_and_survive_navigation,
+    test_repeated_conditions_are_independent_and_survive_export,
+    test_text_membership_empty_filters_compose_with_search_and_export,
+)
 from tests.test_relations import (
     test_checked_relationship_changes_are_atomic,
     test_create_with_forward_and_collection_relationships,
     test_inline_relationship_fields_share_the_record_save,
     test_read_only_users_can_filter_by_related_records,
+    test_related_filter_lookup_matches_visible_ids_and_searchable_labels,
     test_related_filters_count_before_pagination_and_combine_with_scalars,
     test_related_queries_share_filter_sort_and_projection_contract,
     test_relationship_contract_and_atomic_rollback,

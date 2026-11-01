@@ -75,6 +75,22 @@ must remain addressable. It does not guarantee that an ORM loads only these colu
 Relationship queries follow the same contract. The HTML list does not expose a
 filter-expression or projection query language.
 
+The original API-1 operators above remain the default for custom adapters. To expose
+extended conditions, advertise `supported_filter_operators` as a set of implemented
+operators. Built-ins use `quite_admin.schema.FILTER_OPERATORS`, which also includes
+`ne`, `icontains`, `not_icontains`, `istartswith`, `iendswith`. Partial text matches
+ignore case and escape `%`, `_`, `!` literally; negative comparisons exclude NULL.
+Only advertise operators your `list()` actually implements. HTML-only **Between**,
+**On date** and empty-text controls translate into these ordinary typed predicates.
+
+Optionally set `supports_key_search = True` after implementing `Query.search_key`:
+when present, combine `(visible text search OR exact complete primary-key match)`
+inside the normal AND filters, before counting and pagination. Validate the complete
+key and its Python types. This lets relationship lookup find numeric/UUID IDs even
+when `search_fields` contains only names. Without the flag, lookup keeps text search
+only. `DelegatingAdapter` forwards both capability declarations to its reader.
+Neither capability changes the required API-1 protocol.
+
 ## Application services
 
 `DelegatingAdapter` reuses discovery, metadata and reads. Override every write that
