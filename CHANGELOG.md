@@ -2,6 +2,10 @@
 
 ## 0.3.0 — Unreleased
 
+### Changed
+
+- Compact default interface density, approximately the previous UI at 80% zoom.
+
 ### Added
 
 - Configurable collapsible sidebar collection groups with per-mount browser state.
