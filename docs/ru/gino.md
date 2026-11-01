@@ -6,7 +6,7 @@
 
 ## Установка
 
-Пакет пока не опубликован; установите исходный checkout, как в [быстром старте](quickstart.md).
+Установите исходный checkout версии 0.2.0, как в [быстром старте](quickstart.md).
 
 ```bash
 pip install '/path/to/quite-admin[gino-legacy,fastapi]'

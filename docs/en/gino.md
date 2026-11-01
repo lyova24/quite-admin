@@ -6,7 +6,7 @@ Litestar use the same adapter.
 
 ## Install
 
-The package is not published yet; install the source checkout as in the [quick start](quickstart.md).
+Install the 0.2.0 source checkout as in the [quick start](quickstart.md).
 
 ```bash
 pip install '/path/to/quite-admin[gino-legacy,fastapi]'

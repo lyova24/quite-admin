@@ -1,6 +1,7 @@
 # Releases and compatibility policy
 
-The current planned release is **0.2.0**, not yet published. Its changes are recorded in
+Release **0.2.0** was finalized on **2026-11-01**. New feature work targets **0.3.0**.
+Its changes are recorded in
 the repository `CHANGELOG.md`. A version update alone does not create a tag or release.
 
 ## Version rules

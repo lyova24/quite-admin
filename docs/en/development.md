@@ -1,6 +1,6 @@
 # Development and compatibility
 
-The planned library version is **0.2.0**. See the repository's `CHANGELOG.md` for changes
+The finalized baseline is **0.2.0** (2026-11-01); new features target **0.3.0**. See the repository's `CHANGELOG.md` for changes
 since 0.1.0. The minor bump includes relationship editors, list filters, stale-edit
 protection, the database schema and interface customization. A version update does not
 create or publish a release.

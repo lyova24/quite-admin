@@ -1,7 +1,7 @@
 # Add an admin in two minutes
 
 Use CPython **3.11–3.15** and your existing application, database and models.
-The package has no published release yet; install this checkout into the application's
+For version **0.2.0**, install the source checkout into the application's
 virtual environment:
 
 ```bash
