@@ -130,6 +130,7 @@ test('calendar uses the theme and remains usable on a narrow screen', async ({pa
   await dialog(page).getByRole('button',{name:'Choose date',exact:true}).click();
   await expect(dialog(page)).toHaveCSS('background-color','rgb(23, 32, 51)');
   await dialog(page).getByRole('button',{name:'2026-11-30',exact:true}).click();
+  await dialog(page).locator('.date-time-panel').getByRole('button',{name:'Apply',exact:true}).click();
   await expect(dialog(page).locator('#filter-value-0')).toHaveValue('2026-11-30');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   expect(await dialog(page).evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(false);

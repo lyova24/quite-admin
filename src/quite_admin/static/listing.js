@@ -1,12 +1,13 @@
 /* Progressive list behavior; no record values are persisted. */
 (function () {
-  const form = document.querySelector('.list-query-form');
-  if (!form) return;
+  function enhance(scope = document, storageKey = location.pathname) {
+  const form = scope.querySelector('.list-query-form');
+  if (!form) return () => {};
   const input = form.querySelector('input[name=q]');
-  if (!input) return;
+  if (!input) return () => {};
   let timer, composing = false;
   const initial = input.value;
-  const key = 'quite-admin:search-focus:' + location.pathname;
+  const key = 'quite-admin:search-focus:' + storageKey;
   try {
     if (sessionStorage.getItem(key)) { sessionStorage.removeItem(key); input.focus({preventScroll:true}); input.setSelectionRange(input.value.length,input.value.length); }
   } catch (_) { /* Storage can be disabled. */ }
@@ -23,10 +24,11 @@
   form.addEventListener('submit', () => clearTimeout(timer));
   form.addEventListener('quite-admin:filter-open', () => clearTimeout(timer));
   form.addEventListener('quite-admin:filter-close', () => {if(input.value!==initial)timer=setTimeout(submit,900);});
-  const exporter = document.querySelector('.export-panel');
+  const lifetime = new AbortController();
+  const exporter = scope.querySelector('.export-panel');
   if (exporter) {
     exporter.addEventListener('keydown', e => {if(e.key==='Escape'){exporter.open=false;exporter.querySelector('summary').focus();}});
-    document.addEventListener('click', e => {if(!exporter.contains(e.target))exporter.open=false;});
+    document.addEventListener('click', e => {if(!exporter.contains(e.target))exporter.open=false;}, {signal:lifetime.signal});
     exporter.querySelector('form').addEventListener('submit', () => {
       clearTimeout(timer);
       let search = exporter.querySelector('input[name=q]');
@@ -34,4 +36,8 @@
       search.value=input.value;
     });
   }
+  return () => {clearTimeout(timer);lifetime.abort();};
+  }
+  window.quiteAdminEnhanceListing = enhance;
+  enhance();
 })();

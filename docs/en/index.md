@@ -1,14 +1,14 @@
 # quite-admin
 
-Version **0.4.1**: an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
+Version **0.5.0** (unreleased): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
 Native ORM adapters: **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x**.
 Also supports SQL reflection without model imports and custom service adapters.
 Collections, fields and forms come from your existing SQL tables or ORM models.
 No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT licensed.
 
-[Русский](../ru/index.md) · [Quick start](quickstart.md) · [Browser demo](browser-demo.md)
+[Русский](../ru/index.md) · [Quick start](quickstart.md) · [Browser demo](browser-demo.md) · [Interface tour: 0.5](interface-tour.md)
 
-**At a glance:** CRUD · search, sorting and typed/relationship filters · atomic 1:1/1:N/M:N editors · stale-edit detection · interactive database schema · field permissions · authentication/CSRF · EN/RU UI · themes/templates · write hooks and record actions.
+**At a glance:** CRUD and inline cell editing · activity history with before/after values · search, sorting and typed/relationship filters · atomic 1:1/1:N/M:N editors · stale-edit detection · shared date/time controls · JSON highlighting · grouped sidebar · interactive database schema · field permissions · authentication/CSRF · EN/RU UI · themes/templates · write hooks and record actions.
 
 [![Record list with active filters](../assets/screenshots/products.png)](../assets/screenshots/products.png)
 
@@ -22,11 +22,22 @@ No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT li
 | Adapt colors, density and templates | [Interface customization](styling.md) |
 | Check supported databases and limits | [Data access and compatibility](data-safety.md) |
 
-**0.4.1**, finalized 2026-11-01, includes [CSV/XLSX exports](exports.md), [database type controls](configuration.md) and explicit [public API guarantees](api-stability.md). Subsequent work targets a higher version.
+**0.5.0 is unreleased.** The source checkout adds [managed service storage and activity history](storage.md),
+shared date/time controls, count-free cursor lists and SQL read deadlines. The [interface tour](interface-tour.md)
+shows the current screens. The latest finalized release remains **0.4.1** (2026-11-01).
+
+| New workflow | Where to try or configure it |
+| --- | --- |
+| Inspect field values before/after a user's action | [History walkthrough](interface-tour.md), [storage, permissions and feature flag](storage.md) |
+| Edit cells, booleans, DATE/DATETIME/TIME, TEXT and JSON | [Schedules and Products in the demo](browser-demo.md), [field controls](configuration.md) |
+| Group collections and browse large tables | [Sidebar groups and cursor pagination](configuration.md) |
+| Limit reads and avoid per-record relation queries | [SQL read deadlines](configuration.md), [batched related exports](exports.md) |
 
 ## Work with data
 
-- Browse, create, edit and delete records on one record page.
+- Browse, create, edit and delete records on one record page, or edit eligible list cells.
+- Inspect [activity by user and collection](storage.md), with dated field comparisons,
+  Journal/Table views and inclusive UTC day/range filters.
 - Search, sort and paginate lists. [Add typed filters](filters.md) for field values,
   ranges, SQL NULL or a linked record; edit conditions through active chips.
 - [Edit relationships](relationships.md) with searchable, paginated selectors. Scalar
@@ -65,7 +76,7 @@ Use English or Russian, configure the [identity and palette](customization.md), 
 
 ## Compatibility and development
 
-Version **0.4.1** was finalized on **2026-11-01**. Check
+Version **0.5.0** is unreleased; **0.4.1** was finalized on **2026-11-01**. Check
 [compatibility evidence and limits](data-safety.md), [development](development.md) and
 [release policy](releases.md) before adopting it.
 

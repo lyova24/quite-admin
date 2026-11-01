@@ -81,7 +81,20 @@ async def build(output):
                             "nullable": field.nullable,
                             "generated": field.generated,
                             "hasDefault": field.has_default,
+                            "default": field.format(default.arg)
+                            if (
+                                default := inspect(resource.model)
+                                .local_table.columns[field.name]
+                                .default
+                            )
+                            is not None
+                            and default.is_scalar
+                            else None,
                             "maxLength": field.max_length,
+                            "multiline": field.multiline,
+                            "help": resource.options.fields[field.name].help_text
+                            if field.name in resource.options.fields
+                            else "",
                             "choices": field.choices,
                             "operators": list_filters.field_operators(field),
                             "supports_not_empty": True,
@@ -90,6 +103,9 @@ async def build(output):
                         for field in fields
                     ],
                     "columns": resource.options.list_fields or [field.name for field in fields[:6]],
+                    "group": resource.options.group,
+                    "inline": list(admin._inline_fields(resource)),
+                    "pagination": resource.options.pagination,
                     "writable": {
                         "create": list(resource.options.writable_fields(schema, True)),
                         "edit": list(resource.options.writable_fields(schema, False)),
@@ -121,6 +137,7 @@ async def build(output):
             for node in graph["junctions"]:
                 node["url"] = None
             schema_pages = {}
+            history_periods = {}
             for language in ("en", "ru"):
                 translations = Translator(language)
                 schema_pages[language] = admin.templates.env.get_template(
@@ -131,12 +148,43 @@ async def build(output):
                     t=translations.gettext,
                     tn=translations.ngettext,
                 )
+                history_periods[language] = admin.templates.env.get_template(
+                    "quite_admin/_history_period.html"
+                ).render(
+                    history_filters=dict(date_mode="all", date="", date_from="", date_to=""),
+                    history_today="",
+                    history_period_label=translations.gettext("Any date"),
+                    history_period_messages={
+                        name: translations.gettext(name)
+                        for name in (
+                            "Previous month",
+                            "Next month",
+                            "Month",
+                            "Year",
+                            "Choose date",
+                            "Date (UTC)",
+                            "Date from (UTC)",
+                            "Date to (UTC)",
+                            "Invalid history date range.",
+                        )
+                    },
+                    t=translations.gettext,
+                )
             output.mkdir(parents=True, exist_ok=True)
             for path in (ROOT / "demo").iterdir():
                 if path.is_file():
                     shutil.copyfile(path, output / path.name)
             shutil.copyfile(ROOT / "src/quite_admin/static/admin.css", output / "admin.css")
-            for script in ("relations.js", "schema.js", "filters.js"):
+            for script in (
+                "relations.js",
+                "schema.js",
+                "datetime.js",
+                "forms.js",
+                "filters.js",
+                "history.js",
+                "inline.js",
+                "listing.js",
+            ):
                 shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
             (output / "theme.css").write_text(admin.theme.stylesheet())
             (output / "seed.json").write_text(
@@ -145,12 +193,20 @@ async def build(output):
                         "version": __version__,
                         "title": admin.title,
                         "translations": RUSSIAN,
+                        "formMessages": {
+                            lang: {
+                                name: Translator(lang).gettext(name)
+                                for name in admin._form_messages()
+                            }
+                            for lang in ("en", "ru")
+                        },
                         "filterMessages": {
                             lang: list_filters.messages(Translator(lang).gettext)
                             for lang in ("en", "ru")
                         },
                         "collections": collections,
                         "schemaPages": schema_pages,
+                        "historyPeriods": history_periods,
                     },
                     ensure_ascii=False,
                     indent=2,

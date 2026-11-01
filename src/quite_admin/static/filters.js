@@ -59,7 +59,7 @@
     function stopLookup(){clearTimeout(timer);abort?.abort();sequence++;}
     function close(){stopLookup();cleanup?.();cleanup=null;dialog.close();add.setAttribute('aria-expanded','false');anchor.focus();root.dispatchEvent(new Event('quite-admin:filter-close'));}
     function button(text,classes,action){const n=element('button',classes,text);n.type='button';n.addEventListener('click',action);return n;}
-    function navigate(next){stopLookup();if(root.navigate)root.navigate(next);else location.assign(root.action.split('?')[0]+'?'+next);}
+    function navigate(next){stopLookup();if(root.navigate)root.navigate(next);else location.assign((root.getAttribute('action')||location.pathname).split('?')[0]+'?'+next);}
     function params(){return new URLSearchParams(new FormData(root));}
     dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
     dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();}});
@@ -126,6 +126,8 @@
         if(['null','not_null','empty','not_empty'].includes(operator.value)){updatePreview();return;}
         if(field.kind==='relation'){renderRelated();updatePreview();return;}
         values.classList.toggle('filter-editor-range',operator.value==='between');
+        delete values.dataset.temporalRange;
+        if(operator.value==='between'&&['date','datetime','time'].includes(field.kind))values.dataset.temporalRange=field.kind;
         if(operator.value==='in'){
           let selected=drafts;
           try{if(initial)selected=JSON.parse(condition?.values[0]||'[]');}catch(_){selected=[];}
@@ -183,7 +185,7 @@
           results.setAttribute("aria-busy", "true");
           try {
             let data;
-            if (root.loadOptions) data = await root.loadOptions(field, {search: search.value, page});
+            if (root.loadOptions) data = await root.loadOptions(field, {search: search.value, page, signal: abort.signal});
             else {
               const url = new URL(field.endpoint, location.href); url.searchParams.set("q", search.value); url.searchParams.set("page", page);
               const response = await fetch(url, {signal: abort.signal, credentials: "same-origin", headers: {Accept: "application/json"}});

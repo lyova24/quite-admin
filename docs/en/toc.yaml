@@ -13,6 +13,8 @@ items:
         href: quickstart.md
       - name: Browser demo
         href: browser-demo.md
+      - name: "Interface tour: 0.5"
+        href: interface-tour.md
       - name: Integration and adapters
         href: integration.md
       - name: GINO / PostgreSQL
@@ -47,6 +49,8 @@ items:
         href: authentication.md
       - name: Logging
         href: logging.md
+      - name: Admin storage and activity history
+        href: storage.md
       - name: Data access and compatibility
         href: data-safety.md
       - name: Dependency compatibility

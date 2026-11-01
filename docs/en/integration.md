@@ -37,7 +37,9 @@ remain usable.
 
 Reflection runs lazily after authentication and caches metadata.
 Call `await adapter.refresh()` after a host-managed migration to replace the cached schema.
-The library never creates tables or runs migrations itself.
+Business tables and migrations remain application-owned. The separate
+[admin service storage](storage.md) creates its own reserved `quiteadmin_` tables;
+SQL discovery excludes that prefix automatically.
 
 Registered reflected tables keep their options after `refresh()` and use the new
 column metadata. This also applies when discovery is disabled. The core supports an

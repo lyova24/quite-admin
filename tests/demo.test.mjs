@@ -141,3 +141,49 @@ test("text fragments, repeated conditions, membership and NULL work in the demo"
   assert.equal(store.filter("notes", new URLSearchParams({"f.body.is_empty":"false"})).some(row=>row.values.body==null), false);
   assert.equal(store.filter("notes", new URLSearchParams({"f.title.in":JSON.stringify(["alex Brown"])})).length, 1);
 });
+
+test("new showcase metadata survives restoring an older demo without losing records", () => {
+  const old = structuredClone(seed.collections);
+  delete old.schedules;
+  old.products.fields = [];
+  old.products.records[0].values.price = "21.75";
+  const store = new Store(seed, old);
+  assert.equal(store.collection("products").records[0].values.price, "21.75");
+  assert.ok(store.collection("products").fields.length);
+  assert.equal(store.collection("schedules").records.length, 6);
+  assert.ok(store.collection("schedules").fields.find(field=>field.name==='description').multiline);
+  assert.equal(store.collection("schedules").fields.find(field=>field.name==='reminder_at').kind, 'time');
+  assert.equal(store.collection("orders").pagination, 'cursor');
+});
+
+test("saved changes and history restore together, with NULL, false and absent distinguished", () => {
+  const store = new Store(seed), row = store.collection('schedules').records[0];
+  store.save('schedules',row.key,{approved:'false',title:'<changed>'},{},store.revision('schedules',row.key),'inline_edit');
+  const event = store.activity[0], approved = event.changes.find(change=>change.name==='approved');
+  assert.equal(event.action, 'inline_edit');
+  assert.equal(approved.before, null);
+  assert.equal(approved.after, 'false');
+  assert.equal(approved.before_present, true);
+  const restored = new Store(seed, JSON.parse(JSON.stringify(store.snapshot())));
+  assert.deepEqual(restored.activity, store.activity);
+  assert.equal(restored.record('schedules',row.key).values.title, '<changed>');
+  restored.delete('schedules',row.key);
+  assert.equal(restored.activity[0].action, 'delete');
+  assert.ok(restored.activity[0].changes.every(change=>!change.after_present));
+});
+
+test("failed writes do not emit successful field comparisons and history remains bounded", () => {
+  const store = new Store(seed), row = store.collection('customers').records[0];
+  const before = structuredClone(store.activity);
+  assert.throws(()=>store.save('customers',row.key,{name:'unsaved'},{orders:[]}), /cannot be detached/);
+  assert.deepEqual(store.activity,before);
+  for(let i=0;i<210;i++)store.log('products','list');
+  assert.equal(store.activity.length,200);
+  assert.ok(store.activity.every(event=>event.changes.length===0));
+});
+
+test("explicit false defaults are exported and applied on creation", () => {
+  const store = new Store(seed);
+  const key = store.save('notes',null,{title:'Default note',body:null},{});
+  assert.equal(store.record('notes',key).values.pinned,'false');
+});

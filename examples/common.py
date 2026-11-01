@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import secrets
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -12,11 +12,14 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Numeric,
     String,
     Table,
+    Text,
+    Time,
     create_engine,
     func,
     select,
@@ -91,8 +94,20 @@ class Note(Base):
     __tablename__ = "notes"
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(120))
-    body: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
     pinned: Mapped[bool] = mapped_column(default=False)
+
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(120))
+    day: Mapped[date] = mapped_column(Date)
+    starts_at: Mapped[datetime] = mapped_column(DateTime)
+    reminder_at: Mapped[time | None] = mapped_column(Time, nullable=True)
+    approved: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    settings: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 def make_demo():
@@ -108,13 +123,33 @@ def make_demo():
         language=os.getenv("QUITE_ADMIN_LANGUAGE", "en"),
         secure_cookies=False,  # This example runs over localhost HTTP.
     )
-    admin.register(Customer, options=ModelOptions(readonly_fields=("joined_at",)))
-    admin.register(Order, options=ModelOptions(readonly_fields=("created_at",)))
+    admin.register(Customer, options=ModelOptions(group="Sales", readonly_fields=("joined_at",)))
+    admin.register(CustomerProfile, options=ModelOptions(group="Sales"))
+    admin.register(
+        Order,
+        options=ModelOptions(group="Sales", readonly_fields=("created_at",), pagination="cursor"),
+    )
+    admin.register(Tag, options=ModelOptions(group="Catalog"))
     admin.register(
         Product,
         options=ModelOptions(
+            group="Catalog",
             list_fields=("id", "name", "category", "price", "stock", "active"),
             fields={"stock": FieldOptions(help_text="Available units in the warehouse.")},
+        ),
+    )
+    admin.register(Note, options=ModelOptions(group="Workspace"))
+    admin.register(
+        Schedule,
+        options=ModelOptions(
+            group="Workspace",
+            list_fields=("id", "title", "day", "starts_at", "reminder_at", "approved"),
+            fields={
+                "starts_at": FieldOptions(
+                    help_text="Naive local time; microseconds are preserved."
+                ),
+                "approved": FieldOptions(help_text="None means this event is awaiting review."),
+            },
         ),
     )
 
@@ -137,6 +172,30 @@ def make_demo():
 def seed(engine, sessions):
     Base.metadata.create_all(engine)
     with sessions.begin() as session:
+        if not session.scalar(select(func.count()).select_from(Schedule)):
+            today = datetime.now(UTC).date()
+            for index, title in enumerate(
+                (
+                    "Catalog launch",
+                    "Stock review",
+                    "Customer workshop",
+                    "Shipping window",
+                    "Team demo",
+                    "Follow-up",
+                )
+            ):
+                day = today + timedelta(days=index - 1)
+                session.add(
+                    Schedule(
+                        title=title,
+                        day=day,
+                        starts_at=datetime.combine(day, time(10 + index, 30, 0, 123456)),
+                        reminder_at=time(9, 15, 0, 654321) if index % 2 == 0 else None,
+                        approved=(None, True, False)[index % 3],
+                        description="Review the checklist.\nShare the outcome with the team.",
+                        settings={"room": "Studio", "capacity": 12, "remote": True},
+                    )
+                )
         if session.scalar(select(func.count()).select_from(Product)):
             _seed_relationships(session)
             return

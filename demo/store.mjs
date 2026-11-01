@@ -1,7 +1,24 @@
 // Browser-only fictional data. This module is not part of the Python library's backend.
+import { changesFor, initialActivity } from "./activity.mjs";
 export class Store {
   constructor(seed, restored = null) {
-    this.state = structuredClone(restored || seed.collections);
+    // Refresh exported metadata and add new showcase collections without losing local edits.
+    const previous = restored?.collections || restored;
+    this.state = Object.fromEntries(Object.entries(seed.collections).map(([slug, collection]) => {
+      const copy = structuredClone(collection);
+      if (previous?.[slug]?.records) copy.records = structuredClone(previous[slug].records);
+      return [slug, copy];
+    }));
+    this.activity = structuredClone(restored?.activity || initialActivity(seed));
+  }
+  snapshot() {
+    return {collections: this.state, activity: this.activity};
+  }
+  log(collection, action, key = null, changes = [], outcome = "success", status_code = 200) {
+    this.activity.unshift({id: Math.max(0, ...this.activity.map(event => event.id)) + 1,
+      occurred_at: new Date().toISOString(), subject: "admin", display_name: "Demo Admin",
+      collection, action, key, changes, outcome, status_code});
+    this.activity = this.activity.slice(0, 200);
   }
   collection(slug, state = this.state) {
     const collection = state[slug];
@@ -120,7 +137,7 @@ export class Store {
             throw new Error("Enter a finite number.");
           if (field.kind === "boolean" && !["true", "false"].includes(value))
             throw new Error("Choose true or false.");
-          if (field.kind === "json") JSON.parse(value);
+          if (field.kind === "json") { try { JSON.parse(value); } catch { throw new Error("Invalid JSON"); } }
           if (field.choices.length && !field.choices.includes(value))
             throw new Error("Choose one of the available values.");
         }
@@ -172,9 +189,10 @@ export class Store {
     const row = this.record(slug, key);
     return JSON.stringify({ values: row.values, links: Object.fromEntries(Object.entries(row.links).sort().map(([name, keys]) => [name, [...keys].sort()])) });
   }
-  save(slug, key, values, selections, expectedRevision = null) {
+  save(slug, key, values, selections, expectedRevision = null, action = null) {
     if (key != null && expectedRevision != null && this.revision(slug, key) !== expectedRevision)
       throw new Error("This record changed after you opened it. Your changes have not been saved. Reload the record and review the latest values.");
+    const before = key == null ? null : structuredClone(this.record(slug, key));
     const state = structuredClone(this.state);
     const collection = this.collection(slug, state);
     const creating = key == null;
@@ -202,7 +220,7 @@ export class Store {
                 ) + 1,
               )
             : field.hasDefault
-              ? ({
+              ? (field.default ?? {
                   integer: "0",
                   number: "0",
                   boolean: "true",
@@ -232,6 +250,7 @@ export class Store {
     this.syncForeignKeys(state);
     this.validate(state);
     this.state = state;
+    this.log(slug, action || (creating ? "create" : "edit"), row.key, changesFor(collection, before, row));
     return row.key;
   }
   delete(slug, key) {
@@ -257,5 +276,6 @@ export class Store {
     this.syncForeignKeys(state);
     this.validate(state);
     this.state = state;
+    this.log(slug, "delete", key, changesFor(collection, row, null));
   }
 }

@@ -1,4 +1,6 @@
 import { Store } from "./store.mjs";
+import { activityPage } from "./activity.mjs";
+import { inlineDialog, listCell, csv, matchingRows, listWindow } from "./listing.mjs";
 
 const seed = await (await fetch("./seed.json")).json();
 const read = (kind, key) => {
@@ -29,9 +31,22 @@ const extra = {
     "Демо в браузере · изменения сохраняются только здесь",
   "Reset demo": "Сбросить демо",
   "Use admin / admin": "Используйте admin / admin",
+  "Explore the interface": "Знакомство с интерфейсом",
+  "Edit a list cell": "Измените ячейку списка",
+  "Dates, time and JSON": "Даты, время и JSON",
+  "Inspect field changes": "Посмотрите изменения полей",
+  "Groups, relations and schema": "Группы, связи и схема",
+  "Fictional sample events and your local actions. Reset demo restores both.": "Вымышленные примеры событий и ваши локальные действия. Сброс демо восстанавливает и данные, и историю.",
+  "Catalog": "Каталог", "Sales": "Продажи", "Workspace": "Рабочее пространство",
+  "CSV download": "Скачать CSV",
+  "Naive local time; microseconds are preserved.": "Время без часового пояса; микросекунды сохраняются.",
+  "None means this event is awaiting review.": "None означает, что событие ожидает согласования.",
 };
-const t = (text) =>
-  language === "ru" ? seed.translations[text] || extra[text] || text : text;
+const t = (text, values = {}) => {
+  let translated = language === "ru" ? seed.translations[text] || extra[text] || text : text;
+  for (const [name,value] of Object.entries(values)) translated = translated.replaceAll("{"+name+"}",value);
+  return translated;
+};
 const records = (count) =>
   `${count} ${language === "ru" ? (count % 100 >= 11 && count % 100 <= 14 ? "записей" : count % 10 === 1 ? "запись" : count % 10 >= 2 && count % 10 <= 4 ? "записи" : "записей") : count === 1 ? "record" : "records"}`;
 const display = (collection, name, row) =>
@@ -50,28 +65,29 @@ const e = (value) =>
 const href = (slug, key = "", suffix = "") =>
   `#/models/${encodeURIComponent(slug)}/${key ? encodeURIComponent(key) + suffix : ""}`;
 const persist = () =>
-  write("localStorage", storageKey, JSON.stringify(store.state));
+  write("localStorage", storageKey, JSON.stringify(store.snapshot()));
 const notice = () =>
   `<div class="demo-notice"><span>${e(t("Browser demo · changes stay in this browser"))}</span><select aria-label="Language" id="demo-language"><option value="en" ${language === "en" ? "selected" : ""}>English</option><option value="ru" ${language === "ru" ? "selected" : ""}>Русский</option></select><button class="link-button" id="demo-reset">${e(t("Reset demo"))}</button></div>`;
 const button = (path, text, cls = "secondary") =>
   `<a class="button ${cls}" href="${e(path)}">${e(t(text))}</a>`;
 const input = (field, value) => {
   const attrs = `id="field-${e(field.name)}" name="${e(field.name)}"`;
-  if (field.kind === "json")
-    return `<textarea class="code-input" ${attrs} rows="4">${e(value)}</textarea>`;
+  if (field.kind === "json" || field.multiline)
+    return `<textarea ${field.kind === "json" ? 'class="code-input" data-json-editor spellcheck="false"' : ''} ${attrs} rows="6">${e(value)}</textarea>`;
   if (field.kind === "boolean" || field.choices.length) {
     const choices =
       field.kind === "boolean" ? ["true", "false"] : field.choices;
-    return `<select ${attrs}>${field.nullable ? '<option value="">—</option>' : ""}${choices.map((choice) => `<option value="${e(choice)}" ${choice === value ? "selected" : ""}>${e(field.kind === "boolean" ? t(choice === "true" ? "True" : "False") : choice)}</option>`).join("")}</select>`;
+    return `<select ${attrs} ${field.kind === "boolean" ? "data-boolean-toggle" : ""}>${field.nullable ? '<option value="">—</option>' : ""}${choices.map((choice) => `<option value="${e(choice)}" ${choice === value ? "selected" : ""}>${e(field.kind === "boolean" ? t(choice === "true" ? "True" : "False") : choice)}</option>`).join("")}</select>`;
   }
-  return `<input ${attrs} type="${["integer", "number"].includes(field.kind) ? "number" : field.kind === "date" ? "date" : "text"}" step="${field.kind === "integer" ? "1" : "any"}" value="${e(value)}" ${field.maxLength ? `maxlength="${field.maxLength}"` : ""}>`;
+  const temporal = field.kind === "date" ? "data-calendar-input" : ["datetime", "time"].includes(field.kind) ? `data-temporal="${field.kind}"` : "";
+  return `<input ${attrs} ${temporal} type="${["integer", "number"].includes(field.kind) ? "number" : field.kind === "date" ? "date" : "text"}" step="${field.kind === "integer" ? "1" : "any"}" value="${e(value)}" ${field.maxLength ? `maxlength="${field.maxLength}"` : ""}>`;
 };
 
 function login() {
   return `${notice()}<main class="shell-login"><div class="content"><section class="login-card"><span class="brand-mark large">q.</span><h1>${e(seed.title)}</h1><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;
 }
 function dashboard() {
-  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><div class="section-heading"><h2>${e(t("Collections"))}</h2></div><section class="collection-grid">${Object.entries(store.state)
+  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div><div class="section-heading"><h2>${e(t("Collections"))}</h2></div><section class="collection-grid">${Object.entries(store.state)
     .map(([slug, c]) => `<a class="collection-card" href="${href(slug)}"><h2>${e(c.label)}</h2><p class="muted">${e(records(c.records.length))}</p><div class="card-footer">${e(t("Open collection"))}<span aria-hidden="true">→</span></div></a>`)
     .join("")}</section>`;
 }
@@ -121,33 +137,22 @@ function listing(slug, query) {
     return href(slug) + "?" + params;
   };
   const filters = demoFilters(slug, query, queryUrl);
-  let rows = store.filter(slug, query).filter((row) => c.fields.some((field) =>
-    field.kind === "string" && String(row.values[field.name] ?? "").toLowerCase().includes(search.toLowerCase()),
-  ));
-  rows = rows.slice().sort((a, b) => {
-    const av = a.values[sort.name], bv = b.values[sort.name];
-    const cmp = ["integer", "number"].includes(sort.kind)
-      ? Number(av) - Number(bv)
-      : String(av ?? "").localeCompare(String(bv ?? ""));
-    return (descending ? -cmp : cmp) || Number(a.values.id) - Number(b.values.id);
-  });
+  const allRows = matchingRows(store, slug, query), cursor = c.pagination === "cursor";
   const page = Math.max(1, Number(query.get("page")) || 1), limit = 5;
-  const total = rows.length;
-  rows = rows.slice((page - 1) * limit, page * limit);
-  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><span class="record-count">${e(records(total))}</span></div>${button(href(slug, "new"), "Create record", "primary")}</div>
-  <section class="record-list"><form id="demo-search" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"><button class="button secondary">${e(t("Search"))}</button></div>${filters.add}</div>${filters.panel}</form>${filters.active}
+  const total = allRows.length;
+  const {rows,hasPrevious,hasNext} = listWindow(allRows,query,cursor,limit);
+  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><span class="record-count">${e(cursor?t("{count} on this page",{count:rows.length}):records(total))}</span></div></div>
+  ${inlineDialog(t,e)}<section class="record-list"><div class="list-tools"><form id="demo-search" class="list-query-form" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"></div>${filters.add}</div>${filters.panel}</form><details class="export-panel"><summary class="button secondary" aria-label="${e(t('Export data'))}">↓ CSV</summary><form id="demo-export" class="export-form"><p class="field-help">${e(t('Exports all matching records using the current search, filters and sorting. Apply filters before exporting.'))}</p><fieldset><legend>${e(t('Columns'))}</legend><div class="export-columns">${c.fields.map(field=>`<label class="checkbox-label"><input type="checkbox" name="columns" value="${e(field.name)}" ${c.columns.includes(field.name)?'checked':''}> ${e(field.label)}</label>`).join('')}</div></fieldset><button class="button secondary" type="submit">${e(t('CSV download'))}</button></form></details>${button(href(slug, "new"), "+ " + t("Create record"), "primary list-create")}</div>${filters.active}
   ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
   <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
     const field = c.fields.find((field) => field.name === name), active = sort.name === name;
-    return `<th scope="col" class="${["integer", "number"].includes(field.kind) ? "numeric" : ""}" ${active ? `aria-sort="${descending ? "descending" : "ascending"}"` : ""}><a href="${e(queryUrl({ sort: name, direction: active && !descending ? "desc" : "asc", page: 1 }))}">${e(field.label)}<span class="sort-icon" aria-hidden="true">${active ? descending ? "↓" : "↑" : "↕"}</span></a></th>`;
+    return `<th scope="col" class="${["integer", "number"].includes(field.kind) ? "numeric" : ""}" ${active ? `aria-sort="${descending ? "descending" : "ascending"}"` : ""}>${cursor&&!field.primaryKey?"":`<a href="${e(queryUrl({ sort: name, direction: active && !descending ? "desc" : "asc", page: 1,after:null,before:null }))}">`}${e(field.label)}${cursor&&!field.primaryKey?"":`<span class="sort-icon" aria-hidden="true">${active ? descending ? "↓" : "↑" : "↕"}</span></a>`}</th>`;
   }).join("")}<th scope="col" class="delete-col"><span class="sr-only">${e(t("Delete"))}</span></th></tr></thead><tbody>${rows.map((row) => `<tr class="record-row record-row-clickable">${c.columns.map((name, index) => {
     const field = c.fields.find((field) => field.name === name), value = row.values[name];
-    const content = value == null ? '<span class="null-value">—</span>' : field.kind === "boolean"
-      ? `<span class="boolean-badge ${value === "true" ? "yes" : "no"}">${e(display(c, name, row))}</span>`
-      : `<span class="${field.primaryKey ? "record-id" : "cell-value"}">${e(display(c, name, row))}</span>`;
-    return `<td class="${["integer", "number"].includes(field.kind) ? "numeric" : field.name === primaryName ? "cell-primary" : ""}">${index === 0 ? `<a class="record-row-link" href="${href(slug, row.key)}" aria-label="${e(t("Open record") + ": " + store.label(slug, row))}">${content}</a>` : content}</td>`;
+    const content = listCell({slug,row,field,editable:c.inline.includes(name),t,e});
+    return `<td data-list-field="${e(name)}" class="${["integer", "number"].includes(field.kind) ? "numeric" : field.name === primaryName ? "cell-primary" : ""}">${index === 0 ? `<a class="record-row-link" href="${href(slug, row.key)}" aria-label="${e(t("Open record") + ": " + store.label(slug, row))}">${content}</a>` : content}</td>`;
   }).join("")}<td class="delete-col"><a class="button small danger-outline delete-action" href="${href(slug, row.key, "/delete")}" title="${e(t("Delete record") + ": " + store.label(slug, row))}"><span class="sr-only">${e(t("Delete"))}</span><svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></a></td></tr>`).join("") || `<tr><td colspan="${c.columns.length + 1}"><div class="empty-state"><h2>${e(t(search ? "No matching records" : "No records"))}</h2><p>${e(t(search ? "Try a different search." : "This collection has no records yet."))}</p>${button(search ? queryUrl({ q: "", page: 1 }) : href(slug, "new"), search ? "Clear" : "Create record")}</div></td></tr>`}</tbody></table></div>
-  <footer class="pagination"><span>${e(t("Page {number}").replace("{number}", page))}<span class="pagination-divider">·</span>${e(t("{count} per page").replace("{count}", limit))}</span><div>${page > 1 ? button(queryUrl({ page: page - 1 }), "Previous", "secondary small") : ""}${page * limit < total ? button(queryUrl({ page: page + 1 }), "Next", "secondary small") : ""}</div></footer></section>`;
+  <footer class="pagination"><span>${e(cursor?t("Browse records"):t("Page {number}",{number:page}))}<span class="pagination-divider">·</span>${e(t("{count} per page").replace("{count}", limit))}</span><div>${hasPrevious ? button(queryUrl(cursor?{before:rows[0].key,after:null}:{page:page-1}), "Previous", "secondary small") : ""}${hasNext ? button(queryUrl(cursor?{after:rows.at(-1).key,before:null}:{page:page+1}), "Next", "secondary small") : ""}</div></footer></section>`;
 }
 function recordPage(slug, key) {
   const c = store.collection(slug), creating = key === "new";
@@ -157,7 +162,7 @@ function recordPage(slug, key) {
   const fields = c.fields.filter((field) => !managed.includes(field.name) && (!creating || !field.generated));
   const renderField = (field) => {
     const editable = writable.includes(field.name), value = row.values[field.name] ?? "";
-    return `<div class="form-field ${field.kind === "json" ? "wide" : ""}"><label for="field-${e(field.name)}">${e(field.label)} ${editable ? field.nullable ? `<span class="optional-label">${e(t("optional"))}</span>` : "" : `<span class="field-tag">${e(t("Read only"))}</span>`}</label>${editable ? input(field, value) : `<div class="readonly-value" id="field-${e(field.name)}">${e(display(c, field.name, row))}</div>`}${creating && editable && field.hasDefault ? `<label class="checkbox-label"><input type="checkbox" name="__default__${e(field.name)}" checked>${e(t("Use model / database default"))}</label>` : ""}</div>`;
+    return `<div class="form-field ${field.kind === "json" || field.multiline ? "wide" : ""}"><label id="label-${e(field.name)}" for="field-${e(field.name)}">${e(field.label)} ${editable ? field.nullable ? `<span class="optional-label">${e(t("optional"))}</span>` : "" : `<span class="field-tag">${e(t("Read only"))}</span>`}</label>${editable ? input(field, value) : `<div class="readonly-value" id="field-${e(field.name)}">${e(display(c, field.name, row))}</div>`}${field.help?`<p class="field-help">${e(t(field.help))}</p>`:""}${creating && editable && field.hasDefault ? `<label class="checkbox-label"><input type="checkbox" name="__default__${e(field.name)}" checked>${e(t("Use model / database default"))}</label>` : ""}</div>`;
   };
   const section = (title, content, id) => content ? `<section class="form-section" aria-labelledby="${id}"><h2 id="${id}">${e(t(title))}</h2><div class="form-grid">${content}</div></section>` : "";
   const groups = [
@@ -178,20 +183,80 @@ function deletion(slug, key) {
 }
 function shell(content, slug, key) {
   const c = slug ? store.collection(slug) : null;
-  const schemaPage = location.hash === "#/schema";
-  const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${schemaPage ? ` / <span aria-current="page">${e(t("Database schema"))}</span>` : ""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
-  return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark">q.</span>${e(seed.title)}</a><a class="nav-link ${!slug && !schemaPage && location.hash !== "#/report" ? "active" : ""}" href="#/">${e(t("Overview"))}</a><p class="nav-label">${e(t("COLLECTIONS"))}</p><nav>${Object.entries(
-    store.state,
-  )
-    .map(
-      ([name, c]) =>
-        `<a class="nav-link ${name === slug ? "active" : ""}" href="${href(name)}">${e(c.label)}</a>`,
-    )
-    .join(
-      "",
-    )}</nav><a class="nav-link ${schemaPage ? "active" : ""}" href="#/schema">${e(t("Database schema"))}</a><p class="nav-label">${e(t("PAGES"))}</p><a class="nav-link ${location.hash === "#/report" ? "active" : ""}" href="#/report">Store report</a><div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
+  const section = location.hash.split("?")[0];
+  const navLink = (path,label,active) => `<a class="nav-link ${active?'active':''}" href="${path}" ${active?'aria-current="page"':''}>${e(t(label))}</a>`;
+  const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${section==="#/schema"?` / ${e(t("Database schema"))}`:section==="#/history"?` / ${e(t("Activity history"))}`:""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
+  const groups = new Map();
+  for (const [name,collection] of Object.entries(store.state)) {
+    const label=collection.group||"Other collections";
+    if(!groups.has(label))groups.set(label,[]);
+    groups.get(label).push([name,collection]);
+  }
+  const navigation = [...groups].map(([group,items])=>`<details class="nav-group" data-demo-group="${e(group)}" ${items.some(([name])=>name===slug)||read("localStorage","quite-admin-demo-group-"+group)!=="closed"?'open':''}><summary>${e(t(group))}<span>${items.length}</span></summary>${items.map(([name,collection])=>navLink(href(name),collection.label,name===slug)).join('')}</details>`).join('');
+  return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark">q.</span>${e(seed.title)}</a>${navLink('#/','Overview',section==='#/'||!location.hash)}${navLink('#/schema','Database schema',section==='#/schema')}${navLink('#/history','Activity history',section==='#/history')}<p class="nav-label">${e(t("COLLECTIONS"))} <span>${Object.keys(store.state).length}</span></p><nav aria-label="${e(t('Collections'))}">${navigation}</nav><p class="nav-label">${e(t("PAGES"))}</p>${navLink('#/report','Store report',section==='#/report')}<div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
 }
+function restoreLatest() {
+  const saved = read("localStorage", storageKey);
+  if (saved) store = new Store(seed, JSON.parse(saved));
+}
+async function withStoreLock(work) {
+  const transaction = () => { restoreLatest(); return work(); };
+  return navigator.locks ? navigator.locks.request(storageKey, transaction) : transaction();
+}
+async function inlineRequest(endpoint, options = {}) {
+  const params = new URL(endpoint, location.href).searchParams;
+  const slug = params.get("slug"), key = params.get("key"), name = params.get("field");
+  const respond = (data,status=200) => new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json"}});
+  const operation = () => {
+    const c = store.collection(slug), row = store.record(slug,key), field = c.fields.find(field=>field.name===name);
+    if(!c.inline.includes(name)) return respond({},403);
+    if(options.method !== "POST") return respond({name,label:field.label,kind:field.kind,multiline:field.multiline,nullable:field.nullable,choices:field.choices,max_length:field.maxLength,value:row.values[name]??"",raw_boolean:row.values[name]==null?null:row.values[name]==="true",csrf:"browser-demo",revision:store.revision(slug,key)});
+    const data = options.body;
+    try {
+      store.save(slug,key,{[name]:data.get(name)===""&&field.nullable?null:data.get(name)},{},data.get("__revision"),"inline_edit");
+      persist();
+      const latest = store.record(slug,key);
+      return respond({label_record:t("Open record")+": "+store.label(slug,latest),cells:Object.fromEntries(c.fields.map(field=>[field.name,{text:latest.values[field.name]??"—",null:latest.values[field.name]==null,boolean:latest.values[field.name]==="true"}]))});
+    } catch(error) {
+      const status=error.message.startsWith("This record changed")?409:422;
+      store.log(slug,"inline_edit",key,[],"failure",status);persist();
+      return respond({errors:{[name]:t(error.message)}},status);
+    }
+  };
+  return withStoreLock(operation);
+}
+function initActivity(query) {
+  const form = document.querySelector('[data-demo-history]');
+  if(!form)return;
+  const period = form.querySelector('[data-history-period]');
+  period.dataset.today = new Date().toISOString().slice(0,10);
+  for (const name of ['date_mode','date','date_from','date_to']) form.elements[name].value = query.get(name) || (name==='date_mode'?'all':'');
+  const day = form.elements.date.value, from = form.elements.date_from.value, to = form.elements.date_to.value;
+  const dateLabel = value=>value.split('-').reverse().join('.');
+  period.querySelector('[data-period-label]').textContent = form.elements.date_mode.value==='day' ? dateLabel(day) : form.elements.date_mode.value==='range'&&(from||to) ? from&&to?dateLabel(from)+' → '+dateLabel(to):t(from?'From {date}':'To {date}',{date:dateLabel(from||to)}) : t('Any date');
+  form.navigate = params => {params.delete('page');location.hash='#/history?'+params;};
+  form.loadOptions = async (field,{search,page}) => {
+    const rows = field.choices.filter(([value,label])=>(value+' '+label).toLowerCase().includes(search.toLowerCase()));
+    return {items:rows.slice((page-1)*25,page*25).map(([key,label])=>({key,label,identity:field.id==='subject'?key:''})),has_next:page*25<rows.length};
+  };
+  cleanupHistory = window.quiteAdminEnhanceHistory(document);
+  window.QuiteAdmin.initFilters();
+  form.addEventListener('submit',event=>{event.preventDefault();form.navigate(new URLSearchParams(new FormData(form)));});
+}
+let trackedRoute;
+function trackRoute() {
+  if(!signedIn || trackedRoute===location.hash)return;
+  trackedRoute=location.hash;
+  try {
+    const [path] = location.hash.slice(1).split('?'), parts=path.split('/').filter(Boolean).map(decodeURIComponent);
+    if(parts[0]!=='models'||parts[2]==='new'||parts[3])return;
+    restoreLatest();store.log(parts[1],parts[2]?'view':'list',parts[2]||null);persist();
+  } catch { /* Invalid hash routes have no record event. */ }
+}
+
+let cleanupFields, cleanupInline, cleanupHistory, cleanupListing;
 function render() {
+  trackRoute();
   document.documentElement.lang = language;
   const loggedIn = signedIn;
   const route = (location.hash.slice(1) || "/").split("?"),
@@ -206,6 +271,7 @@ function render() {
         }
       }),
     query = new URLSearchParams(route[1] || "");
+  document.body.classList.toggle("listing-page",loggedIn&&parts[0]==="models"&&!parts[2]);
   let slug, key, content;
   try {
     if (!loggedIn) content = login();
@@ -221,7 +287,8 @@ function render() {
         slug,
         key,
       );
-    } else if (parts[0] === "schema") content = shell(seed.schemaPages[language]);
+    } else if (parts[0] === "history") content = shell(activityPage({store,seed,language,t,e,href,query}));
+    else if (parts[0] === "schema") content = shell(seed.schemaPages[language]);
     else if (parts[0] === "report")
       content = shell(
         `<div class="page-heading"><h1>Store report</h1></div><div class="collection-grid">${["customers", "orders"].map((name) => `<div class="collection-card"><h2>${e(store.collection(name).label)}</h2><p class="report-value">${store.collection(name).records.length}</p><div class="card-footer"><a href="${href(name)}">${e(t("Open collection"))} →</a></div></div>`).join("")}</div>`,
@@ -231,8 +298,16 @@ function render() {
     content = shell(`<h1>${e(t("Not Found"))}</h1>${button("#/", "Overview")}`);
   }
   document.querySelectorAll("[data-schema-workspace]").forEach((root) => root.schemaCleanup?.());
+  cleanupInline?.(); cleanupHistory?.(); cleanupListing?.(); cleanupFields?.();
   document.querySelector("#app").innerHTML = content;
+  const formMessages = document.createElement("div"); formMessages.hidden = true;
+  formMessages.setAttribute("data-form-messages", ""); formMessages.dataset.messages = JSON.stringify(seed.formMessages[language]);
+  document.querySelector("#app").prepend(formMessages);
+  cleanupFields = window.quiteAdminEnhanceFields(document);
   window.QuiteAdmin.initSchemas();
+  cleanupInline = window.quiteAdminEnhanceInline(document, inlineRequest);
+  initActivity(query);
+  for (const group of document.querySelectorAll('[data-demo-group]')) group.addEventListener('toggle',()=>write('localStorage','quite-admin-demo-group-'+group.dataset.demoGroup,group.open?'open':'closed'));
   document.querySelector("#demo-language").onchange = (event) => {
     language = event.target.value;
     write("localStorage", "quite-admin-demo-language", language);
@@ -252,6 +327,7 @@ function render() {
         data.get("username") === "admin" &&
         data.get("password") === "admin"
       ) {
+        store.log("","login"); persist();
         signedIn = true;
         write("sessionStorage", "quite-admin-demo-login", "true");
         render();
@@ -263,6 +339,7 @@ function render() {
     return;
   }
   document.querySelector("#demo-logout").onclick = () => {
+    store.log("","logout"); persist();
     signedIn = false;
     write("sessionStorage", "quite-admin-demo-login", "false");
     render();
@@ -271,7 +348,7 @@ function render() {
   if (search) {
     search.navigate = (params) => {
       const next = new URLSearchParams(query);
-      for (const name of [...next.keys()]) if (name.startsWith("f.") || name.startsWith("r.")) next.delete(name);
+      for (const name of [...next.keys()]) if (name.startsWith("f.") || name.startsWith("r.") || ["before","after","page"].includes(name)) next.delete(name);
       for (const [name,value] of params) next.set(name,value);
       location.hash = href(slug) + "?" + next;
     };
@@ -289,7 +366,7 @@ function render() {
       const params = new URLSearchParams(query);
       for (const name of [...params.keys()]) if (name.startsWith("f.") || name.startsWith("r.")) params.delete(name);
       for (const [name, value] of new FormData(event.target)) if (value) params.set(name, value); else params.delete(name);
-      params.set("page", "1");
+      params.set("page", "1"); params.delete("before"); params.delete("after");
       location.hash = href(slug) + "?" + params;
     };
   if (slug) {
@@ -302,6 +379,18 @@ function render() {
     });
     window.QuiteAdmin.initRelationPickers();
   }
+  cleanupListing = window.quiteAdminEnhanceListing(document, location.pathname + "#/models/" + slug);
+  const exportForm = document.querySelector("#demo-export");
+  if(exportForm) exportForm.onsubmit = event => {
+    event.preventDefault();
+    const data = new FormData(exportForm), columns = data.getAll("columns");
+    if(!columns.length)return;
+    const exportQuery = new URLSearchParams(query); exportQuery.set("q",data.get("q")||"");
+    const blob = new Blob([csv(store.collection(slug),matchingRows(store,slug,exportQuery),columns)],{type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob), link = document.createElement("a");
+    link.href=url;link.download=slug+".csv";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    store.log(slug,"export");persist();
+  };
   const form = document.querySelector("#demo-record");
   if (form)
     form.onsubmit = async (event) => {
@@ -346,11 +435,10 @@ function render() {
   if (reload) reload.onclick = () => render();
   const remove = document.querySelector("#demo-delete");
   if (remove)
-    remove.onsubmit = (event) => {
+    remove.onsubmit = async (event) => {
       event.preventDefault();
       try {
-        store.delete(slug, key);
-        persist();
+        await withStoreLock(() => {store.delete(slug, key);persist();});
         location.hash = href(slug);
       } catch (error) {
         const alert = document.querySelector("#form-error");

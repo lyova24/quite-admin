@@ -20,6 +20,10 @@
 .shell-login .content { min-height: calc(100vh - 54px); }
 .delete-panel { max-width: 620px; padding: var(--space-8); }
 .delete-panel > p { margin-bottom: var(--space-6); }
+.demo-tour { padding: var(--space-5); margin-bottom: var(--space-6); border: var(--border); border-radius: var(--radius); background: var(--paper); }
+.demo-tour h2 { margin-bottom: var(--space-4); }
+.demo-tour .button-group { flex-wrap: wrap; }
+.demo-notice { flex-shrink: 0; }
 @media (max-width: 600px) {
   .demo-notice { flex-wrap: wrap; padding: var(--space-2) var(--space-4); gap: var(--space-2); }
   .demo-notice > span { flex-basis: 100%; }

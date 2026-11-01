@@ -45,6 +45,8 @@ admin.register(User, options=ModelOptions(permission=can_access))
 ```
 
 Actions are `list`, `view`, `create`, `edit` and `delete`.
+The [activity history](storage.md) section additionally supports `history_permission`;
+history and user search preserve current collection `list`/`view` permissions.
 These permissions apply to an entire collection. Implement row filtering and tenant
 isolation inside a custom adapter; hiding a button does not constrain its underlying query.
 

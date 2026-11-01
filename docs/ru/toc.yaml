@@ -13,6 +13,8 @@ items:
         href: quickstart.md
       - name: Демо в браузере
         href: browser-demo.md
+      - name: "Обзор интерфейса: 0.5"
+        href: interface-tour.md
       - name: Интеграция и адаптеры
         href: integration.md
       - name: GINO / PostgreSQL
@@ -47,6 +49,8 @@ items:
         href: authentication.md
       - name: Логирование
         href: logging.md
+      - name: Хранилище и история действий
+        href: storage.md
       - name: Доступ к данным и совместимость
         href: data-safety.md
       - name: Совместимость зависимостей

@@ -23,3 +23,28 @@ test('date/time controls retain explicit timezone and subsecond precision withou
   assert.equal(splitTemporal('bad submitted value', 'datetime'), null);
   assert.equal(splitTemporal('12:34:56+00:00:30', 'time'), null);
 });
+
+const {parseValue, composeValue, rangeReversed} = require('../src/quite_admin/static/datetime.js');
+test('shared picker preserves wall time, trailing microseconds and offsets when only the date changes', () => {
+  for (const value of ['2026-11-01T12:34:56.120000+03:00', '0001-01-01T00:00:00.000001Z', '2024-02-29T23:59:00']) {
+    const parts = parseValue(value, 'datetime');
+    assert.equal(composeValue(parts, 'datetime'), value);
+    parts.day = '2026-12-31';
+    assert.equal(composeValue(parts, 'datetime'), '2026-12-31' + value.slice(10));
+  }
+  assert.equal(composeValue({...parseValue('12:34:00.123456-05:30', 'time'), time:'12:35'}, 'time'), '12:35:00.123456-05:30');
+  for (const value of ['bad', '2023-02-29T12:00', '2024-02-29T24:00', '2024-02-29T12:00+24:00', '2024-02-29T12:00+03:00:30']) assert.equal(parseValue(value, 'datetime'), null);
+  assert.equal(composeValue({day:'', time:'12:00', fraction:'', offset:''}, 'datetime'), null);
+  assert.equal(composeValue({...parseValue('12:34', 'time'), fraction:'1234567'}, 'time'), null);
+  for (const kind of ['date', 'datetime', 'time']) assert.equal(composeValue(parseValue('', kind), kind), '');
+});
+test('range ordering compares exact microseconds and explicit offsets without rewriting values', () => {
+  assert.equal(rangeReversed('2024-02-29', '2024-03-01', 'date'), false);
+  assert.equal(rangeReversed('2024-03-01', '2024-02-29', 'date'), true);
+  assert.equal(rangeReversed('2026-11-01T12:00:00.000002Z', '2026-11-01T12:00:00.000001Z', 'datetime'), true);
+  assert.equal(rangeReversed('2026-11-01T15:00:00.000001+03:00', '2026-11-01T12:00:00.000002Z', 'datetime'), false);
+  assert.equal(rangeReversed('12:00:00.000002', '12:00:00.000001', 'time'), true);
+  assert.equal(rangeReversed('12:00+03:00', '10:00Z', 'time'), false);
+  assert.equal(rangeReversed('2026-11-01T12:00', '2026-11-01T13:00Z', 'datetime'), null);
+  assert.equal(rangeReversed('', '2024-03-01', 'date'), false);
+});

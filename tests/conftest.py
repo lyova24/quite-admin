@@ -25,6 +25,11 @@ from .databases import (
 )
 
 
+@pytest.fixture(autouse=True)
+def isolated_admin_storage(monkeypatch, tmp_path):
+    monkeypatch.setenv("QUITE_ADMIN_STORAGE_URL", str(tmp_path / "admin-state.sqlite3"))
+
+
 @pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
 async def backend(request, tmp_path):
     name = request.param

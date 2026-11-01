@@ -1,7 +1,8 @@
 /* Same-origin, permission-checked single-field edits. Values stay in the dialog. */
 (function () {
-  const dialog=document.querySelector('[data-inline-dialog]');
-  if(!dialog)return;
+  function enhance(scope = document, request = window.fetch.bind(window)) {
+  const dialog=scope.querySelector('[data-inline-dialog]');
+  if(!dialog)return () => {};
   const form=dialog.querySelector('form'),host=dialog.querySelector('[data-inline-control]');
   const error=dialog.querySelector('[data-inline-error]'),save=dialog.querySelector('[data-inline-save]');
   const cancel=dialog.querySelector('[data-inline-cancel]'),title=dialog.querySelector('h2');
@@ -28,14 +29,14 @@
       }
       for(const link of row.querySelectorAll('.record-row-link'))link.setAttribute('aria-label',result.label_record);
   }
-  const status=document.querySelector('[data-list-save-status]');
-  for(const group of document.querySelectorAll('[data-toggle-endpoint]')){
+  const status=scope.querySelector('[data-list-save-status]');
+  for(const group of scope.querySelectorAll('[data-toggle-endpoint]')){
     let saving=false;
     const toggle=group.querySelector('[data-list-switch]'),nil=group.querySelector('[data-list-null]');
     async function setValue(value){
       if(saving)return;saving=true;toggle.disabled=true;if(nil)nil.disabled=true;status.hidden=true;
       try{
-        const stateResponse=await fetch(group.dataset.toggleEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'}});
+        const stateResponse=await request(group.dataset.toggleEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'}});
         if(!stateResponse.ok)throw new Error(messages.error);
         const state=await stateResponse.json();
         // The displayed state must still match before choosing a new value.
@@ -44,7 +45,7 @@
         const actual=state.raw_boolean===null?'':state.raw_boolean?'true':'false';
         if(actual!==displayed)throw new Error(messages.conflict);
         const data=new URLSearchParams({__csrf:state.csrf,__revision:state.revision,[state.name]:value});
-        const response=await fetch(group.dataset.toggleEndpoint,{method:'POST',credentials:'same-origin',body:data,headers:{Accept:'application/json'}});
+        const response=await request(group.dataset.toggleEndpoint,{method:'POST',credentials:'same-origin',body:data,headers:{Accept:'application/json'}});
         const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
         if(!response.ok)throw new Error(result?.errors?Object.values(result.errors).join(' '):messages.error);
         updateRow(group.closest('tr'),result);
@@ -58,11 +59,11 @@
   function close(){if(!busy){controller?.abort();cleanup?.();cleanup=null;dialog.close();source?.focus();}}
   cancel.addEventListener('click',close);
   dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
-  for(const button of document.querySelectorAll('[data-inline-endpoint]'))button.addEventListener('click',async()=>{
+  for(const button of scope.querySelectorAll('[data-inline-endpoint]'))button.addEventListener('click',async()=>{
     cleanup?.();cleanup=null;source=button;model=null;host.replaceChildren();error.textContent='';title.textContent=messages.loading;
     save.disabled=true;dialog.showModal();controller=new AbortController();
     try{
-      const response=await fetch(button.dataset.inlineEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
+      const response=await request(button.dataset.inlineEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
       if(!response.ok)throw new Error(messages.error);
       model=await response.json();title.textContent=model.label;
       if(model.kind==='boolean'||model.choices.length){
@@ -96,7 +97,7 @@
     busy=true;save.disabled=true;cancel.disabled=true;error.textContent='';
     try{
       const data=new URLSearchParams();data.set('__csrf',model.csrf);data.set('__revision',model.revision);data.set(model.name,control.value);
-      const response=await fetch(source.dataset.inlineEndpoint,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'},body:data});
+      const response=await request(source.dataset.inlineEndpoint,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'},body:data});
       const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
       if(!response.ok){error.textContent=result?.errors?Object.values(result.errors).join(' '):messages.error;return;}
       updateRow(source.closest("tr"), result);
@@ -104,4 +105,8 @@
     }catch(_){error.textContent=messages.error;}
     finally{busy=false;save.disabled=false;cancel.disabled=false;}
   });
+  return () => {controller?.abort();cleanup?.();if(dialog.open)dialog.close();};
+  }
+  window.quiteAdminEnhanceInline = enhance;
+  enhance();
 })();

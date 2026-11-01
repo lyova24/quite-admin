@@ -9,6 +9,8 @@ Supports **CPython 3.11–3.15**. MIT licensed.
 
 [Browser demo](https://lyova24.github.io/quite-admin/demo/) — `admin` / `admin`.
 Its fictional records stay in browser storage; **Reset demo** restores the examples.
+Try inline edits in **Products**, date/time/JSON controls in **Schedules**, and the
+**Activity history** journal. [Interface tour: 0.5](docs/en/interface-tour.md).
 The site workflow publishes this standalone demo alongside the documentation.
 
 [Add to an existing app in two minutes](docs/en/quickstart.md) · [Public API guarantees](docs/en/api-stability.md)
@@ -24,8 +26,12 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Authenticated CRUD, automatic search, sorting and pagination; typed filters for text
   fragments, ranges, sets, dates, NULL and related records with name/exact-ID lookup.
 - Count-free cursor pagination for large collections and configurable SQL read deadlines.
+- Automatic SQLite service storage, optional SQLite/PostgreSQL/MySQL storage and
+  permission-aware [activity history](docs/en/storage.md) with before/after field
+  comparisons by user and collection; disable it with `history_enabled=False`.
 - Interactive database schema and atomic stale-edit detection.
 - Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
+- Inline cell editing, nullable boolean switches and grouped collection navigation.
 - Editable, read-only and hidden fields, with server-side enforcement.
 - SQL reflection without model imports.
 - SQLAlchemy / SQLModel, Tortoise, Peewee and GINO 1.x (`gino-legacy` extra) adapters;

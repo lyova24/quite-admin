@@ -118,7 +118,8 @@ class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
                 views=False,
                 resolve_fks=False,
                 only=lambda name, meta: (
-                    name not in self.exclude_tables
+                    not name.lower().startswith("quiteadmin_")
+                    and name not in self.exclude_tables
                     and (self.include_tables is None or name in self.include_tables)
                 ),
             )

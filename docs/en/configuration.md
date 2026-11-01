@@ -151,8 +151,8 @@ See [list filters](filters.md) for `filter_fields` and related-record filtering.
 | CHAR / VARCHAR, bounded strings | Single-line input with discovered `maxlength` |
 | TEXT, Tortoise/Peewee TextField | Full-width multiline textarea |
 | DATE | Themed in-page calendar, localized display, ISO value; native input fallback |
-| DATETIME / TIMESTAMP | Native date/time picker plus explicit optional UTC offset |
-| TIME | Native time picker plus optional UTC offset |
+| DATETIME / TIMESTAMP | Shared calendar with time, optional fractional seconds and UTC offset |
+| TIME | Time-only version of the same picker, with optional fractional seconds and UTC offset |
 | JSON / JSONB | Monospace editor, syntax highlighting, syntax status and Format JSON |
 | Integer / Decimal / float | Numeric input with integer or arbitrary step |
 | Boolean | Toggle with explicit nullable state; select fallback |
@@ -172,10 +172,27 @@ rewrites numbers through JavaScript floating point. Syntax status does not repla
 server-side type/nullable checks. Highlighting is disabled above 200,000 characters,
 formatting beyond 40 levels of nesting; the ordinary textarea continues to work.
 
+Try editable DATE, DATETIME, TIME, nullable boolean, TEXT and JSON in **Schedules** in the
+[browser demo](browser-demo.md). The [interface tour](interface-tour.md) shows the form and inline editor.
+
+Forms, listing filters, inline edits and activity history reuse one themed calendar.
+Record forms and inline edits keep date and time directly editable: DATE has one date
+input, DATETIME has a date and time alongside each other, and TIME has a time input.
+The compact calendar has no duplicate date input or extra Apply step: selecting a day,
+**Today** or **Clear** updates the form field and closes it. Save the record with the
+form's **Create record** / **Save changes** button. Escape or clicking outside closes
+calendar navigation without changing the field. The calendar does not scroll the page.
+
+Filters retain **Apply** / **Cancel** for draft selection. A **Between** filter opens
+one panel with two endpoints, including time when required. **Clear** empties both
+range endpoints. Day-based history filtering retains full inclusive UTC days.
+Calendar days support arrow keys, Home/End and Page Up/Down; Alt+Down opens a form calendar.
+
 Date/time pickers never convert into the browser timezone. `Z` or an explicit `±HH:MM`
-offset is retained separately; an empty offset means a naive value. Fractional seconds
-use a separate optional input (up to six digits) so browser picker limitations cannot
-truncate microseconds. Merely opening a form
+offset is retained separately; an empty offset means a naive value. **More options**
+in forms (**Precision and timezone** in filters) expands optional offset and
+fractional-second inputs (up to six digits),
+so browser picker limitations cannot truncate microseconds. Merely opening a form
 does not normalize or truncate its original timestamp. Unsupported ISO shapes/offsets and
 invalid submitted values stay in the text input. Without JavaScript, datetime/time remain
 ISO text inputs and JSON remains a normal textarea. The no-script native calendar presentation depends

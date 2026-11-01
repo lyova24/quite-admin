@@ -1,6 +1,6 @@
 """Fictional, disposable browser-test application; never connects to an application DB."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
@@ -16,6 +16,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    Time,
     create_engine,
 )
 
@@ -39,6 +40,7 @@ entries = Table(
     Column("count", Integer),
     Column("day", Date),
     Column("moment", DateTime),
+    Column("clock", Time),
     Column("customer_id", ForeignKey("customers.id")),
 )
 metadata.create_all(engine)
@@ -58,6 +60,7 @@ with engine.begin() as connection:
                 "count": 10 + index * 5,
                 "day": date(2026, 11, 1),
                 "moment": datetime(2026, 11, 1, 23, 59, 59) if index < 3 else datetime(2026, 11, 2),
+                "clock": time(12, 34, 56, 123456),
                 "customer_id": 51 if index < 2 else 52,
             },
         )
@@ -88,6 +91,7 @@ for mount, theme in (
         secret_key="browser-fixture-only-" * 3,
         secure_cookies=False,
         session_cookie=mount[1:] + "_session",
+        storage=f"{_storage.name}/admin-state.sqlite3",
         adapters=[
             SQLAdapter(
                 engine,
@@ -102,7 +106,7 @@ for mount, theme in (
         "entries",
         options=ModelOptions(
             group="Data",
-            filter_fields=("name", "active", "status", "count", "note", "day", "moment"),
+            filter_fields=("name", "active", "status", "count", "note", "day", "moment", "clock"),
             list_fields=("id", "name", "status", "active", "count", "day"),
             list_editable=("note", "active", "day"),
             fields={"name": FieldOptions(label="Name")},
