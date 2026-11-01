@@ -170,7 +170,7 @@ async def test_filter_assets_are_integrity_checked_and_metadata_is_safe(admin):
         ).digest()
     ).decode()
     csp = response.headers["content-security-policy"]
-    assert f"script-src 'sha256-{digest}'" in csp
+    assert f"'sha256-{digest}'" in csp
     assert "unsafe-inline" not in csp and "unsafe-eval" not in csp
     assert f'integrity="sha256-{digest}"' in response.text
     assert "data-filter-builder" in response.text

@@ -31,3 +31,15 @@ def test_blank_sidebar_group_is_rejected():
         ModelOptions(group=" ").validate(
             ModelSchema("items", (Field("id", int, primary_key=True),))
         )
+
+
+async def test_listing_automatic_search_has_no_submit_button_and_has_trusted_script(admin):
+    app = FastAPI()
+    admin.mount_fastapi(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await login(client)
+        page = await client.get("/admin/models/items/")
+        assert 'listing.js' in page.text
+        search = page.text.split('role="search"')[1].split('</div>')[0]
+        assert '<button' not in search
+        assert 'name="q"' in search

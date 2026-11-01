@@ -551,7 +551,14 @@ class Admin:
             trusted_scripts += ("navigation.js",)
         scripts = []
         for name in trusted_scripts:
-            if name not in {"relations.js", "schema.js", "filters.js", "forms.js", "navigation.js"}:
+            if name not in {
+                "relations.js",
+                "schema.js",
+                "filters.js",
+                "forms.js",
+                "navigation.js",
+                "listing.js",
+            }:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
                 hashlib.sha256((Path(__file__).parent / "static" / name).read_bytes()).digest()
@@ -869,7 +876,7 @@ class Admin:
                 if key not in {"page", "export", "columns"}
             ],
             status=422 if filter_errors else 200,
-            trusted_scripts=("filters.js",) if filter_descriptors else (),
+            trusted_scripts=("listing.js",) + (("filters.js",) if filter_descriptors else ()),
             filter_descriptors=filter_descriptors,
             filter_messages=list_filters.messages(self.gettext),
             filter_errors_json={key: self.gettext(value) for key, value in filter_errors.items()},

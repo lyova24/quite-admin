@@ -77,3 +77,8 @@ page = await adapter.list(Product, Query(
 The relation name comes from `adapter.relations(Product)`, not a raw SQL expression.
 Target keys use their Python types, including UUID and composite keys. Custom adapters
 opt in explicitly; see [the optional capability contract](custom-adapters.md#relationship-filters).
+
+Listing search runs automatically after 900 ms without input. Each keystroke restarts
+the delay; IME composition waits until completed. Enter searches immediately. Filters,
+sorting and page size are preserved, pagination resets, and focus returns to search.
+Without JavaScript use Enter to submit the search form.

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Automatic listing search after a 900 ms typing pause, with IME and Enter support.
+
 - Theme-derived JSON colors, native control color scheme and in-page date calendars.
 
 - Compact default interface density, approximately the previous UI at 80% zoom.
