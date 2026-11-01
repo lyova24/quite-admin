@@ -80,5 +80,5 @@ inline despite a valid Content-Disposition header
 suite assert real CSV and XLSX download events without replacing response headers.
 
 Pages deploys after a successful `ci` push run for the current `master` SHA. Failed,
-stale and pull-request runs cannot trigger publication. A manual run is restricted
-to the current `master` commit.
+stale and pull-request runs cannot trigger publication. A manual run also requires a successful complete CI run
+for the current `master` commit.

@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: github-pages
@@ -30,7 +31,12 @@ jobs:
           script: |
             const {data} = await github.rest.repos.getBranch({...context.repo, branch:'master'});
             const sha = context.payload.workflow_run?.head_sha || context.sha;
-            core.setOutput('fresh', String(data.commit.sha === sha));
+            const runs = await github.rest.actions.listWorkflowRuns({
+              ...context.repo, workflow_id:'ci.yml', head_sha:sha, per_page:100,
+            });
+            const verified = runs.data.workflow_runs.some(run =>
+              run.head_sha === sha && run.conclusion === 'success');
+            core.setOutput('fresh', String(data.commit.sha === sha && verified));
             core.setOutput('sha', sha);
 
   build:
@@ -63,6 +69,7 @@ jobs:
     needs: [current, build]
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
