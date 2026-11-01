@@ -102,6 +102,7 @@ class ModelOptions:
     actions: tuple[RecordAction, ...] = ()
     filter_fields: tuple[str, ...] | None = None
     group: str | None = None
+    list_editable: tuple[str, ...] | None = None
 
     def validate(self, schema: ModelSchema) -> None:
         if self.group is not None and (not isinstance(self.group, str) or not self.group.strip()):
@@ -109,6 +110,7 @@ class ModelOptions:
         names = set(schema.by_name)
         for option in (
             self.list_fields,
+            self.list_editable,
             self.edit_fields,
             self.create_fields,
             self.readonly_fields,

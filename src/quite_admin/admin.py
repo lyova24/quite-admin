@@ -12,6 +12,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
+from urllib.parse import quote
 
 from anyio import to_thread
 from itsdangerous import BadData, URLSafeTimedSerializer
@@ -33,7 +34,7 @@ from . import filters as list_filters
 from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
 from .concurrency import CheckedAdapter, StaleRecord, WriteGuard, canonical
-from .config import Action, ModelOptions, Permission
+from .config import Action, FieldOptions, ModelOptions, Permission
 from .diagram import schema_graph
 from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
@@ -210,6 +211,11 @@ class Admin:
             Route("/models/{slug}/", self._list),
             Route("/models/{slug}/new", self._create, methods=["GET", "POST"]),
             Route("/models/{slug}/relationships/{relation}/options", self._relation_options),
+            Route(
+                "/models/{slug}/{key}/inline/{field:path}",
+                self._inline_edit,
+                methods=["GET", "POST"],
+            ),
             Route("/models/{slug}/{key}/edit", self._edit, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/delete", self._delete, methods=["GET", "POST"]),
             Route("/models/{slug}/{key}/actions/{action}", self._record_action, methods=["POST"]),
@@ -558,6 +564,7 @@ class Admin:
                 "forms.js",
                 "navigation.js",
                 "listing.js",
+                "inline.js",
             }:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
@@ -866,9 +873,17 @@ class Admin:
         export_columns = []
         if permissions["view"]:
             export_columns = await self._export_columns(request, resource)
+        inline_fields = self._inline_fields(resource) if permissions["edit"] else {}
         return await self._render(
             request,
             "quite_admin/list.html",
+            inline_fields=inline_fields,
+            inline_endpoint=lambda record, name: self._url(
+                request,
+                f"/models/{resource.slug}/{resource.schema.record_key(record)}/inline/"
+                + quote(name, safe=""),
+            ),
+            form_messages=self._form_messages(),
             export_columns=export_columns,
             export_params=[
                 (key, value)
@@ -876,7 +891,9 @@ class Admin:
                 if key not in {"page", "export", "columns"}
             ],
             status=422 if filter_errors else 200,
-            trusted_scripts=("listing.js",) + (("filters.js",) if filter_descriptors else ()),
+            trusted_scripts=("listing.js",)
+            + (("filters.js",) if filter_descriptors else ())
+            + (("forms.js", "inline.js") if inline_fields else ()),
             filter_descriptors=filter_descriptors,
             filter_messages=list_filters.messages(self.gettext),
             filter_errors_json={key: self.gettext(value) for key, value in filter_errors.items()},
@@ -895,6 +912,122 @@ class Admin:
             query=query,
             query_url=query_url,
             permissions=permissions,
+        )
+
+    def _inline_fields(self, resource):
+        visible = resource.options.visible_fields(resource.schema)
+        listed = resource.options.list_fields
+        listed = set(listed if listed is not None else [item.name for item in visible[:6]])
+        configured = resource.options.list_editable
+        writable = resource.options.writable_fields(resource.schema, False)
+        return {
+            name: item
+            for name, item in writable.items()
+            if name in listed
+            and (configured is None or name in configured)
+            and item.kind not in {"binary", "unsupported"}
+            and not item.foreign_key
+            and not resource.options.fields.get(name, FieldOptions()).template
+        }
+
+    def _form_messages(self):
+        return {
+            name: self.gettext(name)
+            for name in (
+                "True",
+                "False",
+                "None",
+                "Choose date",
+                "Previous month",
+                "Next month",
+                "Close",
+                "Year",
+                "Format JSON",
+                "Valid JSON",
+                "Invalid JSON",
+                "JSON is too large for highlighting.",
+                "UTC offset (optional)",
+                "Fractional seconds (optional)",
+                "Use Z or ±HH:MM; leave empty for no timezone.",
+                "JSON nesting is too deep to format.",
+            )
+        }
+
+    async def _inline_edit(self, request):
+        resource = await self._resource(request, "edit")
+        if not await self._allowed(request, resource, "list"):
+            raise HTTPException(403, "Permission denied.")
+        name = request.path_params["field"]
+        field = self._inline_fields(resource).get(name)
+        if field is None:
+            raise HTTPException(403, "This field is not writable in the listing.")
+        record = await self._record(resource, request.path_params["key"])
+        if request.method == "POST":
+            form = await self._form(request)
+            if set(form) != {"__csrf", "__revision", name}:
+                raise HTTPException(422, "Submit exactly one editable field.")
+            try:
+                changes = resource.options.parse_values(resource.schema, {name: form[name]}, False)
+                guard = (
+                    self._write_guard(request, resource, form["__revision"], {})
+                    if isinstance(resource.adapter, CheckedAdapter)
+                    else None
+                )
+                key = resource.schema.parse_key(request.path_params["key"])
+
+                async def execute():
+                    if guard is not None:
+                        return await resource.adapter.save_checked(
+                            resource.model, key, changes, {}, guard=guard
+                        )
+                    return await resource.adapter.update(resource.model, key, changes)
+
+                record = await self._perform_write(
+                    request, resource, "edit", record, changes, {}, key, execute
+                )
+                await self._logging.emit(
+                    "info", "quite_admin.record_updated", collection=resource.slug, status_code=200
+                )
+            except ValidationError as exc:
+                return JSONResponse(
+                    {"errors": {k: self.gettext(v) for k, v in exc.errors.items()}}, status_code=422
+                )
+            except Conflict as exc:
+                return JSONResponse(
+                    {"errors": {"__all__": self.gettext(str(exc))}}, status_code=409
+                )
+        return JSONResponse(
+            {
+                "name": name,
+                "label": field.label,
+                "kind": field.kind,
+                "multiline": field.multiline,
+                "nullable": field.nullable,
+                "choices": field.choices,
+                "max_length": field.max_length,
+                "value": field.format(record.get(name)),
+                "csrf": self._csrf(request),
+                "revision": self._revision_token(request, resource, record, []),
+                "label_record": resource.record_label(record),
+                "cells": {
+                    item.name: {
+                        "text": self.gettext("True" if record[item.name] else "False")
+                        if item.kind == "boolean" and record.get(item.name) is not None
+                        else item.format(record.get(item.name))
+                        if record.get(item.name) is not None
+                        else "—",
+                        "null": record.get(item.name) is None,
+                        "kind": item.kind,
+                        "boolean": record.get(item.name) is True,
+                    }
+                    for item in resource.options.visible_fields(resource.schema)
+                    if item.name
+                    in (
+                        resource.options.list_fields
+                        or [f.name for f in resource.options.visible_fields(resource.schema)[:6]]
+                    )
+                },
+            }
         )
 
     async def _export_columns(self, request, resource):
@@ -1178,27 +1311,7 @@ class Admin:
                     else ()
                 )
             ),
-            form_messages={
-                name: self.gettext(name)
-                for name in (
-                    "True",
-                    "False",
-                    "None",
-                    "Choose date",
-                    "Previous month",
-                    "Next month",
-                    "Close",
-                    "Year",
-                    "Format JSON",
-                    "Valid JSON",
-                    "Invalid JSON",
-                    "JSON is too large for highlighting.",
-                    "UTC offset (optional)",
-                    "Fractional seconds (optional)",
-                    "Use Z or ±HH:MM; leave empty for no timezone.",
-                    "JSON nesting is too deep to format.",
-                )
-            },
+            form_messages=self._form_messages(),
             status=status,
             resource=resource,
             fields=fields,

@@ -195,3 +195,19 @@ Permissions filter collections before grouping; empty or inaccessible groups are
 Boolean fields use keyboard-operable switches. Nullable booleans have an explicit None
 button, preserving the distinction between false and SQL NULL. Read-only values stay
 read-only; without JavaScript the original select remains usable.
+
+## Editing list cells
+
+Click the pencil/value of a writable displayed field to edit it without opening a record.
+`ModelOptions(list_editable=None)` (default) enables all eligible displayed fields;
+`list_editable=("name", "active")` selects a subset; `list_editable=()` disables it.
+Only list columns also allowed by `edit_fields` and field policies are eligible. Hidden,
+read-only, generated and primary-key fields cannot be edited. Foreign keys and fields
+with custom templates use the full record page instead. Built-in scalar/JSON controls
+are reused. Save is explicit; Cancel/Escape discards the local edit.
+
+The endpoint requires list/edit permissions, validates exactly one field, enforces CSRF,
+uses write hooks and preserves atomic stale-edit checks. A stale revision returns 409;
+invalid values return 422 without clearing the editor. Reload the list after a conflict
+before retrying. Custom adapters need `CheckedAdapter` for atomic stale-edit detection,
+as for full record forms. No JavaScript is required to use the full record page.

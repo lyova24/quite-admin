@@ -18,6 +18,9 @@
 
 ### Added
 
+- Configurable inline list-cell editing through field policies, write hooks, CSRF and
+  atomic stale-edit guards, with reusable typed controls and preserved validation errors.
+
 - Configurable collapsible sidebar collection groups with per-mount browser state.
 
 - Type-aware record forms: multiline TEXT fields across SQL reflection and ORM adapters,

@@ -91,7 +91,8 @@
       months.value = month; months.addEventListener('change', () => { month = Number(months.value); render(); });
       const years = doc.createElement('input'); years.type = 'number'; years.min = 1; years.max = 9999;
       years.value = year; years.setAttribute('aria-label', t('Year'));
-      years.addEventListener('change', () => { if (years.checkValidity() && years.value) { year = Number(years.value); render(); } });
+      years.addEventListener('change', () => { if (years.checkValidity() && years.value) { year = Number(years.value); render(); } else years.value=year; });
+      years.addEventListener('keydown', e => {if(e.key==='Enter'){e.preventDefault();years.dispatchEvent(new Event('change'));}});
       toolbar.append(prev, months, years, next); panel.append(toolbar);
       const grid = doc.createElement('div'); grid.className = 'calendar-grid';
       // Monday-first calendar, using UTC only for calendar arithmetic, never for record conversion.
@@ -125,15 +126,20 @@
       (panel.querySelector('[aria-pressed="true"]') || panel.querySelector('.calendar-grid button')).focus();
     });
     wrapper.addEventListener('keydown', e => {if(e.key==='Escape'){e.preventDefault();close(true);}});
-    doc.addEventListener('click', e => {if(!wrapper.contains(e.target))close(false);});
+    const outside = e => {if(!wrapper.contains(e.target))close(false);};
+    doc.addEventListener('click', outside);
+    return () => doc.removeEventListener('click', outside);
   }
-  for (const input of doc.querySelectorAll('[data-calendar-input]')) attachCalendar(input, false);
-  for (const select of doc.querySelectorAll('[data-boolean-toggle]')) {
+  function enhance(scope) {
+    const cleanups = [];
+  for (const input of scope.querySelectorAll('[data-calendar-input]')) cleanups.push(attachCalendar(input, false));
+  for (const select of scope.querySelectorAll('[data-boolean-toggle]')) {
     const group = doc.createElement('div'); group.className = 'toggle-control';
     const toggle = doc.createElement('button'); toggle.type = 'button'; toggle.className = 'boolean-toggle';
     toggle.id = select.id + '-switch'; toggle.setAttribute('role','switch');
     const label = doc.querySelector('label[for="' + CSS.escape(select.id) + '"]');
     if(label){label.htmlFor=toggle.id;toggle.setAttribute('aria-labelledby',label.id);}
+    else if(select.hasAttribute('aria-labelledby'))toggle.setAttribute('aria-labelledby',select.getAttribute('aria-labelledby'));
     if(select.hasAttribute('aria-describedby')) toggle.setAttribute('aria-describedby',select.getAttribute('aria-describedby'));
     if(select.hasAttribute('aria-invalid')) toggle.setAttribute('aria-invalid',select.getAttribute('aria-invalid'));
     const state = doc.createElement('span'); state.className = 'field-help';
@@ -153,7 +159,7 @@
     if(nullable){group.append(nullButton);nullButton.addEventListener('click',()=>{if(select.value){previous=select.value;change('');}else change(previous);});}
     select.after(group);select.hidden=true;select.addEventListener('change',render);render();
   }
-  for (const input of doc.querySelectorAll('[data-json-editor]')) {
+  for (const input of scope.querySelectorAll('[data-json-editor]')) {
     const wrap = doc.createElement('div');
     wrap.className = 'json-editor';
     input.before(wrap); wrap.append(input);
@@ -197,7 +203,7 @@
     });
     render();
   }
-  for (const input of doc.querySelectorAll('[data-temporal]')) {
+  for (const input of scope.querySelectorAll('[data-temporal]')) {
     const kind = input.dataset.temporal;
     const parts = splitTemporal(input.value, kind);
     if (!parts) continue; // Preserve unrecognized submitted values and exotic ISO offsets verbatim.
@@ -233,6 +239,11 @@
     // may normalize :00 or fractional seconds in datetime-local display values.
     const sync = () => { input.value = picker.value ? picker.value + (fraction.value ? '.' + fraction.value : '') + offset.value : ''; };
     picker.addEventListener('input', sync); fraction.addEventListener('input', sync); offset.addEventListener('input', sync);
-    if (kind === 'datetime') attachCalendar(picker, true);
+    if (kind === 'datetime') cleanups.push(attachCalendar(picker, true));
   }
+    return () => cleanups.forEach(cleanup => cleanup());
+  }
+  root.quiteAdminEnhanceFields = enhance;
+  enhance(doc);
+
 })(typeof window !== 'undefined' ? window : globalThis);

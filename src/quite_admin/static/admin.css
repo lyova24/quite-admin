@@ -489,3 +489,13 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .boolean-toggle[aria-checked=true]::after { transform: translateX(14px); background: var(--on-accent); }
 .toggle-control [aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .boolean-toggle::after { transition: none; } }
+
+.cell-edit { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; border: 0; border-radius: var(--radius-sm); padding: var(--space-1) 0; color: inherit; background: transparent; text-align: inherit; font: inherit; }
+.cell-edit:hover { color: var(--accent); }
+.cell-edit-mark { color: var(--muted); opacity: .35; font-size: var(--text-xs); }
+.cell-edit:hover .cell-edit-mark, .cell-edit:focus-visible .cell-edit-mark { opacity: 1; }
+.cell-open { position: relative; z-index: 2; display: inline-block; margin-inline-end: var(--space-2); color: var(--muted); }
+.inline-dialog { width: min(560px, calc(100vw - 32px)); overflow: visible; padding: var(--space-5); border: var(--border); border-radius: var(--radius); background: var(--paper); color: var(--text); }
+.inline-dialog::backdrop { background: color-mix(in srgb, var(--text) 25%, transparent); }
+.inline-dialog h2 { margin-bottom: var(--space-3); }
+.inline-dialog .button-group { margin-top: var(--space-4); justify-content: flex-end; }

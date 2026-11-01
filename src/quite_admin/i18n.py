@@ -21,6 +21,10 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Edit field": "Изменить поле",
+    "Unable to save. Review permissions or reload the list.": (
+        "Не удалось сохранить. Проверьте права или обновите список."
+    ),
     "Choose date": "Выбрать дату",
     "Previous month": "Предыдущий месяц",
     "Next month": "Следующий месяц",

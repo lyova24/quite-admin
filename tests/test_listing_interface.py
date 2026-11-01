@@ -39,7 +39,7 @@ async def test_listing_automatic_search_has_no_submit_button_and_has_trusted_scr
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         await login(client)
         page = await client.get("/admin/models/items/")
-        assert 'listing.js' in page.text
-        search = page.text.split('role="search"')[1].split('</div>')[0]
-        assert '<button' not in search
+        assert "listing.js" in page.text
+        search = page.text.split('role="search"')[1].split("</div>")[0]
+        assert "<button" not in search
         assert 'name="q"' in search
