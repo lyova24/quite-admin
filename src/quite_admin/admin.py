@@ -41,7 +41,7 @@ from .errors import AdminError, Conflict, NotFound, ValidationError
 from .i18n import Language, Translator
 from .logging import EventLogger, LoggerProtocol
 from .operations import Operation, OperationHooks, _operation
-from .relations import RelationAdapter
+from .relations import BatchRelationAdapter, RelationAdapter
 from .schema import ModelSchema, Query, RecordPage, RelatedFilter
 from .theme import Theme
 
@@ -1059,6 +1059,8 @@ class Admin:
             {"name": item.name, "label": item.label, "field": item, "editor": None}
             for item in resource.options.visible_fields(resource.schema)
         ]
+        if not isinstance(resource.adapter, BatchRelationAdapter):
+            return columns
         for editor in await self._available_relations(
             request, resource, creating=False, allow_edit=False
         ):
@@ -1098,15 +1100,29 @@ class Admin:
         rows = []
         links = 0
         size = 0
-        for record in result.records:
-            related = {}
+        batches = {}
+        if editors:
+            keys = [
+                {field.name: record[field.name] for field in resource.schema.primary_keys}
+                for record in result.records
+            ]
             for name in editors:
-                key = {field.name: record[field.name] for field in resource.schema.primary_keys}
-                page = await resource.adapter.related(resource.model, name, key, Query(limit=1000))
-                links += page.total
-                if page.total > 1000 or links > exports.MAX_LINKS:
+                batch = await resource.adapter.related_batch(
+                    resource.model, name, keys, limit=exports.MAX_LINKS - links + 1
+                )
+                count = sum(len(records) for records in batch.records.values())
+                if (
+                    batch.truncated
+                    or count + links > exports.MAX_LINKS
+                    or any(len(records) > 1000 for records in batch.records.values())
+                ):
                     raise HTTPException(413, "Too many related records. Narrow the filters.")
-                related[name] = page.records
+                links += count
+                batches[name] = batch.records
+        for record in result.records:
+            related = {
+                name: batches[name].get(resource.schema.record_key(record), []) for name in editors
+            }
             row = []
             for column in columns:
                 field = column["field"]

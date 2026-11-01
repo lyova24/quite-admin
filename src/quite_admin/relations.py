@@ -58,3 +58,23 @@ class RelationAdapter(Protocol):
         *,
         key: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]: ...
+
+
+@dataclass(frozen=True)
+class RelatedBatch:
+    records: Mapping[str, list[dict[str, Any]]]
+    truncated: bool = False
+
+
+@runtime_checkable
+class BatchRelationAdapter(Protocol):
+    """Optional bounded relationship reads, keyed by source record tokens."""
+
+    async def related_batch(
+        self,
+        model: Any,
+        name: str,
+        keys: list[Mapping[str, Any]],
+        *,
+        limit: int = 10001,
+    ) -> RelatedBatch: ...

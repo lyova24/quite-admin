@@ -44,8 +44,14 @@ selected; at most 1,000 records per related collection, 10,000 related records o
 UTF-16-unit text limit. A limit violation returns HTTP 413 rather than a partial file.
 Narrow filters or use CSV for very long cell values. Invalid filters return 422.
 
-Reads can observe concurrent changes: this is not a database snapshot. Related lookups
-run per source record and relationship. Export has no write side effects, and uses the
+Reads can observe concurrent changes: this is not a database snapshot. Built-in adapters load related records in bounded batches,
+using one joined query per relationship. Custom adapters may implement
+`BatchRelationAdapter.related_batch(model, name, keys, limit=...)` from
+`quite_admin.relations`, returning `RelatedBatch` keyed by source record tokens. Set
+`truncated=True` whenever the requested bound may hide more records: the export then
+returns 413. Related exports require this batch capability; there is no per-record fallback.
+Adapters without it expose scalar export columns only. All built-in adapters use batching
+automatically, without configuration. Export has no write side effects, and uses the
 same authentication and read permissions as record browsing.
 
 The square download icon beside search opens a compact export panel. Escape or a click

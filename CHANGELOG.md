@@ -2,6 +2,13 @@
 
 ## 0.5.0 — Unreleased
 
+### Added
+
+- Bounded BatchRelationAdapter reads enabled by default on all native adapters. Related exports
+  use one joined query per relationship instead of per-record count/load queries;
+  related exports require batch support. Remove the per-record fallback; retain all
+  permission checks and scalar-only export for adapters without batch support.
+
 ### Fixed
 
 - Validate declared integer ranges before writes and filters, including MySQL unsigned

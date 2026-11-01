@@ -9,12 +9,33 @@ from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Query, RecordPage
 
+from ._batch import finish_batch, prepare_batch
 from ._queries import ordering as order_expressions
 from ._queries import predicates
+from ._sql_batch import batch_statement
 from ._sql_metadata import SQLRelationMetadata
 
 
 class SQLRelations(SQLRelationMetadata):
+    async def related_batch(self, model, name, keys, *, limit=10001):
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        if not keys:
+            return finish_batch(schema, target_schema, keys, [], limit)
+        statement = batch_statement(
+            model,
+            self._links(model)[name],
+            [field.name for field in schema.primary_keys],
+            [field.name for field in target_schema.fields],
+            keys,
+            limit,
+        )
+
+        def operation(connection):
+            rows = connection.execute(statement).mappings().all()
+            return finish_batch(schema, target_schema, keys, rows, limit)
+
+        return await self._run(operation)
+
     def relations(self, model):
         return tuple(link.relation for link in self._links(model).values())
 

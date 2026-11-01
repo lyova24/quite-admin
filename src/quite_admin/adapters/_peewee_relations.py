@@ -12,6 +12,60 @@ from ._queries import predicates, search_predicate
 
 
 class PeeweeRelations:
+    async def related_batch(self, model, name, keys, *, limit=10001):
+        from ._batch import finish_batch, prepare_batch
+
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        if not keys:
+            return finish_batch(schema, target_schema, keys, [], limit)
+        source, target = model.alias("qa_source"), relation.target.alias("qa_target")
+        source_columns = [getattr(source, field.name) for field in schema.primary_keys]
+        columns = [column.alias(f"qa_parent_{i}") for i, column in enumerate(source_columns)]
+        columns.extend(
+            getattr(target, field.name).alias(f"qa_target_{i}")
+            for i, field in enumerate(target_schema.fields)
+        )
+        statement = source.select(*columns)
+        direction, field = self._relation_fields(model)[name]
+        if direction == "many":
+            source_fk = field.through_model._meta.model_refs[model][0]
+            target_fk = field.through_model._meta.model_refs[relation.target][0]
+            through = field.through_model.alias("qa_through")
+            statement = statement.join(
+                through,
+                on=getattr(source, source_fk.rel_field.name) == getattr(through, source_fk.name),
+            ).join(
+                target,
+                on=getattr(through, target_fk.name) == getattr(target, target_fk.rel_field.name),
+            )
+        elif direction == "reverse":
+            statement = statement.join(
+                target, on=getattr(source, field.rel_field.name) == getattr(target, field.name)
+            )
+        else:
+            statement = statement.join(
+                target, on=getattr(source, field.name) == getattr(target, field.rel_field.name)
+            )
+        values = [tuple(key[field.name] for field in schema.primary_keys) for key in keys]
+        condition = (
+            source_columns[0].in_([value[0] for value in values])
+            if len(source_columns) == 1
+            else pw.Tuple(*source_columns).in_(values)
+        )
+        statement = (
+            statement.where(condition)
+            .order_by(
+                *source_columns,
+                *(getattr(target, field.name) for field in target_schema.primary_keys),
+            )
+            .limit(limit)
+        )
+
+        def operation():
+            return finish_batch(schema, target_schema, keys, list(statement.dicts()), limit)
+
+        return await self._run(model, operation)
+
     def _relation_fields(self, model):
         result = {field.name: ("forward", field) for field in model._meta.refs}
         result.update(

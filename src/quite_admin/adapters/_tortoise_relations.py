@@ -12,6 +12,33 @@ from ._queries import tortoise_filters
 
 
 class TortoiseRelations:
+    async def related_batch(self, model, name, keys, *, limit=10001):
+        from ._batch import finish_batch, prepare_batch
+
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        if not keys:
+            return finish_batch(schema, target_schema, keys, [], limit)
+        source_pk, target_pk = schema.primary_keys[0].name, target_schema.primary_keys[0].name
+        fields = {"qa_parent_0": source_pk}
+        fields.update(
+            {
+                f"qa_target_{i}": name + "__" + field.name
+                for i, field in enumerate(target_schema.fields)
+            }
+        )
+        rows = (
+            await model.filter(
+                **{
+                    source_pk + "__in": [key[source_pk] for key in keys],
+                    name + "__" + target_pk + "__isnull": False,
+                }
+            )
+            .order_by(source_pk, name + "__" + target_pk)
+            .limit(limit)
+            .values(**fields)
+        )
+        return finish_batch(schema, target_schema, keys, rows, limit)
+
     def relations(self, model):
         meta = model._meta
         result = []

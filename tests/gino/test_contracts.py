@@ -21,6 +21,9 @@ from tests.test_adapters import (
     test_text_filter_contract_is_literal_and_case_insensitive,
     test_typed_filters_and_projection,
 )
+from tests.test_batch_relations import (
+    test_batched_relationships_match_individual_reads_and_report_truncation,
+)
 from tests.test_concurrency import test_checked_write_contract
 from tests.test_diagram import (
     test_schema_uses_metadata_with_visible_fields_and_expandable_junctions,

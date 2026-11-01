@@ -12,6 +12,31 @@ from ._sql_metadata import SQLRelationMetadata, related_predicates
 
 
 class GinoRelations:
+    async def related_batch(self, model, name, keys, *, limit=10001):
+        from ._batch import finish_batch, prepare_batch
+        from ._sql_batch import batch_statement
+
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        if not keys:
+            return finish_batch(schema, target_schema, keys, [], limit)
+        table = self._table(model)
+        link = SQLRelationMetadata()._links(table)[name]
+        physical = [
+            {getattr(model, field).name: value for field, value in key.items()} for key in keys
+        ]
+        statement = batch_statement(
+            table,
+            link,
+            [getattr(model, field.name).name for field in schema.primary_keys],
+            [getattr(relation.target, field.name).name for field in target_schema.fields],
+            physical,
+            limit,
+            legacy=True,
+        )
+        async with self.db.acquire(reuse=False, reusable=False) as connection:
+            rows = await connection.all(statement)
+        return finish_batch(schema, target_schema, keys, rows, limit)
+
     def _links(self, model):
         models = {self._table(item): item for item in self.discover()}
         links = SQLRelationMetadata()._links(self._table(model))

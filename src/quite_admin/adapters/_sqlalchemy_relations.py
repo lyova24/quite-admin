@@ -17,6 +17,47 @@ from ._sql_metadata import _unique, junction_fields
 
 
 class SQLAlchemyRelations:
+    async def related_batch(self, model, name, keys, *, limit=10001):
+        from sqlalchemy import tuple_
+        from sqlalchemy.orm import aliased
+
+        from ._batch import finish_batch, prepare_batch
+
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        if not keys:
+            return finish_batch(schema, target_schema, keys, [], limit)
+        source, target = aliased(model), aliased(relation.target)
+        source_columns = [getattr(source, field.name) for field in schema.primary_keys]
+        columns = [column.label(f"qa_parent_{i}") for i, column in enumerate(source_columns)]
+        columns.extend(
+            getattr(target, field.name).label(f"qa_target_{i}")
+            for i, field in enumerate(target_schema.fields)
+        )
+        values = [tuple(key[field.name] for field in schema.primary_keys) for key in keys]
+        condition = (
+            source_columns[0].in_([value[0] for value in values])
+            if len(source_columns) == 1
+            else tuple_(*source_columns).in_(values)
+        )
+        statement = (
+            select(*columns)
+            .select_from(source)
+            .join(getattr(source, name).of_type(target))
+            .where(condition)
+            .order_by(
+                *source_columns,
+                *(getattr(target, field.name) for field in target_schema.primary_keys),
+            )
+            .limit(limit)
+        )
+
+        def operation(session):
+            return finish_batch(
+                schema, target_schema, keys, session.execute(statement).mappings().all(), limit
+            )
+
+        return await self._run(operation)
+
     def relations(self, model: type) -> tuple[Relation, ...]:
         result = []
         for item in inspect(model).relationships:
@@ -166,6 +207,11 @@ class SQLAlchemyRelations:
             parent = session.get(model, dict(key))
             if parent is None:
                 raise NotFound("Record not found.")
+            if prop.direction.name == "MANYTOONE" and any(
+                getattr(parent, field) is None
+                for field in self._attribute_names(model, prop.local_columns)
+            ):
+                return RecordPage([], 0)
             statement = select(target).where(with_parent(parent, getattr(model, name)))
             statement = statement.where(*predicates(query, lambda field: getattr(target, field)))
             if query.search and query.search_fields:
