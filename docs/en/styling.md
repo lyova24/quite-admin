@@ -143,3 +143,6 @@ Date and datetime forms provide an in-page calendar using the admin palette, inc
 month/year navigation. JSON tokens, controls, focus and selected states derive from Theme.
 Native time controls use the surface-derived light/dark color scheme and accent color.
 The native date input remains available without JavaScript.
+
+The listing toolbar aligns search, filters, export and Create record in one row,
+with creation on the right. Controls wrap on narrow screens.

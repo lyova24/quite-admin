@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Create record shares the listing toolbar with search, filter and export controls.
+
 - Boolean form switches with explicit nullable state and select fallback.
 
 - Export options now open from a square download icon instead of occupying the list.

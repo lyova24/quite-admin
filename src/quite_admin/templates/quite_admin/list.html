@@ -3,7 +3,7 @@
 {% block content %}
 <div data-form-messages hidden data-messages='{{ form_messages|tojson }}'></div>
 {% if inline_fields %}<dialog class="inline-dialog" data-inline-dialog data-messages='{{ {"save": t("Save changes"), "cancel": t("Cancel"), "loading": t("Loading…"), "error": t("Unable to save. Review permissions or reload the list."), "edit": t("Edit field")}|tojson }}'><form method="dialog"><h2 id="inline-title"></h2><div data-inline-control></div><p data-inline-error class="field-error" role="alert"></p><div class="button-group"><button type="button" class="button secondary" data-inline-cancel>{{ t('Cancel') }}</button><button type="submit" class="button primary" data-inline-save>{{ t('Save changes') }}</button></div></form></dialog>{% endif %}
-<div class="page-heading list-heading"><div class="heading-with-count"><h1>{{ resource.label }}</h1><span class="record-count">{{ result.total }} {{ tn('record', 'records', result.total) }}</span></div>{% if permissions.create %}<a class="button primary" href="{{ url('/models/' ~ resource.slug ~ '/new') }}">+ {{ t('Create record') }}</a>{% endif %}</div>
+<div class="page-heading list-heading"><div class="heading-with-count"><h1>{{ resource.label }}</h1><span class="record-count">{{ result.total }} {{ tn('record', 'records', result.total) }}</span></div></div>
 <section class="record-list">
   <div class="list-tools">
   <form method="get" class="list-query-form"{% if filter_descriptors %} data-filter-builder data-fields='{{ filter_descriptors|tojson }}' data-conditions='{{ active_filters|tojson }}' data-messages='{{ filter_messages|tojson }}' data-errors='{{ filter_errors_json|tojson }}'{% endif %}>
@@ -25,6 +25,7 @@
     </form>
   </details>
   {% endif %}
+  {% if permissions.create %}<a class="button primary list-create" href="{{ url('/models/' ~ resource.slug ~ '/new') }}">+ {{ t('Create record') }}</a>{% endif %}
   </div>
   {% if active_filters or query.search %}<div class="active-filters" aria-label="{{ t('Active filters') }}">{% if query.search %}<a class="filter-chip" href="{{ query_url(q='', page=1) }}">{{ t('Search') }}: {{ query.search }} <span aria-hidden="true">×</span><span class="sr-only">{{ t('Remove') }}</span></a>{% endif %}{% for item in active_filters %}<span class="filter-chip filter-condition"><span class="filter-label">{{ item.label }}</span><button class="filter-edit" type="button" data-filter-edit="{{ loop.index0 }}" hidden>{{ item.label }}</button><a class="filter-remove" href="{{ item.remove_url }}" aria-label="{{ t('Remove') }}: {{ item.label }}">×</a></span>{% endfor %}<a class="link-button" href="{{ clear_filters_url }}">{{ t('Clear all') }}</a></div>{% endif %}
   {% set primary_name = resource.options.record_label or (columns|rejectattr('primary_key')|selectattr('kind', 'equalto', 'string')|map(attribute='name')|first|default('')) %}

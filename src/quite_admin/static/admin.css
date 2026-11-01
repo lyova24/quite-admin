@@ -499,3 +499,10 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .inline-dialog::backdrop { background: color-mix(in srgb, var(--text) 25%, transparent); }
 .inline-dialog h2 { margin-bottom: var(--space-3); }
 .inline-dialog .button-group { margin-top: var(--space-4); justify-content: flex-end; }
+
+.list-tools .list-query-form { flex: 0 1 340px; }
+.list-tools .list-toolbar { padding: 0; gap: var(--space-2); }
+.list-tools .search-form { flex: 1; min-width: 0; }
+.list-tools .search-form input { width: 100%; }
+.list-create { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 480px) { .list-tools { flex-wrap: wrap; } .list-tools .list-query-form { flex: 1 1 160px; } }
