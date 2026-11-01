@@ -4,6 +4,23 @@
 
 ### Added
 
+- Library-owned service storage: private, file-backed SQLite by default, optional
+  SQLite/PostgreSQL/MySQL URLs and borrowed sync/async SQLAlchemy engines. Automatically
+  initialize reserved `quiteadmin_` tables with cross-worker locking, schema-version
+  checks, namespace isolation and optimistic revisions for bounded JSON documents.
+- Activity history with searchable authenticated users, collection/action/result
+  filters, a compact calendar popover with quick UTC presets, single-day/range selection,
+  keyboard navigation, cancellation and inclusive UTC boundaries. Reuse the listing
+  filter editor and shared chips for history conditions, with the period alongside them,
+  and signed count-free pagination. Capture views, writes,
+  exports, custom actions and login/logout. Show a dated activity journal with expandable
+  field comparisons, persisted before/after values and record links. Add a Journal/Table
+  toggle that preserves filters and pagination, with the journal as default. Exclude secrets
+  and reapply current field/collection permissions when reading history. Enable history
+  by default; `Admin(history_enabled=False, ...)` disables capture and hides the section.
+- Upgrade service storage automatically to schema 2, preserving legacy events and
+  batching bounded change details. Keep diagnostic logs free of record values.
+
 - Count-free bidirectional keyset pagination on every native adapter and opt-in cursor
   collection lists with signed user/filter-bound cursors. Keep ordinary offset lists
   available for arbitrary sorting and exact totals.
@@ -14,6 +31,18 @@
   use one joined query per relationship instead of per-record count/load queries;
   related exports require batch support. Remove the per-record fallback; retain all
   permission checks and scalar-only export for adapters without batch support.
+
+### Changed
+
+- Reuse one themed calendar across forms, inline edits, filters, the browser demo and
+  activity history. Use direct date/time inputs and a compact, one-click day calendar
+  in record forms and inline edits, with optional precision/offset controls collapsed.
+  Retain draft Apply/Cancel for filter ranges. Preserve exact microseconds and optional
+  UTC offsets verbatim.
+- Reserve and hide the `quiteadmin_` prefix in admin collections and SQL discovery.
+  The default store needs a persistent writable directory (`.quite-admin` by default);
+  application models/migrations remain unchanged. See the EN/RU storage documentation
+  for container deployment, shared stores and audit failure/transaction boundaries.
 
 ### Fixed
 

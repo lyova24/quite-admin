@@ -47,6 +47,8 @@ items:
         href: authentication.md
       - name: Logging
         href: logging.md
+      - name: Admin storage and activity history
+        href: storage.md
       - name: Data access and compatibility
         href: data-safety.md
       - name: Dependency compatibility

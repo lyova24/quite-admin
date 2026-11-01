@@ -82,4 +82,5 @@ jobs:
           uv run --group database-check pytest tests/test_adapters.py tests/test_adapter_safety.py
           tests/test_relations.py tests/test_sql_reflection.py tests/test_concurrency.py
           tests/test_filters.py tests/test_diagram.py tests/test_numeric_limits.py
-          tests/test_batch_relations.py tests/test_pagination.py tests/test_query_timeout.py tests/sqlmodel -q
+          tests/test_batch_relations.py tests/test_pagination.py tests/test_query_timeout.py
+          tests/test_storage.py tests/test_history.py tests/sqlmodel -q

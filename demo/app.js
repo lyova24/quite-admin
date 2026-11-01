@@ -64,7 +64,8 @@ const input = (field, value) => {
       field.kind === "boolean" ? ["true", "false"] : field.choices;
     return `<select ${attrs}>${field.nullable ? '<option value="">—</option>' : ""}${choices.map((choice) => `<option value="${e(choice)}" ${choice === value ? "selected" : ""}>${e(field.kind === "boolean" ? t(choice === "true" ? "True" : "False") : choice)}</option>`).join("")}</select>`;
   }
-  return `<input ${attrs} type="${["integer", "number"].includes(field.kind) ? "number" : field.kind === "date" ? "date" : "text"}" step="${field.kind === "integer" ? "1" : "any"}" value="${e(value)}" ${field.maxLength ? `maxlength="${field.maxLength}"` : ""}>`;
+  const temporal = field.kind === "date" ? "data-calendar-input" : ["datetime", "time"].includes(field.kind) ? `data-temporal="${field.kind}"` : "";
+  return `<input ${attrs} ${temporal} type="${["integer", "number"].includes(field.kind) ? "number" : field.kind === "date" ? "date" : "text"}" step="${field.kind === "integer" ? "1" : "any"}" value="${e(value)}" ${field.maxLength ? `maxlength="${field.maxLength}"` : ""}>`;
 };
 
 function login() {
@@ -191,6 +192,7 @@ function shell(content, slug, key) {
       "",
     )}</nav><a class="nav-link ${schemaPage ? "active" : ""}" href="#/schema">${e(t("Database schema"))}</a><p class="nav-label">${e(t("PAGES"))}</p><a class="nav-link ${location.hash === "#/report" ? "active" : ""}" href="#/report">Store report</a><div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
 }
+let cleanupFields;
 function render() {
   document.documentElement.lang = language;
   const loggedIn = signedIn;
@@ -231,7 +233,12 @@ function render() {
     content = shell(`<h1>${e(t("Not Found"))}</h1>${button("#/", "Overview")}`);
   }
   document.querySelectorAll("[data-schema-workspace]").forEach((root) => root.schemaCleanup?.());
+  cleanupFields?.();
   document.querySelector("#app").innerHTML = content;
+  const formMessages = document.createElement("div"); formMessages.hidden = true;
+  formMessages.setAttribute("data-form-messages", ""); formMessages.dataset.messages = JSON.stringify(seed.formMessages[language]);
+  document.querySelector("#app").prepend(formMessages);
+  cleanupFields = window.quiteAdminEnhanceFields(document);
   window.QuiteAdmin.initSchemas();
   document.querySelector("#demo-language").onchange = (event) => {
     language = event.target.value;

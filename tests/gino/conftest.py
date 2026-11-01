@@ -14,6 +14,11 @@ from quite_admin import PasswordAuth  # noqa: E402
 from quite_admin.adapters.gino import GinoAdapter  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def isolated_admin_storage(monkeypatch, tmp_path):
+    monkeypatch.setenv("QUITE_ADMIN_STORAGE_URL", str(tmp_path / "admin-state.sqlite3"))
+
+
 @pytest.fixture
 async def db():
     import asyncpg

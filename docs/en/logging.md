@@ -186,6 +186,8 @@ query strings, record keys, field values and raw exception messages.
 Additional application-bound logging context remains under your control.
 Mutation events are emitted after the adapter successfully commits.
 They are diagnostic events, not a durable audit log.
+The separate [activity history](storage.md) stores authenticated user actions;
+it does not enrich ordinary log records with identity or record data.
 
 The admin adds no per-request access log and does not catch or log unhandled application
 exceptions a second time; they propagate to the host/server error pipeline.

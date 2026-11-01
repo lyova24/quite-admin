@@ -40,6 +40,8 @@ admin.register(User, options=ModelOptions(permission=can_access))
 ```
 
 Действия: `list`, `view`, `create`, `edit`, `delete`. Это права уровня коллекции.
+Для [истории действий](storage.md) доступен `history_permission`; история и поиск
+пользователей учитывают текущие права `list`/`view` на коллекции.
 Для tenant isolation и ограничений отдельных записей фильтруйте запросы в собственном
 адаптере; одного скрытия элементов интерфейса недостаточно.
 

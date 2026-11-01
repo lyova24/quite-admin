@@ -136,7 +136,7 @@ async def build(output):
                 if path.is_file():
                     shutil.copyfile(path, output / path.name)
             shutil.copyfile(ROOT / "src/quite_admin/static/admin.css", output / "admin.css")
-            for script in ("relations.js", "schema.js", "filters.js"):
+            for script in ("relations.js", "schema.js", "datetime.js", "forms.js", "filters.js"):
                 shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
             (output / "theme.css").write_text(admin.theme.stylesheet())
             (output / "seed.json").write_text(
@@ -145,6 +145,13 @@ async def build(output):
                         "version": __version__,
                         "title": admin.title,
                         "translations": RUSSIAN,
+                        "formMessages": {
+                            lang: {
+                                name: Translator(lang).gettext(name)
+                                for name in admin._form_messages()
+                            }
+                            for lang in ("en", "ru")
+                        },
                         "filterMessages": {
                             lang: list_filters.messages(Translator(lang).gettext)
                             for lang in ("en", "ru")

@@ -8,6 +8,7 @@ __pycache__/
 dist/
 *.egg-info/
 *.db
+.quite-admin/
 .env
 artifacts/
 .idea/

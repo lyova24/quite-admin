@@ -396,6 +396,11 @@ async def test_inline_relationship_fields_share_the_record_save(auth, related_ba
         )
         assert response.status_code == 303, response.text
         assert (await adapter.get(model, key(adapter, model, parent)))["name"] == "Changed together"
+        history = (await admin.storage.activities(collection="parents", action="edit")).events[0]
+        assert history.details is not None
+        change = next(item for item in history.details.changes if item.name == tag_relation.name)
+        assert change.kind == "relation" and change.target_collection == "tags"
+        assert change.after == "\n".join(sorted(str(tag["id"]) for tag in tags))
         assert (
             await adapter.related(model, tag_relation.name, key(adapter, model, parent), Query())
         ).total == 2

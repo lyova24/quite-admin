@@ -47,6 +47,8 @@ items:
         href: authentication.md
       - name: Логирование
         href: logging.md
+      - name: Хранилище и история действий
+        href: storage.md
       - name: Доступ к данным и совместимость
         href: data-safety.md
       - name: Совместимость зависимостей

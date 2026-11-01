@@ -1,3 +1,4 @@
+from .activity import ActivityDetails, FieldChange
 from .adapters.base import ADAPTER_API_VERSION
 from .adapters.delegating import DelegatingAdapter
 from .admin import TEMPLATE_API_VERSION, Admin, Page
@@ -8,6 +9,15 @@ from .logging import LoggerProtocol
 from .operations import Operation, OperationHooks, current_operation
 from .relations import Junction, Relation, RelationAdapter
 from .schema import Field, Filter, ModelSchema, Query, RecordPage, RelatedFilter
+from .storage import (
+    Activity,
+    ActivityPage,
+    AdminStore,
+    Document,
+    SQLiteStore,
+    StorageConflict,
+    StorageError,
+)
 from .theme import Theme
 
 __version__ = "0.5.0"
@@ -16,6 +26,15 @@ __all__ = [
     "ADAPTER_API_VERSION",
     "TEMPLATE_API_VERSION",
     "Admin",
+    "AdminStore",
+    "Activity",
+    "ActivityDetails",
+    "FieldChange",
+    "ActivityPage",
+    "Document",
+    "SQLiteStore",
+    "StorageConflict",
+    "StorageError",
     "CheckedAdapter",
     "WriteGuard",
     "AuthBackend",

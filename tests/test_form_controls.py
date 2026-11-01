@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from datetime import date, datetime, time
 from types import ModuleType
 
@@ -106,6 +108,12 @@ async def test_type_specific_controls_submit_and_preserve_invalid_values(
         assert 'data-temporal="datetime"' in page.text and 'data-temporal="time"' in page.text
         assert 'type="date"' in page.text
         assert "forms.js" in page.text and "sha256-" in page.headers["content-security-policy"]
+        assert page.text.count("/assets/datetime.js") == 1
+        assert page.text.index("/assets/datetime.js") < page.text.index("/assets/forms.js")
+        picker = await client.get("/admin/assets/datetime.js")
+        assert picker.status_code == 200
+        integrity = "sha256-" + base64.b64encode(hashlib.sha256(picker.content).digest()).decode()
+        assert integrity in page.text and integrity in page.headers["content-security-policy"]
         data = {
             "__csrf": csrf(page),
             "short": "One",
@@ -137,3 +145,4 @@ async def test_type_specific_controls_submit_and_preserve_invalid_values(
         assert readonly.status_code == 200
         assert "data-temporal=" not in readonly.text and "data-json-editor" not in readonly.text
         assert "forms.js" not in readonly.text
+        assert "datetime.js" not in readonly.text
