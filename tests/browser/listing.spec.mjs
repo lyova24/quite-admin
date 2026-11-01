@@ -15,7 +15,10 @@ async function login(page, mount='/admin') {
   await page.goto(mount+'/');
   await page.locator('[name=username]').fill('admin');
   await page.locator('[name=password]').fill('browser-test-password');
-  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await Promise.all([
+    page.waitForURL(url=>url.pathname===mount+'/'),
+    page.getByRole('button',{name:'Sign in',exact:true}).click(),
+  ]);
 }
 async function open(page, field) {
   await page.locator('[data-filter-add]').click();
