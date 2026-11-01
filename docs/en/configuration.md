@@ -182,3 +182,12 @@ on browser/OS. Server-side parsing, model constraints, field permissions, CSRF a
 stale-edit revisions remain authoritative. Built-in scripts use the existing per-page CSP hash.
 
 Future widget extension approaches are compared in the [widget design proposal](field-widgets.md).
+
+## Sidebar groups
+
+Set `ModelOptions(group="Sales")` on each collection to group its sidebar links.
+For SQL reflection use `admin.configure("orders", options=ModelOptions(group="Sales"))`.
+Groups follow first appearance, support keyboard collapse/expand and remember state per
+admin mount when browser storage is available. The current collection's group opens
+automatically. Ungrouped collections appear under Other collections when grouping is used.
+Permissions filter collections before grouping; empty or inaccessible groups are omitted.

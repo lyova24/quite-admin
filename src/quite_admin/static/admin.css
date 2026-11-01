@@ -447,3 +447,8 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .temporal-offset input, .temporal-fraction input { margin-top: .25rem; }
 @media (forced-colors: active) { .json-highlight { display: none; } .json-editor textarea { color: CanvasText; background: Canvas; } }
 @media (max-width: 480px) { .temporal-controls { grid-template-columns: minmax(0, 1fr); } }
+
+.nav-group { margin-block: var(--space-2); }
+.nav-group summary { cursor: pointer; padding: var(--space-2) var(--space-3); color: var(--muted); font-size: var(--text-xs); font-weight: 600; overflow-wrap: anywhere; }
+.nav-group summary span { float: right; font-variant-numeric: tabular-nums; }
+.nav-group .nav-link { margin-left: var(--space-3); }

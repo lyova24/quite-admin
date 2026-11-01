@@ -21,6 +21,7 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Other collections": "Другие коллекции",
     "Format JSON": "Форматировать JSON",
     "Valid JSON": "Корректный JSON",
     "Invalid JSON": "Ошибка синтаксиса JSON",

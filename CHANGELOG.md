@@ -4,6 +4,8 @@
 
 ### Added
 
+- Configurable collapsible sidebar collection groups with per-mount browser state.
+
 - Type-aware record forms: multiline TEXT fields across SQL reflection and ORM adapters,
   native date/time pickers with explicit optional UTC offsets, and a local JSON/JSONB
   syntax editor with precision-preserving formatting and no-script fallbacks.

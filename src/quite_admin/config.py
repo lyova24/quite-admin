@@ -101,8 +101,11 @@ class ModelOptions:
     writable_protected_fields: tuple[str, ...] = ()
     actions: tuple[RecordAction, ...] = ()
     filter_fields: tuple[str, ...] | None = None
+    group: str | None = None
 
     def validate(self, schema: ModelSchema) -> None:
+        if self.group is not None and (not isinstance(self.group, str) or not self.group.strip()):
+            raise ValueError("group must be a nonempty label or None.")
         names = set(schema.by_name)
         for option in (
             self.list_fields,

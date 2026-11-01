@@ -543,9 +543,15 @@ class Admin:
             pages = [
                 page for page in self.pages.values() if await self._page_allowed(request, page)
             ]
+        groups = {}
+        if any(item.options.group is not None for item in resources):
+            for item in resources:
+                label = item.options.group or self.gettext("Other collections")
+                groups.setdefault(label, []).append(item)
+            trusted_scripts += ("navigation.js",)
         scripts = []
         for name in trusted_scripts:
-            if name not in {"relations.js", "schema.js", "filters.js", "forms.js"}:
+            if name not in {"relations.js", "schema.js", "filters.js", "forms.js", "navigation.js"}:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
                 hashlib.sha256((Path(__file__).parent / "static" / name).read_bytes()).digest()
@@ -567,6 +573,7 @@ class Admin:
             "tn": self.ngettext,
             "identity": identity,
             "resources": resources,
+            "resource_groups": groups,
             "pages": pages,
             "csrf": self._csrf(request),
             "url": lambda path="/": self._url(request, path),

@@ -17,10 +17,17 @@
       <a class="nav-link {% if not resource and not page and not schema_page %}active{% endif %}" href="{{ url('/') }}"{% if not resource and not page and not schema_page %} aria-current="page"{% endif %}>{{ t('Overview') }}</a>
       <a class="nav-link {% if schema_page %}active{% endif %}" href="{{ url('/schema') }}"{% if schema_page %} aria-current="page"{% endif %}>{{ t('Database schema') }}</a>
       <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
-      <nav aria-label="{{ t('Collections') }}">
-      {% for item in resources %}
-        <a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"{% if resource and resource.slug == item.slug %} aria-current="page"{% endif %}>{{ item.label }}</a>
-      {% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
+      <nav aria-label="{{ t('Collections') }}" data-collection-navigation data-storage-key="{{ url('/') }}">
+      {% if resource_groups %}
+        {% for label, items in resource_groups.items() %}
+        <details class="nav-group" data-group="{{ label }}" open{% if resource and resource.slug in items|map(attribute='slug')|list %} data-current-group{% endif %}>
+          <summary>{{ label }} <span>{{ items|length }}</span></summary>
+          {% for item in items %}<a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"{% if resource and resource.slug == item.slug %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
+        </details>
+        {% endfor %}
+      {% else %}
+        {% for item in resources %}<a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"{% if resource and resource.slug == item.slug %} aria-current="page"{% endif %}>{{ item.label }}</a>{% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
+      {% endif %}
       </nav>
       {% if pages %}
       <p class="nav-label">{{ t('PAGES') }}</p>
