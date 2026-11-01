@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Compact square funnel controls for listing filters.
+
 - Automatic listing search after a 900 ms typing pause, with IME and Enter support.
 
 - Theme-derived JSON colors, native control color scheme and in-page date calendars.

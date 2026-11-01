@@ -82,3 +82,5 @@ Listing search runs automatically after 900 ms without input. Each keystroke res
 the delay; IME composition waits until completed. Enter searches immediately. Filters,
 sorting and page size are preserved, pagination resets, and focus returns to search.
 Without JavaScript use Enter to submit the search form.
+
+The square funnel icon opens filters; its accessible name and tooltip identify the action.

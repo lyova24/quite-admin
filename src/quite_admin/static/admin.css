@@ -468,3 +468,8 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .calendar-grid span { text-align: center; color: var(--muted); font-size: var(--text-xs); }
 .calendar-grid button { padding: 3px; border-color: transparent; }
 .calendar-grid button[aria-pressed=true] { background: var(--accent); color: var(--on-accent); }
+
+.icon-button { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: var(--control-height); height: var(--control-height); min-height: var(--control-height); padding: 0; list-style: none; }
+.icon-button::-webkit-details-marker { display: none; }
+.icon-button svg { pointer-events: none; }
+@media (pointer: coarse) { .icon-button { width: 40px; height: 40px; min-height: 40px; } }

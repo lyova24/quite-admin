@@ -1,6 +1,7 @@
+{% from "quite_admin/_icons.html" import filter_icon %}
 <fieldset class="filter-fallback" data-filter-fallback>
 <details class="filter-disclosure"{% if filter_errors %} open{% endif %}>
-  <summary class="button secondary">{{ t('Filters') }}{% if active_filters %} <span class="muted">· {{ active_filters|length }}</span>{% endif %}</summary>
+  <summary class="button secondary icon-button" title="{{ t('Filters') }}" aria-label="{{ t('Filters') }}">{{ filter_icon() }}{% if active_filters %} <span class="muted">· {{ active_filters|length }}</span>{% endif %}</summary>
   <div class="filter-panel">
   {% if filter_errors %}<div class="alert" role="alert">{{ t('Please correct the highlighted filters.') }}{% if filter_errors.get('__all__') %}<p>{{ t(filter_errors['__all__']) }}</p>{% endif %}</div>{% endif %}
   <div class="filter-grid">
