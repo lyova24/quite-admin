@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
@@ -116,6 +117,15 @@ class SQLAdapter(CheckedWrites, SQLRelations):
                 if column not in table.c:
                     raise ValueError(f"Unknown column in column_types: {name}.{column}")
                 table.c[column].type = type_
+        skipped = sorted(
+            table.fullname for table in metadata.tables.values() if not table.primary_key.columns
+        )
+        if skipped:
+            warnings.warn(
+                "Skipping reflected tables without primary keys: " + ", ".join(skipped),
+                RuntimeWarning,
+                stacklevel=2,
+            )
         self._metadata = metadata
 
     async def discover(self) -> Iterable[Table]:
@@ -123,7 +133,7 @@ class SQLAdapter(CheckedWrites, SQLRelations):
             async with self._lock:
                 if self._metadata is None:
                     await self._reflect()
-        return tuple(self._metadata.tables.values())
+        return tuple(table for table in self._metadata.tables.values() if table.primary_key.columns)
 
     def describe(self, model: Table) -> ModelSchema:
         fields = []

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 — Unreleased
+
+### Fixed
+
+- Skip reflected tables without primary keys during auto-discovery, with an explicit
+  warning, so unsupported tables cannot break other admin collections. Explicit
+  descriptions still reject tables that cannot be addressed safely.
+
 ## 0.4.1 — 2026-11-01
 
 ### Added

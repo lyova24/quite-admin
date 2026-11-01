@@ -30,6 +30,11 @@ Without `include_tables`, all tables in the selected database schema are discove
 Use `exclude_tables` to omit internal tables. Every exposed table must have a primary key.
 `SQLAdapter` accepts an `Engine` or `AsyncEngine`, and an optional `schema` name.
 
+SQL auto-discovery skips tables without primary keys and emits a RuntimeWarning once
+per metadata refresh. They remain unavailable for CRUD; explicitly describing or
+registering an unsupported table still raises a configuration error. Other collections
+remain usable.
+
 Reflection runs lazily after authentication and caches metadata.
 Call `await adapter.refresh()` after a host-managed migration to replace the cached schema.
 The library never creates tables or runs migrations itself.

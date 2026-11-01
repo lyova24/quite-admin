@@ -97,3 +97,42 @@ async def test_type_overrides_reject_unknown_schema_fields(reflection_engine, ov
 def test_type_overrides_require_sqlalchemy_type_instances():
     with pytest.raises(TypeError, match="type instances"):
         SQLAdapter(create_engine("sqlite://"), column_types={"items": {"active": bool}})
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_discovery_skips_keyless_tables_without_breaking_other_collections(
+    tmp_path, auth, framework
+):
+    from fastapi import FastAPI
+    from httpx import ASGITransport, AsyncClient
+    from litestar import Litestar
+
+    from quite_admin import Admin
+
+    from .helpers import login
+
+    engine = create_engine(f"sqlite:///{tmp_path}/keyless.db")
+    metadata = MetaData()
+    Table("usable", metadata, Column("id", Integer, primary_key=True))
+    keyless = Table("external_log", metadata, Column("message", Integer))
+    metadata.create_all(engine)
+    adapter = SQLAdapter(engine)
+    admin = Admin(auth=auth, secret_key="s" * 32, adapters=[adapter], secure_cookies=False)
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    getattr(admin, "mount_" + framework)(host)
+    try:
+        async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+            await login(client)
+            with pytest.warns(RuntimeWarning, match="without primary keys: external_log"):
+                dashboard = await client.get("/admin/")
+            assert dashboard.status_code == 200
+            assert "/models/usable/" in dashboard.text
+            assert "/models/external_log/" not in dashboard.text
+            assert (await client.get("/admin/models/usable/")).status_code == 200
+            assert (await client.get("/admin/models/external_log/")).status_code == 404
+            assert (await client.get("/admin/schema")).status_code == 200
+        assert [table.name for table in await adapter.discover()] == ["usable"]
+        with pytest.raises(ValueError, match="no primary key"):
+            adapter.describe(keyless)
+    finally:
+        engine.dispose()
