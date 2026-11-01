@@ -1,0 +1,220 @@
+"""Shared template context, navigation and UI messages."""
+
+from __future__ import annotations
+
+import base64
+import hashlib
+from typing import Any
+
+from starlette.requests import Request
+from starlette.responses import Response
+
+from .web import STATIC_DIR, TEMPLATE_API_VERSION
+
+
+class Rendering:
+    async def _render(
+        self,
+        request: Request,
+        template: str,
+        *,
+        status: int = 200,
+        trusted_scripts: tuple[str, ...] = (),
+        **context: Any,
+    ) -> Response:
+        identity = getattr(request.state, "identity", None)
+        resources = []
+        pages = []
+        if identity is not None:
+            resources = [
+                resource
+                for resource in (await self.resources()).values()
+                if await self._allowed(request, resource, "list")
+            ]
+            pages = [
+                page for page in self.pages.values() if await self._page_allowed(request, page)
+            ]
+        groups = {}
+        if any(item.options.group is not None for item in resources):
+            for item in resources:
+                label = item.options.group or self.gettext("Other collections")
+                groups.setdefault(label, []).append(item)
+            trusted_scripts += ("navigation.js",)
+        dependencies = []
+        for name in trusted_scripts:
+            if name in {"forms.js", "history.js"}:
+                dependencies.append("datetime.js")
+            dependencies.append(name)
+        scripts = []
+        for name in dict.fromkeys(dependencies):
+            if name not in {
+                "relations.js",
+                "schema.js",
+                "filters.js",
+                "forms.js",
+                "datetime.js",
+                "navigation.js",
+                "listing.js",
+                "inline.js",
+                "history.js",
+            }:
+                raise ValueError("Unknown built-in script.")
+            digest = base64.b64encode(
+                hashlib.sha256((STATIC_DIR / name).read_bytes()).digest()
+            ).decode()
+            scripts.append(
+                {"url": self._url(request, "/assets/" + name), "integrity": "sha256-" + digest}
+            )
+        request.state.quite_admin_script_hashes = tuple(item["integrity"] for item in scripts)
+        shared = {
+            "template_api_version": TEMPLATE_API_VERSION,
+            "scripts": scripts,
+            "request": request,
+            "admin": self,
+            "title": self.title,
+            "description": self.description,
+            "language": self.language,
+            "theme": self.theme,
+            "logo_url": self._url(request, "/logo") if self.logo is not None else None,
+            "t": self.gettext,
+            "tn": self.ngettext,
+            "identity": identity,
+            "resources": resources,
+            "resource_groups": groups,
+            "pages": pages,
+            "history_allowed": identity is not None and await self._history_allowed(request),
+            "csrf": self._csrf(request),
+            "url": lambda path="/": self._url(request, path),
+            "breadcrumbs": self._breadcrumbs(request, template, context),
+        }
+        return self.templates.TemplateResponse(
+            request=request, name=template, context={**context, **shared}, status_code=status
+        )
+
+    def _breadcrumbs(self, request, template, context):
+        items = [{"label": self.gettext("Overview"), "url": self._url(request, "/")}]
+        resource = context.get("resource")
+        if resource is not None:
+            items.append(
+                {"label": resource.label, "url": self._url(request, f"/models/{resource.slug}/")}
+            )
+            record = context.get("record")
+            if record:
+                items.append(
+                    {
+                        "label": resource.record_label(record),
+                        "url": self._url(
+                            request, f"/models/{resource.slug}/{resource.schema.record_key(record)}"
+                        ),
+                    }
+                )
+            if context.get("creating"):
+                items.append({"label": self.gettext("Create record"), "url": None})
+            elif template == "quite_admin/delete.html":
+                items.append({"label": self.gettext("Delete record"), "url": None})
+        elif context.get("schema_page"):
+            items.append({"label": self.gettext("Database schema"), "url": None})
+        elif context.get("history_page"):
+            items.append({"label": self.gettext("Activity history"), "url": None})
+        elif context.get("page") is not None:
+            items.append({"label": context["page"].title, "url": None})
+        elif context.get("status_code"):
+            items.append({"label": str(context["status_code"]), "url": None})
+        items[-1]["url"] = None
+        return items
+
+    def _schema_messages(self, translations=None):
+        translations = translations or self._translations
+        translated = {
+            name: translations.gettext(text)
+            for name, text in {
+                "expandJunction": "Show junction table",
+                "collapseJunction": "Hide junction table",
+                "showAll": "Show all",
+                "hideAll": "Hide all",
+                "tables": "Tables",
+                "junctions": "Junction tables",
+                "selectTables": "Select tables to display",
+                "searchTables": "Search tables",
+                "showTable": "Show table",
+                "expandView": "Expand view",
+                "exitView": "Exit expanded view",
+                "noTables": "No matching tables.",
+                "expand": "Show all fields",
+                "collapse": "Show key fields",
+                "more": "more fields",
+                "fields": "fields",
+                "o2o": "One to one",
+                "o2m": "One to many",
+                "m2m": "Many to many",
+                "empty": "No visible fields",
+                "one": "1",
+                "many": "N",
+            }.items()
+        }
+        return {
+            **translated,
+            "language": translations.language,
+            "fieldForms": [translations.ngettext("field", "fields", count) for count in (1, 2, 5)],
+        }
+
+    def _form_messages(self):
+        return {
+            name: self.gettext(name)
+            for name in (
+                "True",
+                "False",
+                "None",
+                "Choose date",
+                "Choose date and time",
+                "Choose time",
+                "Choose date range",
+                "Choose time range",
+                "Date",
+                "Time",
+                "From",
+                "To",
+                "Month",
+                "Apply",
+                "Cancel",
+                "Clear",
+                "Precision and timezone",
+                "More options",
+                "Today",
+                "Choose a date.",
+                "Enter a time.",
+                "Invalid date/time value.",
+                "The lower bound must not exceed the upper bound.",
+                "Previous month",
+                "Next month",
+                "Close",
+                "Year",
+                "Format JSON",
+                "Valid JSON",
+                "Invalid JSON",
+                "JSON is too large for highlighting.",
+                "UTC offset (optional)",
+                "Fractional seconds (optional)",
+                "Use Z or ±HH:MM; leave empty for no timezone.",
+                "JSON nesting is too deep to format.",
+            )
+        }
+
+    def _picker_messages(self):
+        return {
+            name: self.gettext(text)
+            for name, text in {
+                "choose": "Choose records",
+                "search": "Search related records",
+                "remove": "Remove",
+                "previous": "Previous",
+                "next": "Next",
+                "loading": "Loading…",
+                "empty": "No matching records.",
+                "failed": "Could not load records. Try again.",
+                "retry": "Retry",
+                "selected": "Selected",
+                "results": "Results",
+                "limit": "Select up to 1000 records.",
+            }.items()
+        }

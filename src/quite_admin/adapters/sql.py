@@ -29,13 +29,10 @@ from quite_admin.pagination import (
     WindowReads,
     finish_window,
     validate_window,
-    window_condition,
-    window_ordering,
 )
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
-from ._queries import ordering as order_expressions
-from ._queries import predicates, search_predicate, validate_query
+from ._queries import paginate, predicates, search_predicate, validate_query
 from ._sql_metadata import related_predicates
 from ._sql_relations import SQLRelations
 from ._sql_timeout import read_timeout, validate_timeout
@@ -79,24 +76,20 @@ class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
         self._lock = Lock()
 
     async def _run(self, operation: Callable[[Connection], Any], *, write: bool = False) -> Any:
+        def execute(connection):
+            if write and guarded() and connection.dialect.name == "sqlite":
+                connection.exec_driver_sql("BEGIN IMMEDIATE")
+            with read_timeout(connection, None if write else self.query_timeout):
+                return operation(connection)
+
         try:
             if isinstance(self.engine, AsyncEngine):
                 async with self.engine.begin() if write else self.engine.connect() as connection:
-
-                    def execute(sync_connection):
-                        if write and guarded() and sync_connection.dialect.name == "sqlite":
-                            sync_connection.exec_driver_sql("BEGIN IMMEDIATE")
-                        with read_timeout(sync_connection, None if write else self.query_timeout):
-                            return operation(sync_connection)
-
                     return await connection.run_sync(execute)
 
             def run() -> Any:
                 with self.engine.begin() if write else self.engine.connect() as connection:
-                    if write and guarded() and connection.dialect.name == "sqlite":
-                        connection.exec_driver_sql("BEGIN IMMEDIATE")
-                    with read_timeout(connection, None if write else self.query_timeout):
-                        return operation(connection)
+                    return execute(connection)
 
             return await to_thread.run_sync(run)
         except IntegrityError as exc:
@@ -209,8 +202,7 @@ class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
         return await self._list(model, query)
 
     async def _list(self, model, query, *, after=None, before=None, window=False):
-        validate_query(self, model, query)
-        schema = self.describe(model)
+        schema = validate_query(self, model, query)
         if window:
             validate_window(schema, query, after, before)
 
@@ -237,24 +229,16 @@ class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
                 if window
                 else connection.scalar(select(func.count()).select_from(statement.subquery()))
             )
-            if window:
-                condition = window_condition(
-                    schema,
-                    query,
-                    after if after is not None else before,
-                    before is not None,
-                    model.c.__getitem__,
-                )
-                if condition is not None:
-                    statement = statement.where(condition)
-                ordering = tuple(
-                    window_ordering(schema, query, before is not None, model.c.__getitem__)
-                )
-            else:
-                ordering = tuple(order_expressions(query, schema, model.c.__getitem__))
-            rows = connection.execute(
-                statement.order_by(*ordering).offset(query.offset).limit(query.limit + int(window))
-            ).mappings()
+            statement = paginate(
+                statement,
+                query,
+                schema,
+                model.c.__getitem__,
+                after=after,
+                before=before,
+                window=window,
+            )
+            rows = connection.execute(statement).mappings()
             records = [query.project(row) for row in rows]
             return (
                 finish_window(schema, query, records, after, before)

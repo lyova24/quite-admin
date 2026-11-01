@@ -223,12 +223,14 @@ class ModelSchema:
             value is None for value in key.values()
         ):
             raise ValueError("A complete, non-null primary key is required.")
+        fields = self.by_name
         for name, value in key.items():
             if isinstance(value, int):
-                self.by_name[name]._check_bounds(value)
+                fields[name]._check_bounds(value)
 
     def validate_values(self, values: Mapping[str, Any], *, creating: bool) -> None:
-        unknown = set(values) - self.by_name.keys()
+        fields = self.by_name
+        unknown = set(values) - fields.keys()
         if unknown:
             raise ValueError(f"Unknown fields: {', '.join(sorted(unknown))}")
         if not creating and set(values) & {field.name for field in self.primary_keys}:
@@ -237,7 +239,7 @@ class ModelSchema:
         for name, value in values.items():
             if isinstance(value, int) and not isinstance(value, bool):
                 try:
-                    self.by_name[name]._check_bounds(value)
+                    fields[name]._check_bounds(value)
                 except ValueError as exc:
                     errors[name] = exc.args[0]
         if errors:
@@ -275,7 +277,8 @@ class Filter:
     value: Any = None
 
     def validate(self, schema: ModelSchema) -> None:
-        if self.field not in schema.by_name:
+        fields = schema.by_name
+        if self.field not in fields:
             raise ValueError("Unknown filter field.")
         if self.operator not in FILTER_OPERATORS:
             raise ValueError("Unknown filter operator.")
@@ -283,7 +286,7 @@ class Filter:
             if type(self.value) is not bool:
                 raise ValueError("is_null requires a boolean value.")
             return
-        field = schema.by_name[self.field]
+        field = fields[self.field]
         if field.kind in {"json", "binary", "unsupported"}:
             raise ValueError("This field supports only is_null filters.")
         if self.operator in TEXT_FILTER_OPERATORS:
@@ -331,6 +334,7 @@ class Query:
     def validate(
         self, schema: ModelSchema, *, related_schemas: Mapping[str, ModelSchema] | None = None
     ) -> None:
+        fields = schema.by_name
         if type(self.offset) is not int or self.offset < 0:
             raise ValueError("offset must be a nonnegative integer.")
         if type(self.limit) is not int or not 1 <= self.limit <= 10000:
@@ -339,12 +343,9 @@ class Query:
             raise ValueError("search must contain at most 4096 characters.")
         if type(self.descending) is not bool:
             raise ValueError("descending must be a boolean.")
-        if self.order_by is not None and self.order_by not in schema.by_name:
+        if self.order_by is not None and self.order_by not in fields:
             raise ValueError("Unknown sort field.")
-        if any(
-            name not in schema.by_name or schema.by_name[name].kind != "string"
-            for name in self.search_fields
-        ):
+        if any(name not in fields or fields[name].kind != "string" for name in self.search_fields):
             raise ValueError("search_fields must contain known string fields.")
         if self.search_key is not None:
             if not self.search:
@@ -372,7 +373,7 @@ class Query:
         if self.columns is not None and (
             not self.columns
             or len(set(self.columns)) != len(self.columns)
-            or set(self.columns) - schema.by_name.keys()
+            or set(self.columns) - fields.keys()
         ):
             raise ValueError("columns must contain unique known scalar field names.")
 

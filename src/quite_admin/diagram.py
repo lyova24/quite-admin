@@ -14,7 +14,9 @@ async def schema_graph(resources, *, all_resources=None):
     nodes, edges, seen, junctions = {}, [], set(), {}
     adapters = {id(resource.adapter): str(index) for index, resource in enumerate(resources)}
     visible = {}
+    targets = {}
     for resource in resources:
+        targets.setdefault((id(resource.adapter), id(resource.model)), resource)
         fields = resource.options.visible_fields(resource.schema)
         visible[resource.slug] = {field.name for field in fields}
         nodes[resource.slug] = graph_node(
@@ -30,14 +32,7 @@ async def schema_graph(resources, *, all_resources=None):
         if inspect.isawaitable(relations):
             relations = await relations
         for relation in relations:
-            target = next(
-                (
-                    item
-                    for item in resources
-                    if item.adapter is resource.adapter and item.model is relation.target
-                ),
-                None,
-            )
+            target = targets.get((id(resource.adapter), id(relation.target)))
             if target is None:
                 continue
             local = (

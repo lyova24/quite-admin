@@ -2,6 +2,7 @@
 
 import operator
 
+from quite_admin.pagination import window_condition, window_ordering
 from quite_admin.schema import TEXT_FILTER_OPERATORS
 
 
@@ -75,6 +76,20 @@ def ordering(query, schema, column):
             yield column(field.name).asc()
 
 
+def paginate(statement, query, schema, column, *, after=None, before=None, window=False):
+    """Apply the same stable ordering to SQLAlchemy, GINO and Peewee reads."""
+    if window:
+        condition = window_condition(
+            schema, query, after if after is not None else before, before is not None, column
+        )
+        if condition is not None:
+            statement = statement.where(condition)
+        expressions = window_ordering(schema, query, before is not None, column)
+    else:
+        expressions = ordering(query, schema, column)
+    return statement.order_by(*expressions).offset(query.offset).limit(query.limit + int(window))
+
+
 def tortoise_filters(statement, query):
     for item in query.filters:
         if item.operator == "not_icontains":
@@ -102,6 +117,7 @@ def tortoise_filters(statement, query):
 
 
 def validate_query(adapter, model, query):
+    schema = adapter.describe(model)
     schemas = {}
     if query.related:
         names = {item.relation for item in query.related if hasattr(item, "relation")}
@@ -110,4 +126,5 @@ def validate_query(adapter, model, query):
             for relation in adapter.relations(model)
             if relation.name in names
         }
-    query.validate(adapter.describe(model), related_schemas=schemas)
+    query.validate(schema, related_schemas=schemas)
+    return schema

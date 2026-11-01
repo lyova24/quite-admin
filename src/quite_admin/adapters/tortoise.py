@@ -77,15 +77,17 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations, WindowReads):
             )
         return ModelSchema(name=model._meta.db_table, fields=tuple(fields))
 
-    def _record(self, model: type, item: Any) -> dict[str, Any]:
-        return {field.name: getattr(item, field.name) for field in self.describe(model).fields}
+    def _record(self, model: type, item: Any, *, schema=None) -> dict[str, Any]:
+        return {
+            field.name: getattr(item, field.name)
+            for field in (schema or self.describe(model)).fields
+        }
 
     async def list(self, model: type, query: Query) -> RecordPage:
         return await self._list(model, query)
 
     async def _list(self, model, query, *, after=None, before=None, window=False):
-        validate_query(self, model, query)
-        schema = self.describe(model)
+        schema = validate_query(self, model, query)
         if window:
             validate_window(schema, query, after, before)
         statement = tortoise_filters(model.all(), query)
@@ -120,7 +122,7 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations, WindowReads):
         if query.columns:
             records = await statement.values(*query.columns)
         else:
-            records = [self._record(model, item) for item in await statement]
+            records = [self._record(model, item, schema=schema) for item in await statement]
         return (
             finish_window(schema, query, records, after, before)
             if window
