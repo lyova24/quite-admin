@@ -7,6 +7,18 @@
   const cancel=dialog.querySelector('[data-inline-cancel]'),title=dialog.querySelector('h2');
   const messages=JSON.parse(dialog.dataset.messages);
   dialog.setAttribute('aria-labelledby',title.id);
+  async function readField(endpoint, signal) {
+    const response=await fetch(endpoint,{credentials:'same-origin',headers:{Accept:'application/json'},signal});
+    if(!response.ok)throw new Error(messages.error);
+    return response.json();
+  }
+  async function saveField(endpoint, model, value) {
+    const body=new URLSearchParams({__csrf:model.csrf,__revision:model.revision,[model.name]:value});
+    const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'},body});
+    const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
+    if(!response.ok)throw new Error(result?.errors?Object.values(result.errors).join(' '):messages.error);
+    return result;
+  }
   function updateRow(row,result){
       for(const td of row.querySelectorAll('[data-list-field]')){
         const cell=result.cells[td.dataset.listField]; if(!cell)continue;
@@ -35,18 +47,13 @@
     async function setValue(value){
       if(saving)return;saving=true;toggle.disabled=true;if(nil)nil.disabled=true;status.hidden=true;
       try{
-        const stateResponse=await fetch(group.dataset.toggleEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'}});
-        if(!stateResponse.ok)throw new Error(messages.error);
-        const state=await stateResponse.json();
+        const state=await readField(group.dataset.toggleEndpoint);
         // The displayed state must still match before choosing a new value.
         // The signed revision then protects the subsequent write atomically.
         const displayed=group.dataset.value==='null'?'':group.dataset.value;
         const actual=state.raw_boolean===null?'':state.raw_boolean?'true':'false';
         if(actual!==displayed)throw new Error(messages.conflict);
-        const data=new URLSearchParams({__csrf:state.csrf,__revision:state.revision,[state.name]:value});
-        const response=await fetch(group.dataset.toggleEndpoint,{method:'POST',credentials:'same-origin',body:data,headers:{Accept:'application/json'}});
-        const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
-        if(!response.ok)throw new Error(result?.errors?Object.values(result.errors).join(' '):messages.error);
+        const result=await saveField(group.dataset.toggleEndpoint,state,value);
         updateRow(group.closest('tr'),result);
       }catch(e){status.textContent=e.message||messages.error;status.hidden=false;}
       finally{saving=false;toggle.disabled=false;if(nil)nil.disabled=false;}
@@ -62,28 +69,9 @@
     cleanup?.();cleanup=null;source=button;model=null;host.replaceChildren();error.textContent='';title.textContent=messages.loading;
     save.disabled=true;dialog.showModal();controller=new AbortController();
     try{
-      const response=await fetch(button.dataset.inlineEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
-      if(!response.ok)throw new Error(messages.error);
-      model=await response.json();title.textContent=model.label;
-      if(model.kind==='boolean'||model.choices.length){
-        control=document.createElement('select');
-        const choices=model.kind==='boolean'?[['true','True'],['false','False']]:model.choices.map(c=>[c,c]);
-        if(model.nullable)choices.unshift(['','—']);
-        for(const [value,label] of choices){const option=document.createElement('option');option.value=value;option.textContent=label;control.append(option);}
-        if(model.kind==='boolean')control.setAttribute('data-boolean-toggle','');
-      }else if(model.kind==='json'||model.multiline){
-        control=document.createElement('textarea');control.rows=6;
-        if(model.kind==='json'){control.setAttribute('data-json-editor','');control.className='code-input';control.spellcheck=false;}
-      }else{
-        control=document.createElement('input');
-        control.type=['integer','number'].includes(model.kind)?'number':model.kind==='date'?'date':'text';
-        if(['integer','number'].includes(model.kind))control.step=model.kind==='integer'?'1':'any';
-        if(model.kind==='date')control.setAttribute('data-calendar-input','');
-        if(['datetime','time'].includes(model.kind))control.dataset.temporal=model.kind;
-      }
-      control.id='inline-value';control.name=model.name;control.value=model.value;
+      model=await readField(button.dataset.inlineEndpoint,controller.signal);title.textContent=model.label;
+      control=window.QuiteAdmin.createFieldControl(model,{id:'inline-value',value:model.value});
       control.setAttribute('aria-labelledby',title.id);control.setAttribute('aria-describedby','inline-error');
-      if(model.max_length)control.maxLength=model.max_length;
       error.id='inline-error';host.append(control);
       cleanup=window.quiteAdminEnhanceFields?.(host);
       // Switch and calendar enhancement can hide the canonical control.
@@ -95,13 +83,10 @@
     e.preventDefault();if(!model||busy)return;
     busy=true;save.disabled=true;cancel.disabled=true;error.textContent='';
     try{
-      const data=new URLSearchParams();data.set('__csrf',model.csrf);data.set('__revision',model.revision);data.set(model.name,control.value);
-      const response=await fetch(source.dataset.inlineEndpoint,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'},body:data});
-      const result=response.headers.get('content-type')?.includes('application/json')?await response.json():null;
-      if(!response.ok){error.textContent=result?.errors?Object.values(result.errors).join(' '):messages.error;return;}
+      const result=await saveField(source.dataset.inlineEndpoint,model,control.value);
       updateRow(source.closest("tr"), result);
       busy=false;close();
-    }catch(_){error.textContent=messages.error;}
+    }catch(e){error.textContent=e.message||messages.error;}
     finally{busy=false;save.disabled=false;cancel.disabled=false;}
   });
 })();

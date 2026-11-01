@@ -1,0 +1,7 @@
+{% macro field_options(field, value) -%}
+{% if field.kind == 'boolean' %}{% for key, label in [('true', 'True'), ('false', 'False')] %}<option value="{{ key }}"{% if value == key %} selected{% endif %}>{{ t(label) }}</option>{% endfor %}{% else %}{% for choice in field.choices %}<option value="{{ choice }}"{% if value == choice %} selected{% endif %}>{{ choice }}</option>{% endfor %}{% endif %}
+{%- endmacro %}
+
+{% macro field_attributes(descriptions='', invalid=false) -%}
+{% if descriptions|trim %} aria-describedby="{{ descriptions|trim }}"{% endif %}{% if invalid %} aria-invalid="true"{% endif %}
+{%- endmacro %}

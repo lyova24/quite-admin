@@ -127,3 +127,26 @@ Custom pages currently support GET only.
 Reflection cannot recover logical types lost in the SQL schema: a SQLite UUID may be
 a string, and an enum may be an ordinary VARCHAR. Use an ORM adapter to preserve model types.
 Auto-discovery requires imported model classes; it does not import the entire application.
+
+## Frontend components
+
+The interface uses Jinja templates, plain JavaScript and CSS without a frontend build.
+Shared markup lives in `templates/quite_admin/_ui.html` (navigation, branding, CSRF
+inputs, empty states and pagination), `_controls.html` (options and accessibility
+attributes) and `_fields.html` (record fields). Import these macros with context so
+translations, mount-aware URLs, field restrictions and custom field templates keep
+working. These partials are internal; the existing template entry points and template
+API version remain unchanged.
+
+`forms.js` owns field enhancement and the control factory reused by inline edits and
+the browser demo. Repeated enhancement of a live scope keeps one switch/JSON editor
+per native control. Keep the cleanup callback when removing a scope: date pickers
+release document/window listeners through it. `datetime.js` supplies the common
+calendar, precision validation and popover lifecycle for forms and filter drafts.
+Do not add dynamic script imports: built-in scripts keep the server's existing CSP
+hashes and integrity attributes.
+
+After frontend changes, run `npm run demo:test`, `npm run browser:test` and the Python
+integration suite. Browser coverage includes repeated enhancement, exact submitted
+JSON values, listener cleanup, hidden draft validation, keyboard operation and
+JavaScript-disabled fallbacks.

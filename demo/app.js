@@ -55,18 +55,10 @@ const notice = () =>
   `<div class="demo-notice"><span>${e(t("Browser demo · changes stay in this browser"))}</span><select aria-label="Language" id="demo-language"><option value="en" ${language === "en" ? "selected" : ""}>English</option><option value="ru" ${language === "ru" ? "selected" : ""}>Русский</option></select><button class="link-button" id="demo-reset">${e(t("Reset demo"))}</button></div>`;
 const button = (path, text, cls = "secondary") =>
   `<a class="button ${cls}" href="${e(path)}">${e(t(text))}</a>`;
-const input = (field, value) => {
-  const attrs = `id="field-${e(field.name)}" name="${e(field.name)}"`;
-  if (field.kind === "json")
-    return `<textarea class="code-input" ${attrs} rows="4">${e(value)}</textarea>`;
-  if (field.kind === "boolean" || field.choices.length) {
-    const choices =
-      field.kind === "boolean" ? ["true", "false"] : field.choices;
-    return `<select ${attrs}>${field.nullable ? '<option value="">—</option>' : ""}${choices.map((choice) => `<option value="${e(choice)}" ${choice === value ? "selected" : ""}>${e(field.kind === "boolean" ? t(choice === "true" ? "True" : "False") : choice)}</option>`).join("")}</select>`;
-  }
-  const temporal = field.kind === "date" ? "data-calendar-input" : ["datetime", "time"].includes(field.kind) ? `data-temporal="${field.kind}"` : "";
-  return `<input ${attrs} ${temporal} type="${["integer", "number"].includes(field.kind) ? "number" : field.kind === "date" ? "date" : "text"}" step="${field.kind === "integer" ? "1" : "any"}" value="${e(value)}" ${field.maxLength ? `maxlength="${field.maxLength}"` : ""}>`;
-};
+const input = (field, value) => window.QuiteAdmin.createFieldControl(
+  {...field, max_length: field.maxLength},
+  {id: 'field-' + field.name, value, t, rows: 4, enhance: false},
+).outerHTML;
 
 function login() {
   return `${notice()}<main class="shell-login"><div class="content"><section class="login-card"><span class="brand-mark large">q.</span><h1>${e(seed.title)}</h1><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;

@@ -1,3 +1,4 @@
+{% from "quite_admin/_ui.html" import csrf_input, brand_mark, nav_link with context %}
 <!doctype html>
 <html lang="{{ language }}">
 <head>
@@ -13,26 +14,26 @@
   <div class="shell {% if not identity %}shell-login{% endif %}">
   {% if identity %}
     <aside class="sidebar">
-      <a class="brand" href="{{ url('/') }}">{% if logo_url %}<img class="brand-logo" src="{{ logo_url }}" width="32" height="32" alt="">{% else %}<span class="brand-mark">q.</span>{% endif %}{{ title }}</a>
-      <a class="nav-link {% if not resource and not page and not schema_page and not history_page %}active{% endif %}" href="{{ url('/') }}"{% if not resource and not page and not schema_page and not history_page %} aria-current="page"{% endif %}>{{ t('Overview') }}</a>
-      <a class="nav-link {% if schema_page %}active{% endif %}" href="{{ url('/schema') }}"{% if schema_page %} aria-current="page"{% endif %}>{{ t('Database schema') }}</a>
-      {% if history_allowed %}<a class="nav-link {% if history_page %}active{% endif %}" href="{{ url('/history') }}"{% if history_page %} aria-current="page"{% endif %}>{{ t('Activity history') }}</a>{% endif %}
+      <a class="brand" href="{{ url('/') }}">{{ brand_mark() }}{{ title }}</a>
+      {{ nav_link(url('/'), t('Overview'), not resource and not page and not schema_page and not history_page) }}
+      {{ nav_link(url('/schema'), t('Database schema'), schema_page) }}
+      {% if history_allowed %}{{ nav_link(url('/history'), t('Activity history'), history_page) }}{% endif %}
       <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
       <nav aria-label="{{ t('Collections') }}" data-collection-navigation data-storage-key="{{ url('/') }}">
       {% if resource_groups %}
         {% for label, items in resource_groups.items() %}
         <details class="nav-group" data-group="{{ label }}" open{% if resource and resource.slug in items|map(attribute='slug')|list %} data-current-group{% endif %}>
           <summary>{{ label }} <span>{{ items|length }}</span></summary>
-          {% for item in items %}<a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"{% if resource and resource.slug == item.slug %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
+          {% for item in items %}{{ nav_link(url('/models/' ~ item.slug ~ '/'), item.label, resource and resource.slug == item.slug) }}{% endfor %}
         </details>
         {% endfor %}
       {% else %}
-        {% for item in resources %}<a class="nav-link {% if resource and resource.slug == item.slug %}active{% endif %}" href="{{ url('/models/' ~ item.slug ~ '/') }}"{% if resource and resource.slug == item.slug %} aria-current="page"{% endif %}>{{ item.label }}</a>{% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
+        {% for item in resources %}{{ nav_link(url('/models/' ~ item.slug ~ '/'), item.label, resource and resource.slug == item.slug) }}{% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
       {% endif %}
       </nav>
       {% if pages %}
       <p class="nav-label">{{ t('PAGES') }}</p>
-      <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}<a class="nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}"{% if page and page.slug == item.slug %} aria-current="page"{% endif %}>{{ item.title }}</a>{% endfor %}</nav>
+      <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}{{ nav_link(url('/pages/' ~ item.slug), item.title, page and page.slug == item.slug) }}{% endfor %}</nav>
       {% endif %}
       <div class="sidebar-bottom">Quite Admin <span class="muted">v0.5.0</span></div>
     </aside>
@@ -41,7 +42,7 @@
     {% if identity %}
       <header class="topbar"><nav class="breadcrumbs" aria-label="{{ t('Breadcrumbs') }}"><ol>{% for crumb in breadcrumbs %}<li>{% if not loop.first %}<span class="breadcrumb-divider" aria-hidden="true">/</span>{% endif %}{% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span aria-current="page">{{ crumb.label }}</span>{% endif %}</li>{% endfor %}</ol></nav>
         <div class="account"><span class="avatar">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><span>{{ identity.display_name or identity.subject }}</span>
-        <form method="post" action="{{ url('/logout') }}"><input type="hidden" name="__csrf" value="{{ csrf }}"><button class="link-button" type="submit">{{ t('Sign out') }}</button></form></div>
+        <form method="post" action="{{ url('/logout') }}">{{ csrf_input() }}<button class="link-button" type="submit">{{ t('Sign out') }}</button></form></div>
       </header>
     {% endif %}
       <div class="content">{% block content %}{% endblock %}</div>

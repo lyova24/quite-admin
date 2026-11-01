@@ -1,4 +1,5 @@
 {% extends "quite_admin/base.html" %}
+{% from "quite_admin/_ui.html" import empty_state with context %}
 {% block content %}
 <div class="page-heading"><div><h1>{{ title }}</h1>{% if description %}<p class="subtitle">{{ description }}</p>{% endif %}</div><span class="badge">{{ resources|length }} {{ tn('collection', 'collections', resources|length) }}</span></div>
 <div class="section-heading"><h2>{{ t('Collections') }}</h2></div>
@@ -6,7 +7,7 @@
 {% for item in resources %}
   <a class="collection-card" href="{{ url('/models/' ~ item.slug ~ '/') }}"><h2>{{ item.label }}</h2>{% set field_count = item.options.visible_fields(item.schema)|length %}<p class="muted">{{ field_count }} {{ tn('field', 'fields', field_count) }}</p><div class="card-footer">{{ t('Open collection') }} <span>→</span></div></a>
 {% else %}
-  <div class="empty-state"><h2>{{ t('No collections yet') }}</h2></div>
+  {{ empty_state('No collections yet') }}
 {% endfor %}
 </div>
 {% if pages %}<div class="section-heading"><h2>{{ t('Your pages') }}</h2></div><div class="page-grid">{% for item in pages %}<a class="custom-page-card" href="{{ url('/pages/' ~ item.slug) }}">{{ item.title }} <span aria-hidden="true">→</span></a>{% endfor %}</div>{% endif %}

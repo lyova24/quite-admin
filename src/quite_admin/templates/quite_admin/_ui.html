@@ -1,0 +1,18 @@
+{# Shared presentation primitives. Import with context for url(), t() and csrf. #}
+{% macro csrf_input() -%}<input type="hidden" name="__csrf" value="{{ csrf }}">{%- endmacro %}
+
+{% macro brand_mark(large=false) -%}
+{% if logo_url %}<img class="brand-logo{% if large %} large{% endif %}" src="{{ logo_url }}" width="{{ 48 if large else 32 }}" height="{{ 48 if large else 32 }}" alt="">{% else %}<span class="brand-mark{% if large %} large{% endif %}">q.</span>{% endif %}
+{%- endmacro %}
+
+{% macro nav_link(href, label, active=false) -%}
+<a class="nav-link {% if active %}active{% endif %}" href="{{ href }}"{% if active %} aria-current="page"{% endif %}>{{ label }}</a>
+{%- endmacro %}
+
+{% macro empty_state(heading, description='', class_name='empty-state', icon='') -%}
+<div class="{{ class_name }}">{% if icon %}<span class="history-empty-icon" aria-hidden="true">{{ icon }}</span>{% endif %}<h2>{{ t(heading) }}</h2>{% if description %}<p>{{ t(description) }}</p>{% endif %}{% if caller is defined %}{{ caller() }}{% endif %}</div>
+{%- endmacro %}
+
+{% macro page_links(previous_url, next_url) -%}
+{% if previous_url %}<a class="button secondary small" href="{{ previous_url }}">← {{ t('Previous') }}</a>{% endif %}{% if next_url %}<a class="button secondary small" href="{{ next_url }}">{{ t('Next') }} →</a>{% endif %}
+{%- endmacro %}

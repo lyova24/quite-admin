@@ -1,12 +1,13 @@
 {% extends "quite_admin/base.html" %}
 {% block title %}{{ t('Sign in') }} · {{ title }}{% endblock %}
+{% from "quite_admin/_ui.html" import csrf_input, brand_mark with context %}
 {% block content %}
 <section class="login-card">
-  {% if logo_url %}<img class="brand-logo large" src="{{ logo_url }}" width="48" height="48" alt="">{% else %}<span class="brand-mark large">q.</span>{% endif %}
+  {{ brand_mark(true) }}
   <h1>{{ title }}</h1>{% if description %}<p class="subtitle">{{ description }}</p>{% endif %}
   {% if error %}<div class="alert" role="alert">{{ t(error) }}</div>{% endif %}
   <form method="post" class="stack">
-    <input type="hidden" name="__csrf" value="{{ csrf }}">
+    {{ csrf_input() }}
     <div><label for="username">{{ t('Username') }}</label><input id="username" name="username" autocomplete="username" maxlength="256" required autofocus></div>
     <div><label for="password">{{ t('Password') }}</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></div>
     <button class="button primary full" type="submit">{{ t('Sign in') }}</button>

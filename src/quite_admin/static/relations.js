@@ -43,8 +43,9 @@
     let page = 1, items = [], controller, sequence = 0, timer, loaded = false;
 
     function sync() {
+      const available = new Set(Array.from(select.options, option => option.value));
       for (const [key, label] of chosen) {
-        if (!Array.from(select.options).some((option) => option.value === key)) {
+        if (!available.has(key)) {
           select.add(new Option(label, key));
         }
       }
