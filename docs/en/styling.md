@@ -138,3 +138,8 @@ The default density in 0.3.0 is compact, close to the previous UI at 80% browser
 Typography, spacing, sidebar and control sizes shrink together without CSS zoom; browser
 zoom remains available for accessibility. Touch controls retain a larger minimum target.
 Override the documented CSS tokens to tune density for your application.
+
+Date and datetime forms provide an in-page calendar using the admin palette, including
+month/year navigation. JSON tokens, controls, focus and selected states derive from Theme.
+Native time controls use the surface-derived light/dark color scheme and accent color.
+The native date input remains available without JavaScript.

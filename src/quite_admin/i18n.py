@@ -21,6 +21,10 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Choose date": "Выбрать дату",
+    "Previous month": "Предыдущий месяц",
+    "Next month": "Следующий месяц",
+    "Year": "Год",
     "Other collections": "Другие коллекции",
     "Format JSON": "Форматировать JSON",
     "Valid JSON": "Корректный JSON",

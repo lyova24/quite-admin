@@ -435,10 +435,10 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .json-editor textarea { position: relative; background: transparent; color: transparent; caret-color: var(--text); }
 .json-editor textarea::selection { background: var(--accent-border); }
 .json-editor.json-plain textarea { color: var(--text); background: var(--paper); }
-.json-key { color: #7c3aed; color: color-mix(in srgb, var(--text) 50%, #8b5cf6); }
-.json-string { color: #166534; color: color-mix(in srgb, var(--text) 50%, #22c55e); }
-.json-number { color: #1d4ed8; color: color-mix(in srgb, var(--text) 50%, #3b82f6); }
-.json-literal { color: #9a3412; color: color-mix(in srgb, var(--text) 50%, #f97316); }
+.json-key { color: var(--json-key, var(--text)); }
+.json-string { color: var(--json-string, var(--text)); }
+.json-number { color: var(--json-number, var(--text)); }
+.json-literal { color: var(--json-literal, var(--text)); }
 .json-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: .5rem; }
 .json-toolbar .field-help { margin: 0; }
 .temporal-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .5fr); gap: .75rem; align-items: end; }
@@ -454,3 +454,17 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .nav-group .nav-link { margin-left: var(--space-3); }
 
 @media (pointer: coarse) { .button, input, select, .nav-link, summary { min-height: 40px; } }
+
+.calendar-control { display: flex; position: relative; min-width: 0; gap: var(--space-1); }
+.calendar-control > input { min-width: 0; }
+.calendar-trigger { flex: 0 0 var(--control-height); padding: 0; }
+.temporal-controls > .calendar-control { grid-column: 1 / -1; }
+[data-calendar-input]::-webkit-calendar-picker-indicator { display: none; }
+.calendar-panel { position: absolute; inset-block-start: calc(100% + 4px); inset-inline-end: 0; z-index: 10; width: min(290px, 85vw); padding: var(--space-3); border: var(--border); border-radius: var(--radius); background: var(--paper); color: var(--text); box-shadow: 0 5px 20px var(--line); }
+.calendar-toolbar { display: flex; align-items: center; gap: var(--space-1); margin-bottom: var(--space-2); }
+.calendar-toolbar select { min-width: 0; }
+.calendar-toolbar input { width: 76px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 2px; margin-bottom: var(--space-2); }
+.calendar-grid span { text-align: center; color: var(--muted); font-size: var(--text-xs); }
+.calendar-grid button { padding: 3px; border-color: transparent; }
+.calendar-grid button[aria-pressed=true] { background: var(--accent); color: var(--on-accent); }

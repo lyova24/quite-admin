@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Theme-derived JSON colors, native control color scheme and in-page date calendars.
+
 - Compact default interface density, approximately the previous UI at 80% zoom.
 
 ### Added

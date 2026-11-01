@@ -61,5 +61,17 @@ class Theme:
             "on-danger": self.on_danger,
             "subtle": _mix(self.text, self.surface, 0.02),
             "hover": _mix(self.text, self.surface, 0.04),
+            "json-key": self.primary,
+            "json-string": _mix(self.primary, self.text, 0.65),
+            "json-number": self.text,
+            "json-literal": self.muted,
         }
-        return ":root{" + ";".join(f"--{name}:{value}" for name, value in colors.items()) + "}\n"
+        channels = [int(self.surface[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        light = sum(c * w for c, w in zip(channels, (0.2126, 0.7152, 0.0722), strict=True))
+        scheme = "dark" if light < 0.5 else "light"
+        return (
+            ":root{"
+            + ";".join(f"--{name}:{value}" for name, value in colors.items())
+            + f";color-scheme:{scheme};accent-color:var(--accent)"
+            + "}\n"
+        )

@@ -59,6 +59,75 @@
   function describe(input, id) {
     input.setAttribute('aria-describedby', [input.getAttribute('aria-describedby'), id].filter(Boolean).join(' '));
   }
+  function attachCalendar(input, datetime) {
+    const wrapper = doc.createElement('div'); wrapper.className = 'calendar-control';
+    input.before(wrapper); wrapper.append(input); input.setAttribute('data-calendar-input', '');
+    const trigger = doc.createElement('button'); trigger.type = 'button';
+    trigger.className = 'button secondary calendar-trigger';
+    trigger.textContent = '▦'; trigger.setAttribute('aria-label', t('Choose date'));
+    trigger.setAttribute('aria-expanded', 'false');
+    const panel = doc.createElement('div'); panel.className = 'calendar-panel'; panel.hidden = true;
+    panel.id = input.id + '-calendar'; panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', t('Choose date')); trigger.setAttribute('aria-controls', panel.id);
+    wrapper.append(trigger, panel);
+    let year, month;
+    function close(focus) { panel.hidden = true; trigger.setAttribute('aria-expanded', 'false'); if (focus) trigger.focus(); }
+    function render() {
+      panel.replaceChildren();
+      const toolbar = doc.createElement('div'); toolbar.className = 'calendar-toolbar';
+      function button(label, text, action) {
+        const b = doc.createElement('button'); b.type = 'button'; b.className = 'button secondary small';
+        b.textContent = text; b.setAttribute('aria-label', t(label)); b.addEventListener('click', action); return b;
+      }
+      const prev = button('Previous month', '‹', () => move(-1));
+      const next = button('Next month', '›', () => move(1));
+      prev.disabled = year === 1 && month === 0; next.disabled = year === 9999 && month === 11;
+      const months = doc.createElement('select'); months.setAttribute('aria-label', t('Choose date'));
+      for (let m = 0; m < 12; m++) {
+        const option = doc.createElement('option'); option.value = m;
+        option.textContent = new Intl.DateTimeFormat(doc.documentElement.lang, {month:'long', timeZone:'UTC'}).format(new Date(Date.UTC(2000,m,1)));
+        months.append(option);
+      }
+      months.value = month; months.addEventListener('change', () => { month = Number(months.value); render(); });
+      const years = doc.createElement('input'); years.type = 'number'; years.min = 1; years.max = 9999;
+      years.value = year; years.setAttribute('aria-label', t('Year'));
+      years.addEventListener('change', () => { if (years.checkValidity() && years.value) { year = Number(years.value); render(); } });
+      toolbar.append(prev, months, years, next); panel.append(toolbar);
+      const grid = doc.createElement('div'); grid.className = 'calendar-grid';
+      // Monday-first calendar, using UTC only for calendar arithmetic, never for record conversion.
+      for (let d = 0; d < 7; d++) {
+        const day = doc.createElement('span');
+        day.textContent = new Intl.DateTimeFormat(doc.documentElement.lang,{weekday:'short',timeZone:'UTC'}).format(new Date(Date.UTC(2024,0,d+1)));
+        grid.append(day);
+      }
+      const first = new Date(0); first.setUTCFullYear(year,month,1); first.setUTCHours(0,0,0,0);
+      const count = new Date(first); count.setUTCMonth(month+1,0);
+      for(let n=0; n<(first.getUTCDay()+6)%7; n++) grid.append(doc.createElement('span'));
+      for(let day=1; day<=count.getUTCDate(); day++) {
+        const iso = String(year).padStart(4,'0') + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        const b = button('Choose date', String(day), () => {
+          input.value = datetime ? iso + (input.value.includes('T') ? input.value.slice(input.value.indexOf('T')) : 'T00:00:00') : iso;
+          input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true})); close(true);
+        });
+        b.setAttribute('aria-label',iso); b.setAttribute('aria-pressed',String(input.value.slice(0,10) === iso));
+        grid.append(b);
+      }
+      panel.append(grid, button('Close', t('Close'), () => close(true)));
+    }
+    function move(delta) {
+      month += delta; if(month<0){month=11;year--;} if(month>11){month=0;year++;} render();
+    }
+    trigger.addEventListener('click', () => {
+      if(!panel.hidden){close(false);return;}
+      const match = input.value.match(/^(\d{4})-(\d{2})-/); const now = new Date();
+      year = match ? Number(match[1]) : now.getFullYear(); month = match ? Number(match[2])-1 : now.getMonth();
+      render(); panel.hidden=false; trigger.setAttribute('aria-expanded','true');
+      (panel.querySelector('[aria-pressed="true"]') || panel.querySelector('.calendar-grid button')).focus();
+    });
+    wrapper.addEventListener('keydown', e => {if(e.key==='Escape'){e.preventDefault();close(true);}});
+    doc.addEventListener('click', e => {if(!wrapper.contains(e.target))close(false);});
+  }
+  for (const input of doc.querySelectorAll('[data-calendar-input]')) attachCalendar(input, false);
   for (const input of doc.querySelectorAll('[data-json-editor]')) {
     const wrap = doc.createElement('div');
     wrap.className = 'json-editor';
@@ -139,5 +208,6 @@
     // may normalize :00 or fractional seconds in datetime-local display values.
     const sync = () => { input.value = picker.value ? picker.value + (fraction.value ? '.' + fraction.value : '') + offset.value : ''; };
     picker.addEventListener('input', sync); fraction.addEventListener('input', sync); offset.addEventListener('input', sync);
+    if (kind === 'datetime') attachCalendar(picker, true);
   }
 })(typeof window !== 'undefined' ? window : globalThis);
