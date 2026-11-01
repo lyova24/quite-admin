@@ -28,18 +28,18 @@ from .test_storage import event
 
 
 @pytest.fixture(params=["fastapi", "litestar"])
-async def history_client(request, admin):
+async def history_client(request, web_admin):
     if request.param == "fastapi":
         host = FastAPI()
-        admin.mount_fastapi(host)
+        web_admin.mount_fastapi(host)
     else:
-        host = Litestar(route_handlers=[admin.litestar_route()])
+        host = Litestar(route_handlers=[web_admin.litestar_route()])
     async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
         yield client
 
 
 async def test_history_captures_crud_failures_export_actions_and_logout(
-    history_client, admin, backend
+    history_client, web_admin, web_backend
 ):
     client = history_client
     assert (await client.get("/admin/history")).status_code == 303
@@ -74,11 +74,11 @@ async def test_history_captures_crud_failures_export_actions_and_logout(
     assert forbidden.status_code == 403
     exported = await client.get("/admin/models/items/?export=csv&columns=name")
     assert exported.status_code == 200
-    adapter, model = backend
-    admin.register(
+    adapter, model = web_backend
+    web_admin.register(
         model,
         options=replace(
-            admin.sources[0].options[model],
+            web_admin.sources[0].options[model],
             actions=(
                 RecordAction(
                     "touch",
@@ -102,7 +102,7 @@ async def test_history_captures_crud_failures_export_actions_and_logout(
     assert "Original name" in history.text and "updated" in history.text
     assert 'class="activity-journal"' in history.text
     assert 'class="table-scroll"' not in history.text
-    records = (await admin.storage.activities(subject="admin", collection="items")).events
+    records = (await web_admin.storage.activities(subject="admin", collection="items")).events
     successful = {item.action for item in records if item.outcome == "success"}
     assert {"create", "edit", "delete", "list", "view", "export", "action:touch"} <= successful
     assert {(item.action, item.status_code) for item in records if item.outcome == "failure"} >= {
@@ -129,46 +129,48 @@ async def test_history_captures_crud_failures_export_actions_and_logout(
     assert all(not item.after_present for item in deleted_event.details.changes)
     assert all(item.details is None for item in records if item.outcome == "failure")
     await client.post("/admin/logout", data={"__csrf": csrf(history)})
-    authentication = (await admin.storage.activities(collection="")).events
+    authentication = (await web_admin.storage.activities(collection="")).events
     assert {item.action for item in authentication} == {"login", "logout"}
     assert (await client.get("/admin/history/users")).status_code == 303
 
 
 async def test_history_permissions_scope_events_and_user_autocomplete(
-    history_client, admin, backend
+    history_client, web_admin, web_backend
 ):
     client = history_client
     await login(client)
-    await admin.storage.append_activity(event("visible-user"))
-    await admin.storage.append_activity(event("hidden-user", "other-table"))
+    await web_admin.storage.append_activity(event("visible-user"))
+    await web_admin.storage.append_activity(event("hidden-user", "other-table"))
     users = await client.get("/admin/history/users")
     assert users.status_code == 200
     assert "visible-user" in users.text and "hidden-user" not in users.text
-    adapter, model = backend
-    admin.register(model, options=ModelOptions(permission=lambda request, identity, action: False))
+    adapter, model = web_backend
+    web_admin.register(
+        model, options=ModelOptions(permission=lambda request, identity, action: False)
+    )
     history = await client.get("/admin/history")
     assert history.status_code == 200
     assert "visible-user" not in history.text and "hidden-user" not in history.text
     assert (await client.get("/admin/history?collection=items")).status_code == 400
     assert "visible-user" not in (await client.get("/admin/history/users?q=visible")).text
-    admin.history_permission = lambda request, identity, action: False
+    web_admin.history_permission = lambda request, identity, action: False
     assert (await client.get("/admin/history")).status_code == 403
     assert (await client.get("/admin/history/users")).status_code == 403
     assert 'href="/admin/history"' not in (await client.get("/admin/")).text
-    admin.history_permission = lambda request, identity, action: True
+    web_admin.history_permission = lambda request, identity, action: True
     assert (await client.get("/admin/history")).status_code == 200
 
 
-async def test_disabled_history_skips_storage_and_capture(history_client, admin, monkeypatch):
-    assert admin.history_enabled is True
-    admin.history_enabled = False
+async def test_disabled_history_skips_storage_and_capture(history_client, web_admin, monkeypatch):
+    assert web_admin.history_enabled is True
+    web_admin.history_enabled = False
 
     async def unexpected(*args, **kwargs):
         pytest.fail("Disabled history must not access storage or capture field values")
 
-    monkeypatch.setattr(admin, "_storage_ready", unexpected)
-    monkeypatch.setattr(admin, "_capture_activity_details", unexpected)
-    monkeypatch.setattr(admin.storage, "append_activity", unexpected)
+    monkeypatch.setattr(web_admin, "_storage_ready", unexpected)
+    monkeypatch.setattr(web_admin, "_capture_activity_details", unexpected)
+    monkeypatch.setattr(web_admin.storage, "append_activity", unexpected)
     for path in ("/admin/history", "/admin/history/users"):
         assert (await history_client.get(path)).status_code == 404
     await login(history_client)
@@ -179,9 +181,9 @@ async def test_disabled_history_skips_storage_and_capture(history_client, admin,
         data={"__csrf": csrf(form), "name": "History disabled", "active": "true"},
     )
     assert created.status_code == 303
-    assert not (await admin.storage.activities()).events
-    await admin.storage.save_document(Document("widget", "dashboard", "admin", {}))
-    assert await admin.storage.get_document("widget") is not None
+    assert not (await web_admin.storage.activities()).events
+    await web_admin.storage.save_document(Document("widget", "dashboard", "admin", {}))
+    assert await web_admin.storage.get_document("widget") is not None
     for path in ("/admin/history", "/admin/history/users"):
         assert (await history_client.get(path)).status_code == 404
 
@@ -195,9 +197,11 @@ def test_history_flag_requires_a_boolean():
     assert Admin(auth=auth, secret_key="s" * 32, history_enabled=False).history_enabled is False
 
 
-async def test_history_switches_views_without_losing_filters_or_safe_changes(history_client, admin):
+async def test_history_switches_views_without_losing_filters_or_safe_changes(
+    history_client, web_admin
+):
     await login(history_client)
-    await admin.storage.append_activity(
+    await web_admin.storage.append_activity(
         event(
             "admin",
             details=ActivityDetails(
@@ -237,10 +241,12 @@ async def test_history_switches_views_without_losing_filters_or_safe_changes(his
 
 @pytest.mark.parametrize("view", ["journal", "table"])
 async def test_history_shared_filters_exclude_dates_and_clear_preserves_period(
-    history_client, admin, view
+    history_client, web_admin, view
 ):
     await login(history_client)
-    await admin.storage.append_activity(event("alice", occurred_at="2024-02-29T12:00:00.000000Z"))
+    await web_admin.storage.append_activity(
+        event("alice", occurred_at="2024-02-29T12:00:00.000000Z")
+    )
     page = await history_client.get(
         "/admin/history?subject=alice&collection=items&outcome=success"
         f"&view={view}&date_mode=day&date=2024-02-29"
@@ -274,7 +280,7 @@ async def test_history_shared_filters_exclude_dates_and_clear_preserves_period(
 
 @pytest.mark.parametrize("view", ["journal", "table"])
 async def test_history_date_filters_are_inclusive_validated_and_preserved(
-    history_client, admin, view
+    history_client, web_admin, view
 ):
     await login(history_client)
     events = [
@@ -287,7 +293,7 @@ async def test_history_date_filters_are_inclusive_validated_and_preserved(
         )
     ]
     for item in events:
-        await admin.storage.append_activity(item)
+        await web_admin.storage.append_activity(item)
     path = f"/admin/history?view={view}&date_from=2024-02-29&date_to=2024-02-29"
     page = await history_client.get(path)
     assert page.status_code == 200
@@ -342,17 +348,19 @@ async def test_history_date_filters_are_inclusive_validated_and_preserved(
 
 @pytest.mark.parametrize("view", ["journal", "table"])
 @pytest.mark.parametrize("period", ["range", "day"])
-async def test_history_pagination_tampering_and_deleted_users(history_client, admin, view, period):
+async def test_history_pagination_tampering_and_deleted_users(
+    history_client, web_admin, view, period
+):
     await login(history_client)
     for index in range(107):
-        await admin.storage.append_activity(
+        await web_admin.storage.append_activity(
             event(
                 "departed-user",
                 id=f"{index:032x}",
                 occurred_at="2026-11-01T12:00:00.000000Z",
             )
         )
-    await admin.storage.append_activity(
+    await web_admin.storage.append_activity(
         event("<script>alert(1)</script>", display_name="<b>name</b>")
     )
     period_query = (
@@ -419,7 +427,7 @@ async def test_storage_is_lazy_and_history_survives_new_admin(auth, tmp_path):
         assert "former-admin" in response.text and "Выйти" in response.text
 
 
-async def test_store_failure_before_write_and_after_commit(auth, backend, tmp_path, caplog):
+async def test_store_failure_before_write_and_after_commit(auth, web_backend, tmp_path, caplog):
     class FailingStore(SQLiteStore):
         fail_initialize = True
         fail_append = False
@@ -435,7 +443,7 @@ async def test_store_failure_before_write_and_after_commit(auth, backend, tmp_pa
             await super().append_activity(event)
 
     store = FailingStore(tmp_path / "state.sqlite3")
-    adapter, model = backend
+    adapter, model = web_backend
     instance = Admin(
         auth=auth, secret_key="s" * 32, storage=store, adapters=[adapter], secure_cookies=False
     )
@@ -472,9 +480,9 @@ async def test_store_failure_before_write_and_after_commit(auth, backend, tmp_pa
 
 
 async def test_history_rechecks_field_visibility_and_captures_inline_edit(
-    history_client, admin, backend
+    history_client, web_admin, web_backend
 ):
-    adapter, model = backend
+    adapter, model = web_backend
     record = await adapter.create(model, {"name": "Prior visible name", "active": True})
     path = "/admin/models/items/" + adapter.describe(model).record_key(record)
     await login(history_client)
@@ -488,26 +496,26 @@ async def test_history_rechecks_field_visibility_and_captures_inline_edit(
         },
     )
     assert saved.status_code == 200
-    item = (await admin.storage.activities(action="inline_edit")).events[0]
+    item = (await web_admin.storage.activities(action="inline_edit")).events[0]
     assert len(item.details.changes) == 1
     change = item.details.changes[0]
     assert (change.name, change.before, change.after) == ("active", "true", "false")
-    admin.register(model, options=ModelOptions(exclude=("active", "id")))
+    web_admin.register(model, options=ModelOptions(exclude=("active", "id")))
     page = await history_client.get("/admin/history")
     assert "activity-diff-row" not in page.text
     assert "activity-record" not in page.text
     assert "No visible field changes." in page.text
 
 
-async def test_custom_action_history_uses_database_result(history_client, admin, backend):
-    adapter, model = backend
+async def test_custom_action_history_uses_database_result(history_client, web_admin, web_backend):
+    adapter, model = web_backend
     record = await adapter.create(model, {"name": "Before action"})
 
     async def execute(operation):
         await adapter.update(model, operation.key, {"name": "Actual database value"})
         return {"name": "Not the saved value"}
 
-    admin.register(
+    web_admin.register(
         model, options=ModelOptions(actions=(RecordAction("rename", "Rename", execute),))
     )
     await login(history_client)
@@ -515,7 +523,7 @@ async def test_custom_action_history_uses_database_result(history_client, admin,
     form = await history_client.get(path)
     result = await history_client.post(path + "/actions/rename", data={"__csrf": csrf(form)})
     assert result.status_code == 303
-    item = (await admin.storage.activities(action="action:rename")).events[0]
+    item = (await web_admin.storage.activities(action="action:rename")).events[0]
     change = next(item for item in item.details.changes if item.name == "name")
     assert (change.before, change.after) == ("Before action", "Actual database value")
 

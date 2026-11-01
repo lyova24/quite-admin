@@ -159,8 +159,8 @@ assert 'quite_admin' not in access.getvalue()
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])
-async def test_events_with_uvicorn_formatter_and_litestar_logging(backend, auth, framework):
-    adapter, model = backend
+async def test_events_with_uvicorn_formatter_and_litestar_logging(web_backend, auth, framework):
+    adapter, model = web_backend
     host = FastAPI() if framework == "fastapi" else Litestar(logging_config=quiet_config())
     with recording_logger() as (logger, records):
         if framework == "litestar":
@@ -425,14 +425,14 @@ async def test_async_logger_methods_are_awaited(auth):
     assert events == [("quite_admin.login_succeeded", {"status_code": 303})]
 
 
-async def test_broken_sink_does_not_fail_committed_writes(backend, auth, caplog):
+async def test_broken_sink_does_not_fail_committed_writes(web_backend, auth, caplog):
     class BrokenLogger:
         def info(self, *args, **kwargs):
             raise RuntimeError("PRIVATE_SINK_ERROR")
 
         debug = warning = info
 
-    adapter, _ = backend
+    adapter, _ = web_backend
     admin = Admin(
         auth=auth,
         secret_key="s" * 32,
@@ -454,7 +454,7 @@ async def test_broken_sink_does_not_fail_committed_writes(backend, auth, caplog)
                 },
             )
             assert result.status_code == 303, result.text
-        _, model = backend
+        _, model = web_backend
         assert (await adapter.list(model, Query())).total == 1
     errors = [record for record in caplog.records if record.msg == "quite_admin.logging_failed"]
     assert len(errors) == 2

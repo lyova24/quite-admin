@@ -15,7 +15,6 @@ from tests.test_adapters import (
     test_filter_values_are_bound,
     test_literal_search_wildcards,
     test_rejects_filter_operators_and_column_expressions,
-    test_schema_keys_are_typed,
     test_search_key_unions_text_matches_before_counting_and_pagination,
     test_service_adapter_keeps_writes_behind_business_rules,
     test_text_filter_contract_is_literal_and_case_insensitive,

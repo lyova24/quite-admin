@@ -115,8 +115,10 @@ def test_public_error_hierarchy_and_field_errors():
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])
-async def test_documented_template_context_and_field_include(auth, backend, tmp_path, framework):
-    adapter, model = backend
+async def test_documented_template_context_and_field_include(
+    auth, web_backend, tmp_path, framework
+):
+    adapter, model = web_backend
     (tmp_path / "contract.html").write_text(
         '{% extends "quite_admin/base.html" %}{% block title %}API contract{% endblock %}'
         '{% block head %}<meta name="contract" content="{{ template_api_version }}">{% endblock %}'
