@@ -13,12 +13,8 @@ env:
   RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
 
 jobs:
-  validate:
+  metadata:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ['3.11', '3.12', '3.13', '3.14', '3.15']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,15 +22,15 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.13.6'
-          python-version: ${{ matrix.python }}
-          enable-cache: true
-      - run: uv sync --locked
-      - run: uv run python scripts/check_release.py --tag "$RELEASE_TAG"
-      - run: uv run ruff check src tests examples scripts/check_release.py
-      - run: uv run pytest -q
+          python-version: '3.12'
+      - run: uv run --no-project python scripts/check_release.py --tag "$RELEASE_TAG"
+
+  checks:
+    needs: metadata
+    uses: ./.github/workflows/ci.yml
 
   build:
-    needs: validate
+    needs: [metadata, checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +42,8 @@ jobs:
           python-version: '3.12'
       - run: uv run --no-project python scripts/check_release.py --tag "$RELEASE_TAG" --notes release-notes.md
       - run: uv build
+      - name: Install and exercise the built distributions outside the source checkout
+        run: uv run --no-project python scripts/check_distributions.py
       - run: uvx --from 'twine>=6,<7' twine check dist/*
       - uses: actions/upload-artifact@v4
         with:

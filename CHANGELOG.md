@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 — Unreleased
+
+### Fixed
+
+- Patch the Diplodoc dependency chain and refresh its lockfile; npm audit reports zero
+  vulnerabilities, with strict EN/RU builds and a scoped CommonJS/ESM compatibility shim.
+- Require the complete reusable CI gate before release builds and PyPI publication;
+  deploy Pages only from a successful CI run for the current master commit.
+- Run Chromium/Firefox/WebKit regression scenarios and install wheel/sdist in clean
+  environments to verify packaged resources and FastAPI/Litestar integration.
+
 ## 0.3.0 — 2026-11-01
 
 ### Changed

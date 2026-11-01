@@ -62,7 +62,7 @@ For immediate revocation, check a server-side session registry or access version
 ## Request protection
 
 All POST requests, including login and logout, require CSRF validation.
-The admin enables Jinja autoescaping, a Content Security Policy without JavaScript,
+The admin enables Jinja autoescaping, a Content Security Policy allowing only the exact hashes of bundled scripts,
 a 1 MiB form-body limit, duplicate-field rejection and `Cache-Control: no-store`.
 
 The bounded login limiter permits 10 attempts per minute per client IP within one process.

@@ -145,7 +145,10 @@ async def build(output):
                         "version": __version__,
                         "title": admin.title,
                         "translations": RUSSIAN,
-                        "filterMessages": {lang: list_filters.messages(Translator(lang).gettext) for lang in ("en", "ru")},
+                        "filterMessages": {
+                            lang: list_filters.messages(Translator(lang).gettext)
+                            for lang in ("en", "ru")
+                        },
                         "collections": collections,
                         "schemaPages": schema_pages,
                     },

@@ -49,11 +49,31 @@ all severities and fails on high/critical findings. Public PRs also use
 Network/advisory service errors fail checks. No blanket advisory ignores are configured.
 See `SECURITY.md` for private reporting and the early-release maintenance policy.
 
-The 2026-10-29 local audit found no known Python vulnerabilities. npm overrides update
-js-yaml 4.x, lodash, linkify-it and markdown-it to patched versions. Diplodoc 5.64 still
-imports legacy markdown-it CommonJS internals; `scripts/diplodoc.cjs` adapts those module
-paths to markdown-it 14's ESM exports on Node 24. The wrapper is confined to docs builds;
-it does not change parser behavior or suppress advisory checks. A fresh strict EN/RU
-build verifies compatibility. Eight moderate affected npm packages remain in the
-documentation toolchain; no high/critical findings remain. Review the audit output and
-remove overrides/interop when upstream supports the patched dependency directly.
+The 2026-11-01 CI/CD follow-up for **0.3.1** updates Diplodoc and pins patched
+transitive packages (including decode-uri-component, fast-xml-parser, glob, minimatch
+and KaTeX). The refreshed npm audit reports **zero vulnerabilities**; advisory data can
+change, so every run audits again. `scripts/diplodoc.cjs` adapts older CommonJS consumers
+to the patched ESM exports of markdown-it and decode-uri-component on Node 24.
+It changes module interop only; it does not suppress audits or alter parser behavior.
+Strict EN/RU builds verify compatibility. Remove overrides when upstream can use the
+patched versions directly.
+
+## Required checks and artifacts
+
+`ci.yml` calls the reusable tests, database, dependency-compatibility and security
+workflows. The **CI ready** job fails when any group fails, is cancelled or is skipped.
+Configure this check as required on `master`; branch protection is a repository setting.
+The release workflow invokes the same complete gate for the tagged commit before
+building a draft or publishing to PyPI. Ordinary version checks allow Unreleased;
+release tags require a finalized changelog date.
+
+CI exercises Chromium, Firefox and WebKit against a disposable fictional database.
+It checks filters and related-ID lookup, debounced search, CSV/XLSX downloads,
+inline toggles and stale writes, themed calendars, narrow layouts and the no-script
+fallback. Failed browser jobs retain screenshots and traces. Wheel and sdist are each
+installed into a clean environment outside the checkout; imports, packaged assets,
+FastAPI/Litestar login, filtering and CSV export must work from that installation.
+
+Pages deploys after a successful `ci` push run for the current `master` SHA. Failed,
+stale and pull-request runs cannot trigger publication. A manual run is restricted
+to the current `master` commit.

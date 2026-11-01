@@ -1,4 +1,4 @@
-// Diplodoc 5.64 uses the extensionless CommonJS paths from markdown-it 13.
+// Diplodoc 5.64 uses extensionless CommonJS paths and older transitive modules.
 // Keep its consumers compatible with the patched markdown-it 14 ESM files on Node 24.
 // This adapter changes module paths/interop only, never parser behavior or advisory checks.
 const Module = require('node:module');
@@ -18,7 +18,9 @@ Module._load = function (request, parent, isMain) {
     const exported = load.call(this, filename, parent, isMain);
     return exported.default ?? exported;
   }
-  return load.call(this, request, parent, isMain);
+  const exported = load.call(this, request, parent, isMain);
+  // source-map-resolve expects the historical CommonJS function export.
+  return request === 'decode-uri-component' ? exported.default ?? exported : exported;
 };
 
 const manifest = require.resolve('@diplodoc/cli/package');

@@ -150,12 +150,13 @@ See [list filters](filters.md) for `filter_fields` and related-record filtering.
 |---|---|
 | CHAR / VARCHAR, bounded strings | Single-line input with discovered `maxlength` |
 | TEXT, Tortoise/Peewee TextField | Full-width multiline textarea |
-| DATE | Native browser calendar; localized display, ISO value |
+| DATE | Themed in-page calendar, localized display, ISO value; native input fallback |
 | DATETIME / TIMESTAMP | Native date/time picker plus explicit optional UTC offset |
 | TIME | Native time picker plus optional UTC offset |
 | JSON / JSONB | Monospace editor, syntax highlighting, syntax status and Format JSON |
 | Integer / Decimal / float | Numeric input with integer or arbitrary step |
-| Boolean / enum | Select with allowed values; nullable fields include an empty choice |
+| Boolean | Toggle with explicit nullable state; select fallback |
+| Enum | Select with allowed values; nullable fields include an empty choice |
 | UUID | Text input with server-side UUID validation |
 | Binary / unknown | Read-only, unless an existing explicit parser/template policy handles it |
 
@@ -177,7 +178,7 @@ use a separate optional input (up to six digits) so browser picker limitations c
 truncate microseconds. Merely opening a form
 does not normalize or truncate its original timestamp. Unsupported ISO shapes/offsets and
 invalid submitted values stay in the text input. Without JavaScript, datetime/time remain
-ISO text inputs and JSON remains a normal textarea. Native calendar presentation depends
+ISO text inputs and JSON remains a normal textarea. The no-script native calendar presentation depends
 on browser/OS. Server-side parsing, model constraints, field permissions, CSRF and signed
 stale-edit revisions remain authoritative. Built-in scripts use the existing per-page CSP hash.
 

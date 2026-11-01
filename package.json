@@ -12,15 +12,22 @@
     "docs:build": "node scripts/check-docs.mjs && node scripts/diplodoc.cjs build -i docs -o build/docs --strict && node scripts/prepare-pages.mjs",
     "docs:serve": "uv run python -m http.server 8001 --bind 127.0.0.1 --directory build/docs",
     "demo:build": "uv run --no-sync python scripts/build_demo.py",
-    "demo:test": "node --check demo/app.js && uv run --no-sync python scripts/build_demo.py && node --test tests/demo.test.mjs tests/schema.test.cjs tests/filters.test.cjs tests/forms.test.cjs"
+    "demo:test": "node --check demo/app.js && uv run --no-sync python scripts/build_demo.py && node --test tests/demo.test.mjs tests/schema.test.cjs tests/filters.test.cjs tests/forms.test.cjs",
+    "browser:test": "playwright test"
   },
   "devDependencies": {
-    "@diplodoc/cli": "5.64.0"
+    "@diplodoc/cli": "5.64.1",
+    "@playwright/test": "1.64.1"
   },
   "overrides": {
     "js-yaml@^4.0.0": "4.3.2",
     "linkify-it": "5.0.2",
     "lodash": "4.18.1",
-    "markdown-it": "14.3.3"
+    "markdown-it": "14.3.3",
+    "decode-uri-component": "0.5.1",
+    "fast-xml-parser": "5.11.2",
+    "glob": "14.0.3",
+    "minimatch": "11.0.3",
+    "katex": "0.19.1"
   }
 }

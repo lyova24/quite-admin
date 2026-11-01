@@ -86,6 +86,17 @@ Configuration lives in `docs/.yfm`; `package-lock.json` pins the CLI and its dep
 Add new pages to both language directories and both navigation files, and keep API
 examples synchronized between translations.
 
+## Browser and installed-package checks
+
+`npm run browser:test` starts a disposable local fixture and runs the browser suite.
+Install the pinned browsers first with `npx playwright install --with-deps`.
+The fixture uses only fictional data in a temporary SQLite database. Browser jobs run
+Chromium, Firefox and WebKit in CI and retain failure screenshots/traces.
+
+After `uv build`, run `uv run python scripts/check_distributions.py` to install both
+current artifacts into clean temporary environments and exercise packaged HTTP/assets.
+These installation checks require registry access for dependencies and build tooling.
+
 ## Current limitations
 
 This is the first working library release. File uploads, bulk actions, an audit log

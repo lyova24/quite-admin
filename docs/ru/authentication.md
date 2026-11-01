@@ -49,7 +49,7 @@ admin.register(User, options=ModelOptions(permission=can_access))
 Logout удаляет cookie текущего браузера; он не отзывает скопированные cookies.
 Для немедленного отзыва используйте `get_identity()` с серверным реестром сессий / версией доступа.
 
-Все POST, включая login/logout, защищены CSRF. Jinja autoescape, CSP без JS,
+Все POST, включая login/logout, защищены CSRF. Jinja autoescape, CSP с точными хешами встроенных скриптов,
 ограничение тела формы в 1 MiB, запрет duplicate form fields и `Cache-Control: no-store`
 включены. Login limiter: 10 попыток в минуту на IP внутри процесса.
 Для нескольких workers настройте общий limiter на ingress/proxy.
