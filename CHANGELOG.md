@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — Unreleased
+
+### Added
+
+- Permission-checked CSV/XLSX exports from collection lists with selected columns, current
+  search/filters/sorting and optional one-hop related columns. Collection relationships
+  stay on separate lines within a cell. Bounded exports fail rather than truncate,
+  CSV neutralizes spreadsheet formulas and XLSX preserves values as literal text.
+
 ## 0.2.0 — 2026-11-01
 
 ### Added

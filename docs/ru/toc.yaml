@@ -23,6 +23,8 @@ items:
         href: configuration.md
       - name: Фильтры списков
         href: filters.md
+      - name: Экспорт данных
+        href: exports.md
       - name: Связи
         href: relationships.md
       - name: Схема базы данных

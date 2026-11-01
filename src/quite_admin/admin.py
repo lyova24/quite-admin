@@ -8,7 +8,7 @@ import re
 import secrets
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -28,6 +28,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from . import exports
 from . import filters as list_filters
 from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
@@ -816,6 +817,10 @@ class Admin:
             filters=filters,
             related=tuple(related),
         )
+        if "export" in request.query_params:
+            if filter_errors:
+                raise HTTPException(422, "Correct the filters before exporting.")
+            return await self._export(request, resource, query)
         result = (
             RecordPage([], 0)
             if filter_errors
@@ -844,9 +849,18 @@ class Admin:
         for item in active:
             item["remove_url"] = query_url(**{**dict.fromkeys(item["parameters"]), "page": 1})
 
+        export_columns = []
+        if permissions["view"]:
+            export_columns = await self._export_columns(request, resource)
         return await self._render(
             request,
             "quite_admin/list.html",
+            export_columns=export_columns,
+            export_params=[
+                (key, value)
+                for key, value in request.query_params.multi_items()
+                if key not in {"page", "export", "columns"}
+            ],
             status=422 if filter_errors else 200,
             trusted_scripts=("filters.js",) if filter_descriptors else (),
             filter_descriptors=filter_descriptors,
@@ -868,6 +882,83 @@ class Admin:
             query_url=query_url,
             permissions=permissions,
         )
+
+    async def _export_columns(self, request, resource):
+        columns = [
+            {"name": item.name, "label": item.label, "field": item, "editor": None}
+            for item in resource.options.visible_fields(resource.schema)
+        ]
+        for editor in await self._available_relations(
+            request, resource, creating=False, allow_edit=False
+        ):
+            for item in editor["target"].options.visible_fields(editor["target"].schema):
+                columns.append(
+                    {
+                        "name": editor["relation"].name + "." + item.name,
+                        "label": editor["relation"].label + " / " + item.label,
+                        "field": item,
+                        "editor": editor,
+                    }
+                )
+        return columns
+
+    async def _export(self, request, resource, query):
+        if not await self._allowed(request, resource, "view"):
+            raise HTTPException(403, "Permission denied.")
+        format = request.query_params.get("export")
+        if format not in exports.FORMATS or len(request.query_params.getlist("export")) != 1:
+            raise HTTPException(400, "Invalid export format.")
+        available = {item["name"]: item for item in await self._export_columns(request, resource)}
+        selected = request.query_params.getlist("columns")
+        if not selected or len(selected) > 100 or len(set(selected)) != len(selected):
+            raise HTTPException(400, "Select between 1 and 100 unique export columns.")
+        if any(name not in available for name in selected):
+            raise HTTPException(400, "Invalid export column.")
+        columns = [available[name] for name in selected]
+        editors = {
+            item["editor"]["relation"].name: item["editor"]
+            for item in columns
+            if item["editor"] is not None
+        }
+        cap = exports.MAX_JOIN_ROWS if editors else exports.MAX_ROWS
+        result = await resource.adapter.list(resource.model, replace(query, offset=0, limit=cap))
+        if result.total > cap:
+            raise HTTPException(413, f"Export exceeds {cap} records. Narrow the filters.")
+        rows = []
+        links = 0
+        size = 0
+        for record in result.records:
+            related = {}
+            for name in editors:
+                key = {field.name: record[field.name] for field in resource.schema.primary_keys}
+                page = await resource.adapter.related(resource.model, name, key, Query(limit=1000))
+                links += page.total
+                if page.total > 1000 or links > exports.MAX_LINKS:
+                    raise HTTPException(413, "Too many related records. Narrow the filters.")
+                related[name] = page.records
+            row = []
+            for column in columns:
+                field = column["field"]
+                editor = column["editor"]
+                if editor is None:
+                    value = record.get(field.name)
+                    cell = None if value is None else field.format(value)
+                else:
+                    values = related[editor["relation"].name]
+                    formatted = [
+                        None if item.get(field.name) is None else field.format(item[field.name])
+                        for item in values
+                    ]
+                    if editor["multiple"]:
+                        cell = "\n".join(value or "" for value in formatted)
+                    else:
+                        cell = formatted[0] if formatted else None
+                size += len((cell or "").encode("utf-8"))
+                if size > exports.MAX_BYTES:
+                    raise HTTPException(413, "Export is too large. Narrow the filters.")
+                row.append(cell)
+            rows.append(row)
+        return await to_thread.run_sync(exports.download, resource.slug, format, selected, rows)
 
     async def _record(self, resource: Resource, token: str) -> dict[str, Any]:
         record = await resource.adapter.get(resource.model, resource.schema.parse_key(token))

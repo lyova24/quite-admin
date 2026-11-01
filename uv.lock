@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy'",
@@ -67,7 +67,7 @@ version = "4.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
-    { name = "typing-extensions", marker = "python_full_version < '3.15'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.15' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/d2/f4d173e22df740bc37b1db102b386ba719b66e95b0f0d751f556b387e6d2/anyio-4.15.1.tar.gz", hash = "sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94", size = 276966, upload-time = "2026-09-05T10:42:39.44Z" }
 wheels = [
@@ -173,7 +173,7 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -289,7 +289,7 @@ name = "cryptography"
 version = "50.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9d/af/182eb91b0df3fe75c4d9f26fe70684569566745f6ba7e5c9c73a862c5252/cryptography-50.0.2.tar.gz", hash = "sha256:7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5", size = 880623, upload-time = "2026-09-30T15:30:04.884Z" }
 wheels = [
@@ -358,7 +358,7 @@ name = "faker"
 version = "40.44.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "tzdata", marker = "sys_platform == 'win32' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/87/22/965c7b822f4c80f6e003c696d5fa01b48eea6cc7852d61aec8779519b346/faker-40.44.0.tar.gz", hash = "sha256:97245a3756dcaf35418b89bea9f03ae6881557db0032bf048744c2aaee2a9108", size = 2034259, upload-time = "2026-10-28T17:06:41.048Z" }
 wheels = [
@@ -1077,8 +1077,8 @@ name = "psycopg"
 version = "3.3.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
+    { name = "tzdata", marker = "sys_platform == 'win32' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/76/26/3ea4ca5eaea1c0debcdf7ee7c1613fbe721dc27a03c461c0817ffd8a0601/psycopg-3.3.6.tar.gz", hash = "sha256:c081f2250df751a943036e42db6df4571c66cd0aabe8291a7a506512b12007d2", size = 168171, upload-time = "2026-09-18T13:22:55.152Z" }
 wheels = [
@@ -1087,7 +1087,7 @@ wheels = [
 
 [package.optional-dependencies]
 binary = [
-    { name = "psycopg-binary", marker = "implementation_name != 'pypy'" },
+    { name = "psycopg-binary", marker = "implementation_name != 'pypy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 
 [[package]]
@@ -1418,7 +1418,7 @@ name = "pytest"
 version = "9.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -1435,7 +1435,7 @@ version = "1.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytest" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f8/9a/887535e477847f5159377ab35303923644840b13c0ca03c0a467f84d4680/pytest_asyncio-1.4.1.tar.gz", hash = "sha256:e8266eb094e5ee9ffdb2068c9836f33e209ea77a970eb846933d416b5602669b", size = 145237, upload-time = "2026-10-25T21:05:37.135Z" }
 wheels = [
@@ -1517,7 +1517,7 @@ wheels = [
 
 [[package]]
 name = "quite-admin"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -1532,7 +1532,7 @@ all = [
     { name = "fastapi" },
     { name = "litestar" },
     { name = "peewee" },
-    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'extra-11-quite-admin-sqlmodel' or extra == 'group-11-quite-admin-dev'" },
+    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
     { name = "sqlmodel" },
     { name = "tortoise-orm" },
 ]
@@ -1554,7 +1554,7 @@ sqlalchemy = [
     { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-sqlalchemy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sqlmodel = [
-    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'extra-11-quite-admin-sqlmodel' or extra == 'group-11-quite-admin-dev'" },
+    { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
     { name = "sqlmodel" },
 ]
 tortoise = [
@@ -1576,7 +1576,7 @@ dev = [
     { name = "loguru" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
-    { name = "quite-admin", extra = ["all"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or extra == 'extra-11-quite-admin-sqlalchemy' or extra == 'extra-11-quite-admin-sqlmodel' or extra == 'group-11-quite-admin-dev'" },
+    { name = "quite-admin", extra = ["all"], marker = "extra == 'extra-11-quite-admin-all' or extra != 'extra-11-quite-admin-gino-legacy' or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
     { name = "ruff" },
     { name = "structlog" },
     { name = "uvicorn" },
@@ -1661,7 +1661,7 @@ version = "1.9.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
     { name = "rich" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/96/3e/5688fdd83aea416de336582a274f2bc8236b5c261b04c11e17bc262786ad/rich_click-1.9.9.tar.gz", hash = "sha256:324cba7513cd4187ee92b2eef21f071714e45be062458c8b157bd7e0c81103e3", size = 75866, upload-time = "2026-09-05T19:20:14.799Z" }
@@ -1786,7 +1786,7 @@ version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/48/bb/3d8757f21e9a53d9035c9eb039a777047139a16bfdbedfc7a58241c3d914/starlette-1.10.0.tar.gz", hash = "sha256:b8399098d4c1e3522734f7235dc79b1fc967f96cf139c81e0fa30479e0685f9b", size = 2734356, upload-time = "2026-10-24T15:04:12.342Z" }
 wheels = [
@@ -1809,7 +1809,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
     { name = "anyio" },
-    { name = "iso8601", marker = "python_full_version < '4'" },
+    { name = "iso8601", marker = "python_full_version < '4' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlalchemy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
     { name = "pypika-tortoise" },
     { name = "pytz" },
 ]

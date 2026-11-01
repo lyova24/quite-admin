@@ -423,3 +423,8 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .filter-lookup-pages:empty { display: none; }
 .filter-condition [hidden], .filter-popover [hidden] { display: none !important; }
 @media (max-width: 700px) { .list-toolbar .search-form { flex: 1 1 240px; } }
+
+.export-panel { margin-block: 1rem; padding: 1rem; }
+.export-panel summary { cursor: pointer; font-weight: 600; }
+.export-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .5rem; max-height: 20rem; overflow: auto; }
+.export-form fieldset { margin-block: 1rem; }

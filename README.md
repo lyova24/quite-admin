@@ -1,6 +1,6 @@
 # quite-admin
 
-**Version: 0.2.0** · [Changelog](CHANGELOG.md)
+**Version: 0.3.0** · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -20,6 +20,7 @@ The site workflow publishes this standalone demo alongside the documentation.
 Collections, fields and forms are discovered from existing SQL tables or ORM models.
 No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 
+- CSV/XLSX export with column selection, filters and related-table data.
 - Authenticated CRUD, search, sorting, pagination and typed scalar/relationship filters.
 - Interactive database schema and atomic stale-edit detection.
 - Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
@@ -52,7 +53,7 @@ Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
 
 | Project | When its documented approach fits |
 |---|---|
-| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.2.0; check the compatibility evidence and limits. |
+| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.3.0; check the compatibility evidence and limits. |
 | [SQLAdmin](https://github.com/smithyhq/sqladmin) | A SQLAlchemy/SQLModel application using its model views, sync/async engines and WTForms controls with FastAPI/Starlette. |
 | [Starlette Admin](https://github.com/jowilf/starlette-admin) | Its contrib backend/model-view approach, MongoDB integrations, bulk actions, file handling or import/export fit the application. |
 

@@ -22,6 +22,8 @@ No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT li
 | Adapt colors, density and templates | [Interface customization](styling.md) |
 | Check supported databases and limits | [Data access and compatibility](data-safety.md) |
 
+Development version **0.3.0** adds [CSV/XLSX exports](exports.md). Finalized baseline: **0.2.0**.
+
 ## Work with data
 
 - Browse, create, edit and delete records on one record page.

@@ -23,6 +23,8 @@ items:
         href: configuration.md
       - name: List filters
         href: filters.md
+      - name: Data export
+        href: exports.md
       - name: Relationships
         href: relationships.md
       - name: Database schema

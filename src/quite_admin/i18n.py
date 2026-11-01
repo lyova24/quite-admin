@@ -21,6 +21,24 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Export data": "Экспорт данных",
+    "Columns": "Столбцы",
+    "Format": "Формат",
+    "Download": "Скачать",
+    (
+        "Exports all matching records using the current search, filters and sorting. "
+        "Apply filters before exporting."
+    ): (
+        "Выгружаются все подходящие записи с текущим поиском, фильтрами и "
+        "сортировкой. Сначала примените фильтры."
+    ),
+    (
+        "Related collections use one value per line in each cell; missing single "
+        "relations are empty. Limits: 10000 records, or 1000 with related columns."
+    ): (
+        "Связи ко многим выгружаются построчно внутри ячеек; отсутствующие одиночные "
+        "связи пустые. Лимит: 10000 записей или 1000 со связанными столбцами."
+    ),
     "Add filter": "Добавить фильтр",
     "Find a field…": "Найти поле…",
     "Back": "Назад",
