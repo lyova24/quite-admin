@@ -62,7 +62,8 @@ test('enum sets and CSV/XLSX downloads include only matching rows', async ({page
     if(format==='csv') {
       const text=bytes.toString('utf8');expect(text).toContain('Alex Smith');expect(text).toContain('alex Brown');expect(text).not.toContain('Alex%_! Literal');
     } else expect(bytes.subarray(0,2).toString()).toBe('PK');
-    await page.keyboard.press('Escape');
+    await page.locator('.export-panel summary').click();
+    await expect(page.locator('.export-form')).not.toBeVisible();
   }
 });
 

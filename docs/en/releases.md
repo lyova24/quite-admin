@@ -74,6 +74,11 @@ fallback. Failed browser jobs retain screenshots and traces. Wheel and sdist are
 installed into a clean environment outside the checkout; imports, packaged assets,
 FastAPI/Litestar login, filtering and CSV export must work from that installation.
 
+WebKit runs on macOS. Playwright's Linux WebKit build currently renders text attachments
+inline despite a valid Content-Disposition header
+([upstream issue](https://github.com/microsoft/playwright/issues/43763)); macOS lets the
+suite assert real CSV and XLSX download events without replacing response headers.
+
 Pages deploys after a successful `ci` push run for the current `master` SHA. Failed,
 stale and pull-request runs cannot trigger publication. A manual run is restricted
 to the current `master` commit.
