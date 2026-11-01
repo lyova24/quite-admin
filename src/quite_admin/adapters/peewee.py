@@ -146,7 +146,11 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations):
         validate_query(self, model, query)
 
         def operation() -> RecordPage:
-            statement = model.select()
+            statement = (
+                model.select(*(getattr(model, name) for name in query.columns))
+                if query.columns
+                else model.select()
+            )
             for condition in self._filter_conditions(model, query):
                 statement = statement.where(condition)
             if query.filters:

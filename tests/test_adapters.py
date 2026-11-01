@@ -188,3 +188,14 @@ async def test_search_key_unions_text_matches_before_counting_and_pagination(bac
     for search_key in ({}, {"id": "bad"}, {"secret": 1}):
         with pytest.raises(ValueError):
             await adapter.list(model, Query(search="1", search_key=search_key))
+
+
+async def test_database_projection_preserves_scalar_types_without_a_primary_key(backend):
+    adapter, model = backend
+    await adapter.create(
+        model, {"name": "Typed", "count": 2**63 - 1, "active": False, "note": None}
+    )
+    result = await adapter.list(model, Query(columns=("count", "active", "note")))
+    assert result.records == [{"count": 2**63 - 1, "active": False, "note": None}]
+    assert type(result.records[0]["count"]) is int
+    assert type(result.records[0]["active"]) is bool

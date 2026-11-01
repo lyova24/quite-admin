@@ -12,18 +12,18 @@ from ._queries import tortoise_filters
 
 
 class TortoiseRelations:
-    async def related_batch(self, model, name, keys, *, limit=10001):
-        from ._batch import finish_batch, prepare_batch
+    async def related_batch(self, model, name, keys, *, limit=10001, columns=None):
+        from ._batch import batch_fields, finish_batch, prepare_batch
 
-        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit, columns)
         if not keys:
-            return finish_batch(schema, target_schema, keys, [], limit)
+            return finish_batch(schema, target_schema, keys, [], limit, columns)
         source_pk, target_pk = schema.primary_keys[0].name, target_schema.primary_keys[0].name
         fields = {"qa_parent_0": source_pk}
         fields.update(
             {
                 f"qa_target_{i}": name + "__" + field.name
-                for i, field in enumerate(target_schema.fields)
+                for i, field in enumerate(batch_fields(target_schema, columns))
             }
         )
         rows = (
@@ -37,7 +37,7 @@ class TortoiseRelations:
             .limit(limit)
             .values(**fields)
         )
-        return finish_batch(schema, target_schema, keys, rows, limit)
+        return finish_batch(schema, target_schema, keys, rows, limit, columns)
 
     def relations(self, model):
         meta = model._meta
@@ -141,7 +141,10 @@ class TortoiseRelations:
         ordering = [("-" if query.descending else "") + order]
         if order != pk:
             ordering.append(pk)
-        rows = await statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+        statement = statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+        if query.columns:
+            return RecordPage(await statement.values(*query.columns), total)
+        rows = await statement
         return RecordPage(
             [query.project(self._record(relation.target, item)) for item in rows], total
         )

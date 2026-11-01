@@ -107,6 +107,31 @@ class Resource:
             or self.label
         )
 
+    def _projection(self, names=(), *, labels=True):
+        selected = set(names) | {item.name for item in self.schema.primary_keys}
+        if labels:
+            visible = {item.name: item for item in self.options.visible_fields(self.schema)}
+            candidates = (
+                self.options.record_label,
+                "name",
+                "title",
+                "label",
+                "display_name",
+                "username",
+                *(self.options.search_fields or ()),
+                *(
+                    name
+                    for name, item in visible.items()
+                    if item.kind == "string" and not item.primary_key
+                ),
+            )
+            for name in candidates:
+                if name in visible:
+                    selected.add(name)
+                    if not visible[name].nullable:
+                        break
+        return tuple(item.name for item in self.schema.fields if item.name in selected)
+
 
 @dataclass
 class Source:
@@ -855,6 +880,7 @@ class Admin:
             descending=request.query_params.get("direction") == "desc",
             filters=filters,
             related=tuple(related),
+            columns=resource._projection(item.name for item in columns),
         )
         if "export" in request.query_params:
             if filter_errors:
@@ -1094,7 +1120,18 @@ class Admin:
             if item["editor"] is not None
         }
         cap = exports.MAX_JOIN_ROWS if editors else exports.MAX_ROWS
-        result = await resource.adapter.list(resource.model, replace(query, offset=0, limit=cap))
+        source_columns = {item["field"].name for item in columns if item["editor"] is None}
+        if editors:
+            source_columns.update(item.name for item in resource.schema.primary_keys)
+        result = await resource.adapter.list(
+            resource.model,
+            replace(
+                query,
+                offset=0,
+                limit=cap,
+                columns=tuple(name for name in resource.schema.by_name if name in source_columns),
+            ),
+        )
         if result.total > cap:
             raise HTTPException(413, f"Export exceeds {cap} records. Narrow the filters.")
         rows = []
@@ -1108,7 +1145,18 @@ class Admin:
             ]
             for name in editors:
                 batch = await resource.adapter.related_batch(
-                    resource.model, name, keys, limit=exports.MAX_LINKS - links + 1
+                    resource.model,
+                    name,
+                    keys,
+                    limit=exports.MAX_LINKS - links + 1,
+                    columns=tuple(
+                        dict.fromkeys(
+                            item["field"].name
+                            for item in columns
+                            if item["editor"] is not None
+                            and item["editor"]["relation"].name == name
+                        )
+                    ),
                 )
                 count = sum(len(records) for records in batch.records.values())
                 if (
@@ -1596,14 +1644,18 @@ class Admin:
                     resource.model,
                     relation.name,
                     resource.schema.parse_key(resource.schema.record_key(record)),
-                    Query(limit=1001),
+                    Query(limit=1001, columns=target._projection()),
                 )
             )
             selected = [] if linked is None else linked.records[:1000]
             truncated = linked is not None and linked.total > 1000
             editable = editable and not truncated
             candidates = (
-                await target.adapter.list(target.model, Query(limit=25)) if editable else None
+                await target.adapter.list(
+                    target.model, Query(limit=25, columns=target._projection())
+                )
+                if editable
+                else None
             )
             records = {target.schema.record_key(item): item for item in selected}
             if candidates is not None:
@@ -1687,6 +1739,7 @@ class Admin:
             search=search,
             search_key=key_search,
             search_fields=tuple(name for name in searchable if name in visible),
+            columns=target._projection(name for name in searchable if name in visible),
         )
         result = await target.adapter.list(target.model, query)
         return JSONResponse(

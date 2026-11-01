@@ -12,20 +12,20 @@ from ._queries import predicates, search_predicate
 
 
 class PeeweeRelations:
-    async def related_batch(self, model, name, keys, *, limit=10001):
-        from ._batch import finish_batch, prepare_batch
+    async def related_batch(self, model, name, keys, *, limit=10001, columns=None):
+        from ._batch import batch_fields, finish_batch, prepare_batch
 
-        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit, columns)
         if not keys:
-            return finish_batch(schema, target_schema, keys, [], limit)
+            return finish_batch(schema, target_schema, keys, [], limit, columns)
         source, target = model.alias("qa_source"), relation.target.alias("qa_target")
         source_columns = [getattr(source, field.name) for field in schema.primary_keys]
-        columns = [column.alias(f"qa_parent_{i}") for i, column in enumerate(source_columns)]
-        columns.extend(
+        expressions = [column.alias(f"qa_parent_{i}") for i, column in enumerate(source_columns)]
+        expressions.extend(
             getattr(target, field.name).alias(f"qa_target_{i}")
-            for i, field in enumerate(target_schema.fields)
+            for i, field in enumerate(batch_fields(target_schema, columns))
         )
-        statement = source.select(*columns)
+        statement = source.select(*expressions)
         direction, field = self._relation_fields(model)[name]
         if direction == "many":
             source_fk = field.through_model._meta.model_refs[model][0]
@@ -62,7 +62,9 @@ class PeeweeRelations:
         )
 
         def operation():
-            return finish_batch(schema, target_schema, keys, list(statement.dicts()), limit)
+            return finish_batch(
+                schema, target_schema, keys, list(statement.dicts()), limit, columns
+            )
 
         return await self._run(model, operation)
 
@@ -173,6 +175,10 @@ class PeeweeRelations:
             if parent is None:
                 raise NotFound("Record not found.")
             statement = self._related_query(parent, name)
+            if query.columns:
+                statement = statement.select(
+                    *(getattr(relation.target, field) for field in query.columns)
+                )
             if query.filters:
                 statement = statement.where(
                     *predicates(query, lambda field: getattr(relation.target, field), peewee=True)

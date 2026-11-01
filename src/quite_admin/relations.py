@@ -77,4 +77,5 @@ class BatchRelationAdapter(Protocol):
         keys: list[Mapping[str, Any]],
         *,
         limit: int = 10001,
+        columns: tuple[str, ...] | None = None,
     ) -> RelatedBatch: ...

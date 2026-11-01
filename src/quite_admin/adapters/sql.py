@@ -196,7 +196,11 @@ class SQLAdapter(CheckedWrites, SQLRelations):
         validate_query(self, model, query)
 
         def operation(connection: Connection) -> RecordPage:
-            statement = select(model)
+            statement = (
+                select(*(model.c[name] for name in query.columns))
+                if query.columns
+                else select(model)
+            )
             statement = statement.where(
                 *predicates(
                     query, model.c.__getitem__, text_column=lambda name: model.c[name].cast(String)

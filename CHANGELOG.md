@@ -11,6 +11,10 @@
 
 ### Fixed
 
+- Push scalar projections into native database queries, relationship reads and batches.
+  Lists, pickers and exports request only their fields plus necessary keys/labels,
+  avoiding unselected hidden/large values and preserving native scalar types.
+
 - Validate declared integer ranges before writes and filters, including MySQL unsigned
   integers, and translate expected SQL data/overflow errors into safe validation errors.
 

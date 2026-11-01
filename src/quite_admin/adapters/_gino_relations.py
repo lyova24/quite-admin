@@ -12,13 +12,13 @@ from ._sql_metadata import SQLRelationMetadata, related_predicates
 
 
 class GinoRelations:
-    async def related_batch(self, model, name, keys, *, limit=10001):
-        from ._batch import finish_batch, prepare_batch
+    async def related_batch(self, model, name, keys, *, limit=10001, columns=None):
+        from ._batch import batch_fields, finish_batch, prepare_batch
         from ._sql_batch import batch_statement
 
-        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit, columns)
         if not keys:
-            return finish_batch(schema, target_schema, keys, [], limit)
+            return finish_batch(schema, target_schema, keys, [], limit, columns)
         table = self._table(model)
         link = SQLRelationMetadata()._links(table)[name]
         physical = [
@@ -28,14 +28,17 @@ class GinoRelations:
             table,
             link,
             [getattr(model, field.name).name for field in schema.primary_keys],
-            [getattr(relation.target, field.name).name for field in target_schema.fields],
+            [
+                getattr(relation.target, field.name).name
+                for field in batch_fields(target_schema, columns)
+            ],
             physical,
             limit,
             legacy=True,
         )
         async with self.db.acquire(reuse=False, reusable=False) as connection:
             rows = await connection.all(statement)
-        return finish_batch(schema, target_schema, keys, rows, limit)
+        return finish_batch(schema, target_schema, keys, rows, limit, columns)
 
     def _links(self, model):
         models = {self._table(item): item for item in self.discover()}

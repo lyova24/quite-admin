@@ -17,21 +17,21 @@ from ._sql_metadata import _unique, junction_fields
 
 
 class SQLAlchemyRelations:
-    async def related_batch(self, model, name, keys, *, limit=10001):
+    async def related_batch(self, model, name, keys, *, limit=10001, columns=None):
         from sqlalchemy import tuple_
         from sqlalchemy.orm import aliased
 
-        from ._batch import finish_batch, prepare_batch
+        from ._batch import batch_fields, finish_batch, prepare_batch
 
-        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit, columns)
         if not keys:
-            return finish_batch(schema, target_schema, keys, [], limit)
+            return finish_batch(schema, target_schema, keys, [], limit, columns)
         source, target = aliased(model), aliased(relation.target)
         source_columns = [getattr(source, field.name) for field in schema.primary_keys]
-        columns = [column.label(f"qa_parent_{i}") for i, column in enumerate(source_columns)]
-        columns.extend(
+        expressions = [column.label(f"qa_parent_{i}") for i, column in enumerate(source_columns)]
+        expressions.extend(
             getattr(target, field.name).label(f"qa_target_{i}")
-            for i, field in enumerate(target_schema.fields)
+            for i, field in enumerate(batch_fields(target_schema, columns))
         )
         values = [tuple(key[field.name] for field in schema.primary_keys) for key in keys]
         condition = (
@@ -40,7 +40,7 @@ class SQLAlchemyRelations:
             else tuple_(*source_columns).in_(values)
         )
         statement = (
-            select(*columns)
+            select(*expressions)
             .select_from(source)
             .join(getattr(source, name).of_type(target))
             .where(condition)
@@ -53,7 +53,12 @@ class SQLAlchemyRelations:
 
         def operation(session):
             return finish_batch(
-                schema, target_schema, keys, session.execute(statement).mappings().all(), limit
+                schema,
+                target_schema,
+                keys,
+                session.execute(statement).mappings().all(),
+                limit,
+                columns,
             )
 
         return await self._run(operation)
@@ -212,7 +217,12 @@ class SQLAlchemyRelations:
                 for field in self._attribute_names(model, prop.local_columns)
             ):
                 return RecordPage([], 0)
-            statement = select(target).where(with_parent(parent, getattr(model, name)))
+            statement = (
+                select(*(getattr(target, field).label(field) for field in query.columns))
+                if query.columns
+                else select(target)
+            )
+            statement = statement.where(with_parent(parent, getattr(model, name)))
             statement = statement.where(*predicates(query, lambda field: getattr(target, field)))
             if query.search and query.search_fields:
                 statement = statement.where(
@@ -231,7 +241,12 @@ class SQLAlchemyRelations:
                     query, self.describe(target), lambda field: getattr(target, field)
                 )
             )
-            rows = session.scalars(statement.offset(query.offset).limit(query.limit)).unique().all()
+            statement = statement.offset(query.offset).limit(query.limit)
+            if query.columns:
+                return RecordPage(
+                    [dict(row) for row in session.execute(statement).mappings()], total
+                )
+            rows = session.scalars(statement).unique().all()
             return RecordPage([query.project(self._record(target, row)) for row in rows], total)
 
         return await self._run(operation)

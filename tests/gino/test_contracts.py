@@ -11,6 +11,7 @@ from tests.test_adapter_safety import (
     test_search_values_are_bound_literals,
 )
 from tests.test_adapters import (
+    test_database_projection_preserves_scalar_types_without_a_primary_key,
     test_discovery_crud_search_pagination_and_rollback,
     test_filter_values_are_bound,
     test_literal_search_wildcards,

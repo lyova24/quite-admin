@@ -145,7 +145,11 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
         validate_query(self, model, query)
 
         def operation(session: Session) -> RecordPage:
-            statement = select(model)
+            statement = (
+                select(*(getattr(model, name).label(name) for name in query.columns))
+                if query.columns
+                else select(model)
+            )
             statement = statement.where(
                 *predicates(
                     query,
@@ -177,9 +181,12 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations):
                 order_expressions(query, self.describe(model), lambda name: getattr(model, name))
             )
             statement = statement.order_by(*ordering)
-            items = (
-                session.scalars(statement.offset(query.offset).limit(query.limit)).unique().all()
-            )
+            statement = statement.offset(query.offset).limit(query.limit)
+            if query.columns:
+                return RecordPage(
+                    [dict(row) for row in session.execute(statement).mappings()], count or 0
+                )
+            items = session.scalars(statement).unique().all()
             return RecordPage(
                 [query.project(self._record(model, item)) for item in items], count or 0
             )

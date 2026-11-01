@@ -101,7 +101,10 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations):
         ordering = [("-" if query.descending else "") + order]
         if order != pk:
             ordering.append(pk)
-        items = await statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+        statement = statement.order_by(*ordering).offset(query.offset).limit(query.limit)
+        if query.columns:
+            return RecordPage(await statement.values(*query.columns), total)
+        items = await statement
         return RecordPage([query.project(self._record(model, item)) for item in items], total)
 
     async def get(self, model: type, key: Mapping[str, Any]) -> dict[str, Any] | None:

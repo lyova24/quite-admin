@@ -9,7 +9,7 @@ from quite_admin.concurrency import check_record, check_relation, guarded
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.schema import Query, RecordPage
 
-from ._batch import finish_batch, prepare_batch
+from ._batch import batch_fields, finish_batch, prepare_batch
 from ._queries import ordering as order_expressions
 from ._queries import predicates
 from ._sql_batch import batch_statement
@@ -17,22 +17,22 @@ from ._sql_metadata import SQLRelationMetadata
 
 
 class SQLRelations(SQLRelationMetadata):
-    async def related_batch(self, model, name, keys, *, limit=10001):
-        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit)
+    async def related_batch(self, model, name, keys, *, limit=10001, columns=None):
+        schema, target_schema, relation = prepare_batch(self, model, name, keys, limit, columns)
         if not keys:
-            return finish_batch(schema, target_schema, keys, [], limit)
+            return finish_batch(schema, target_schema, keys, [], limit, columns)
         statement = batch_statement(
             model,
             self._links(model)[name],
             [field.name for field in schema.primary_keys],
-            [field.name for field in target_schema.fields],
+            [field.name for field in batch_fields(target_schema, columns)],
             keys,
             limit,
         )
 
         def operation(connection):
             rows = connection.execute(statement).mappings().all()
-            return finish_batch(schema, target_schema, keys, rows, limit)
+            return finish_batch(schema, target_schema, keys, rows, limit, columns)
 
         return await self._run(operation)
 
@@ -90,6 +90,10 @@ class SQLRelations(SQLRelationMetadata):
             if parent is None:
                 raise NotFound("Record not found.")
             statement = self._linked_statement(link, parent)
+            if query.columns:
+                statement = statement.with_only_columns(
+                    *(target.c[name] for name in query.columns), maintain_column_froms=True
+                )
             statement = statement.where(*predicates(query, target.c.__getitem__))
             if query.search and query.search_fields:
                 statement = statement.where(

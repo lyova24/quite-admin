@@ -135,3 +135,12 @@ value. Out-of-range form/filter input returns 422 and preserves entered values. 
 SQL data/overflow errors are sanitized, and failed writes roll back. Custom fields remain
 unbounded unless their adapter supplies bounds. Database precision and other constraints
 still apply.
+
+## Database projections
+
+All built-in adapters apply `Query.columns` in the database SELECT, including related
+reads. Omitting it still requests the complete scalar record. Lists and pickers select
+only displayed/search-description fields, necessary label candidates and primary keys.
+Exports request selected fields, adding source/target keys internally for relationship
+batches. `related_batch(..., columns=(...))` returns exactly those target fields; internal
+keys are not added to the returned projection. Custom adapters must honor projections.

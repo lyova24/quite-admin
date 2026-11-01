@@ -38,6 +38,14 @@ async def test_batched_relationships_match_individual_reads_and_report_truncatio
                 )
                 token = adapter.describe(model).record_key(record)
                 assert batch.records[token] == expected.records
+            if "name" in adapter.describe(relation.target).by_name:
+                projected = await adapter.related_batch(
+                    model, relation.name, keys, columns=("name",)
+                )
+                assert projected.records == {
+                    token: [{"name": item["name"]} for item in items]
+                    for token, items in batch.records.items()
+                }
             assert not (await adapter.related_batch(model, relation.name, [])).records
             limited = await adapter.related_batch(model, relation.name, keys, limit=1)
             assert limited.truncated == bool(any(batch.records.values()))

@@ -132,6 +132,10 @@ class GinoAdapter(CheckedWrites, GinoRelations):
         schema = self.describe(model)
         validate_query(self, model, query)
         statement = model.query
+        if query.columns:
+            statement = statement.with_only_columns(
+                [getattr(model, name).label(name) for name in query.columns]
+            ).execution_options(model=None, return_model=False)
         conditions = list(
             predicates(
                 query,
@@ -159,7 +163,12 @@ class GinoAdapter(CheckedWrites, GinoRelations):
                 .offset(query.offset)
                 .limit(query.limit)
             )
-        return RecordPage([query.project(self._record(model, row)) for row in rows], total or 0)
+        records = (
+            [dict(row) for row in rows]
+            if query.columns
+            else [self._record(model, row) for row in rows]
+        )
+        return RecordPage(records, total or 0)
 
     async def list(self, model: type, query: Query) -> RecordPage:
         return await self._page(model, query)
