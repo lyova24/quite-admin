@@ -39,6 +39,11 @@ Reflection runs lazily after authentication and caches metadata.
 Call `await adapter.refresh()` after a host-managed migration to replace the cached schema.
 The library never creates tables or runs migrations itself.
 
+Registered reflected tables keep their options after `refresh()` and use the new
+column metadata. This also applies when discovery is disabled. The core supports an
+optional synchronous `resolve_model(model)` adapter method for replaceable descriptors;
+existing custom adapters do not need to implement it.
+
 MySQL [stores `BOOLEAN` as `TINYINT(1)`](https://dev.mysql.com/doc/refman/8.4/en/numeric-type-syntax.html).
 Reflection cannot distinguish it from an ordinary `TINYINT(1)`, so integer
 columns remain integers by default. Supply the intended SQLAlchemy type for ambiguous

@@ -306,15 +306,20 @@ class Admin:
             discovered = source.adapter.discover() if source.discover else ()
             if inspect.isawaitable(discovered):
                 discovered = await discovered
+            resolver = getattr(source.adapter, "resolve_model", None)
+            registered = {
+                resolver(model) if resolver is not None else model: options
+                for model, options in source.options.items()
+            }
             models = dict.fromkeys(discovered)
-            models.update(dict.fromkeys(source.options))
+            models.update(dict.fromkeys(registered))
             for model in models:
                 schema = source.adapter.describe(model)
                 original_slug = (
                     f"{source.namespace}-{schema.name}" if source.namespace else schema.name
                 )
                 options = self.collection_options.get(
-                    original_slug, source.options.get(model, ModelOptions())
+                    original_slug, registered.get(model, ModelOptions())
                 )
                 options.validate(schema)
                 slug = options.slug or schema.name

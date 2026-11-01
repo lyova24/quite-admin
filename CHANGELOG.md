@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Keep explicitly registered SQL tables and their options attached to fresh reflected
+  descriptors after refresh(), with and without automatic discovery.
+
 - Skip reflected tables without primary keys during auto-discovery, with an explicit
   warning, so unsupported tables cannot break other admin collections. Explicit
   descriptions still reject tables that cannot be addressed safely.

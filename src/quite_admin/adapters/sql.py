@@ -135,6 +135,12 @@ class SQLAdapter(CheckedWrites, SQLRelations):
                     await self._reflect()
         return tuple(table for table in self._metadata.tables.values() if table.primary_key.columns)
 
+    def resolve_model(self, model: Table) -> Table:
+        """Resolve registered table descriptors against the current reflected metadata."""
+        if self._metadata is None:
+            return model
+        return self._metadata.tables.get(model.fullname, model)
+
     def describe(self, model: Table) -> ModelSchema:
         fields = []
         for column in model.columns:

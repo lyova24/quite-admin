@@ -136,3 +136,52 @@ async def test_discovery_skips_keyless_tables_without_breaking_other_collections
             adapter.describe(keyless)
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("discover", [False, True])
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_registered_tables_follow_refreshed_metadata(
+    reflection_engine, auth, discover, framework
+):
+    from fastapi import FastAPI
+    from httpx import ASGITransport, AsyncClient
+    from litestar import Litestar
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import AsyncEngine
+
+    from quite_admin import Admin, ModelOptions
+
+    from .helpers import login
+
+    adapter = SQLAdapter(reflection_engine, include_tables=("reflection_types",))
+    (original,) = await adapter.discover()
+    admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False)
+    admin.add_adapter(adapter, discover=discover)
+    admin.register(original, options=ModelOptions(label="Registered types", exclude=("level",)))
+    statement = text("ALTER TABLE reflection_types ADD COLUMN note VARCHAR(40)")
+    if isinstance(reflection_engine, AsyncEngine):
+        async with reflection_engine.begin() as connection:
+            await connection.execute(statement)
+    else:
+        with reflection_engine.begin() as connection:
+            connection.execute(statement)
+    await adapter.refresh()
+    (current,) = await adapter.discover()
+    assert current is not original
+    resources = await admin.resources()
+    assert list(resources) == ["reflection_types"]
+    resource = resources["reflection_types"]
+    assert resource.model is current
+    assert resource.label == "Registered types"
+    assert resource.options.exclude == ("level",)
+    assert "note" in resource.schema.by_name
+    assert "note" not in adapter.describe(original).by_name
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    getattr(admin, "mount_" + framework)(host)
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        await login(client)
+        assert (await client.get("/admin/models/reflection_types/")).status_code == 200
+        form = await client.get("/admin/models/reflection_types/new")
+        assert form.status_code == 200
+        assert 'name="note"' in form.text
+        assert 'name="level"' not in form.text
