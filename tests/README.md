@@ -92,3 +92,24 @@ WebKit: **15 passed, 2 failed**. Both failures reproduced on an untouched archiv
 
 These browser regressions remain visible; no browser assertions were removed or
 weakened. Production code, dependency declarations and CI matrices are unchanged.
+
+## Integrated master: 2026-11-02
+
+The results above describe the isolated test optimization. After merging
+`refactor/less-code/tests`, `refactor/less-code/ui` and `refactor/less-code/python`
+with the updated 0.5.0 demo, the combined checkout passed:
+
+- Python 3.12: **796 passed, 2 skipped** (the optional GINO and picologging imports).
+- JavaScript/demo contracts: **34 passed**.
+- Chromium, Firefox and WebKit: **72 passed**, including both calendar regressions
+  described above, shared inline edits and persisted activity comparisons.
+- Ruff lint/format, modern public API baseline, release consistency and strict
+  EN/RU documentation build.
+- The isolated GINO query-compilation test and GINO public API baseline. Server
+  database contracts were not run as part of this local integration.
+
+Merge resolution preserves the demo's injected local request handler and enables
+boolean/JSON enhancement when serializing the shared field factory. The demo form
+test now checks the nullable boolean transition and persistence after saving.
+The history test uses the shared filter editor's actual `Apply filter` action;
+its user/date filtering assertions remain intact.

@@ -36,6 +36,12 @@ test('demo forms preserve microseconds and show JSON, TEXT and nullable boolean'
   await expect(page.locator('#field-starts_at')).toHaveValue(/\.123456$/);
   await expect(page.locator('#field-reminder_at')).toHaveValue('09:15:00.654321');
   await expect(page.locator('#field-description')).toHaveJSProperty('tagName','TEXTAREA');
+  const approved=page.locator('.form-field').filter({has:page.locator('#field-approved')});
+  await expect(approved.getByRole('switch')).toBeDisabled();
+  await approved.getByRole('button',{name:'None',exact:true}).click();
+  await expect(approved.getByRole('switch')).not.toBeChecked();
+  await approved.getByRole('switch').click();
+  await expect(page.locator('#field-approved')).toHaveValue('true');
   await page.getByRole('button',{name:'Choose date',exact:true}).first().click();
   const picker=page.locator('.form-date-panel:not([hidden])');
   await expect(picker.getByRole('button',{name:'Apply',exact:true})).toHaveCount(0);
@@ -46,13 +52,15 @@ test('demo forms preserve microseconds and show JSON, TEXT and nullable boolean'
   await page.getByRole('button',{name:'Save changes',exact:true}).click();
   await expect(page.locator('#field-starts_at')).toHaveValue(/\.123456$/);
   await expect(page.locator('#field-settings')).toHaveValue(/"capacity": 18/);
+  await expect(page.locator('#field-approved')).toHaveValue('true');
+  await expect(approved.getByRole('switch')).toBeChecked();
 });
 
 test('demo history reuses user filters and inclusive period controls in both views',async ({page})=>{
   await page.getByRole('link',{name:'Activity history',exact:true}).click();
   await page.getByRole('button',{name:'+ Add filter',exact:true}).click();
   await page.getByRole('button',{name:'Demo Admin ID: admin',exact:true}).click();
-  await page.getByRole('button',{name:'Apply',exact:true}).click();
+  await page.getByRole('button',{name:'Apply filter',exact:true}).click();
   await expect(page).toHaveURL(/subject=admin/);
   await page.locator('[data-history-period] summary').click();
   await page.getByRole('tab',{name:'Date range',exact:true}).click();
