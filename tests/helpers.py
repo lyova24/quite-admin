@@ -1,6 +1,8 @@
 import html
 import re
 
+BACKENDS = ("sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise")
+
 
 def csrf(response) -> str:
     token = re.search(r'name="__csrf" value="([^"]+)"', response.text)

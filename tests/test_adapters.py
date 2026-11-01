@@ -23,6 +23,7 @@ async def test_discovery_crud_search_pagination_and_rollback(backend):
     assert first["count"] == 0
     second = await adapter.create(model, {"name": "coffee", "active": False})
     key = schema.parse_key(schema.record_key(first))
+    assert key == {"id": first["id"]}
     assert await adapter.get(model, key) == first
     updated = await adapter.update(model, key, {"name": "tea", "active": False, "note": "hello"})
     assert updated["note"] == "hello"
@@ -58,30 +59,7 @@ async def test_literal_search_wildcards(backend):
     assert result.total == 1
 
 
-async def test_schema_keys_are_typed(backend):
-    adapter, model = backend
-    schema = adapter.describe(model)
-    record = await adapter.create(model, {"name": "record"})
-    assert schema.parse_key(schema.record_key(record)) == {"id": record["id"]}
-
-
-@pytest.mark.parametrize(
-    ("filters", "expected"),
-    [
-        ((Filter("count", "eq", 2),), ["b"]),
-        ((Filter("count", "lt", 2),), ["a"]),
-        ((Filter("count", "lte", 2),), ["a", "b"]),
-        ((Filter("count", "gt", 2),), ["c"]),
-        ((Filter("count", "gte", 2),), ["b", "c"]),
-        ((Filter("count", "in", (1, 3)),), ["a", "c"]),
-        ((Filter("count", "in", ()),), []),
-        ((Filter("note", "is_null", True),), ["a", "c"]),
-        ((Filter("note", "is_null", False),), ["b"]),
-        ((Filter("note", "eq", None),), ["a", "c"]),
-        ((Filter("count", "gte", 2), Filter("active", "eq", True)), ["c"]),
-    ],
-)
-async def test_typed_filters_and_projection(backend, filters, expected):
+async def test_typed_filters_and_projection(backend):
     adapter, model = backend
     for count, name in enumerate(("a", "b", "c"), start=1):
         await adapter.create(
@@ -93,27 +71,37 @@ async def test_typed_filters_and_projection(backend, filters, expected):
                 "note": "present" if name == "b" else None,
             },
         )
-    result = await adapter.list(model, Query(filters=filters, columns=("name",), order_by="name"))
-    assert result.total == len(expected)
-    assert result.records == [{"name": name} for name in expected]
+    for filters, expected in (
+        ((Filter("count", "eq", 2),), ["b"]),
+        ((Filter("count", "lt", 2),), ["a"]),
+        ((Filter("count", "lte", 2),), ["a", "b"]),
+        ((Filter("count", "gt", 2),), ["c"]),
+        ((Filter("count", "gte", 2),), ["b", "c"]),
+        ((Filter("count", "in", (1, 3)),), ["a", "c"]),
+        ((Filter("count", "in", ()),), []),
+        ((Filter("note", "is_null", True),), ["a", "c"]),
+        ((Filter("note", "is_null", False),), ["b"]),
+        ((Filter("note", "eq", None),), ["a", "c"]),
+        ((Filter("count", "gte", 2), Filter("active", "eq", True)), ["c"]),
+    ):
+        result = await adapter.list(
+            model, Query(filters=filters, columns=("name",), order_by="name")
+        )
+        assert result.total == len(expected), filters
+        assert result.records == [{"name": name} for name in expected], filters
 
 
-@pytest.mark.parametrize(
-    "query",
-    [
-        Query(filters=(Filter("name", "eq", "x' OR 1=1 --"),), columns=("name",)),
-    ],
-)
-async def test_filter_values_are_bound(backend, query):
+async def test_filter_values_are_bound(backend):
     adapter, model = backend
     await adapter.create(model, {"name": "ordinary"})
+    query = Query(filters=(Filter("name", "eq", "x' OR 1=1 --"),), columns=("name",))
     assert (await adapter.list(model, query)).total == 0
     assert (await adapter.list(model, Query())).total == 1
 
 
-@pytest.mark.parametrize(
-    "query",
-    [
+async def test_rejects_filter_operators_and_column_expressions(backend):
+    adapter, model = backend
+    for query in (
         Query(filters=(Filter("name) OR 1=1", "eq", "x"),)),
         Query(filters=(Filter("name", "raw_sql", "x"),)),
         Query(filters=(Filter("count", "eq", "1 OR 1=1"),)),
@@ -121,12 +109,9 @@ async def test_filter_values_are_bound(backend, query):
         Query(filters=(Filter("name", "is_null", "true"),)),
         Query(columns=("name FROM items; DROP TABLE items",)),
         Query(columns=("unknown",)),
-    ],
-)
-async def test_rejects_filter_operators_and_column_expressions(backend, query):
-    adapter, model = backend
-    with pytest.raises(ValueError):
-        await adapter.list(model, query)
+    ):
+        with pytest.raises(ValueError):
+            await adapter.list(model, query)
 
 
 async def test_service_adapter_keeps_writes_behind_business_rules(backend):
@@ -150,9 +135,11 @@ async def test_service_adapter_keeps_writes_behind_business_rules(backend):
     assert (await service.update(model, key, {"count": 2}))["count"] == 2
 
 
-@pytest.mark.parametrize(
-    ("op", "value", "expected"),
-    [
+async def test_text_filter_contract_is_literal_and_case_insensitive(backend):
+    adapter, model = backend
+    for name in ("Alex Smith", "alex Brown", "Alice Alex", "A%lex", "A_lex", "A!lex"):
+        await adapter.create(model, {"name": name})
+    for op, value, expected in (
         ("icontains", "alex", {"Alex Smith", "alex Brown", "Alice Alex"}),
         ("istartswith", "alex", {"Alex Smith", "alex Brown"}),
         ("iendswith", "alex", {"Alice Alex"}),
@@ -161,15 +148,10 @@ async def test_service_adapter_keeps_writes_behind_business_rules(backend):
         ("icontains", "_", {"A_lex"}),
         ("icontains", "!", {"A!lex"}),
         ("ne", "Alex Smith", {"alex Brown", "Alice Alex", "A%lex", "A_lex", "A!lex"}),
-    ],
-)
-async def test_text_filter_contract_is_literal_and_case_insensitive(backend, op, value, expected):
-    adapter, model = backend
-    for name in ("Alex Smith", "alex Brown", "Alice Alex", "A%lex", "A_lex", "A!lex"):
-        await adapter.create(model, {"name": name})
-    result = await adapter.list(model, Query(filters=(Filter("name", op, value),)))
-    assert {row["name"] for row in result.records} == expected
-    assert result.total == len(expected)
+    ):
+        result = await adapter.list(model, Query(filters=(Filter("name", op, value),)))
+        assert {row["name"] for row in result.records} == expected, (op, value)
+        assert result.total == len(expected), (op, value)
     # NULL is never silently included by an exclusion predicate.
     result = await adapter.list(model, Query(filters=(Filter("note", "not_icontains", "x"),)))
     assert result.total == 0

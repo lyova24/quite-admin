@@ -12,8 +12,8 @@ from .helpers import csrf, login, revision
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])
-async def test_localized_crud_and_theme_with_nested_mounts(auth, backend, framework):
-    adapter, model = backend
+async def test_localized_crud_and_theme_with_nested_mounts(auth, web_backend, framework):
+    adapter, model = web_backend
     russian = Admin(
         auth=auth,
         secret_key="s" * 32,

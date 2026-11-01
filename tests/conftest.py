@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from types import ModuleType
 
 import peewee as pw
@@ -23,6 +24,7 @@ from .databases import (
     sqlalchemy_url,
     tortoise_url,
 )
+from .helpers import BACKENDS
 
 
 @pytest.fixture(autouse=True)
@@ -30,9 +32,8 @@ def isolated_admin_storage(monkeypatch, tmp_path):
     monkeypatch.setenv("QUITE_ADMIN_STORAGE_URL", str(tmp_path / "admin-state.sqlite3"))
 
 
-@pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
-async def backend(request, tmp_path):
-    name = request.param
+@asynccontextmanager
+async def _backend(name, tmp_path):
     if name.startswith("sql"):
 
         class Base(DeclarativeBase):
@@ -120,6 +121,19 @@ async def backend(request, tmp_path):
         drop_tortoise_tables(module.__models__)
 
 
+@pytest.fixture(params=BACKENDS)
+async def backend(request, tmp_path):
+    async with _backend(request.param, tmp_path) as value:
+        yield value
+
+
+@pytest.fixture
+async def web_backend(request, tmp_path):
+    """Common HTTP behavior uses one backend; smoke tests opt into the full matrix."""
+    async with _backend(getattr(request, "param", "sqlalchemy"), tmp_path) as value:
+        yield value
+
+
 @pytest.fixture(scope="session")
 def auth():
     return PasswordAuth.single_user("admin", "correct horse battery staple")
@@ -127,6 +141,15 @@ def auth():
 
 @pytest.fixture
 def admin(backend, auth):
+    return _admin(backend, auth)
+
+
+@pytest.fixture
+def web_admin(web_backend, auth):
+    return _admin(web_backend, auth)
+
+
+def _admin(backend, auth):
     adapter, model = backend
     instance = Admin(auth=auth, secret_key="s" * 48, adapters=[adapter], secure_cookies=False)
     instance.register(

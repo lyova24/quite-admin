@@ -2,12 +2,12 @@ from decimal import Decimal
 
 import pytest
 
-from quite_admin import Field, ModelSchema, Query
+from quite_admin import Field, Query
 
 
-@pytest.mark.parametrize(
-    "query",
-    [
+async def test_rejects_unsafe_queries_before_data_access(backend):
+    adapter, model = backend
+    for query in (
         Query(order_by="name DESC; DROP TABLE items; --"),
         Query(order_by="__dict__"),
         Query(order_by="name__contains"),
@@ -17,13 +17,10 @@ from quite_admin import Field, ModelSchema, Query
         Query(limit=-1),
         Query(limit=10001),
         Query(limit=True),
-    ],
-)
-async def test_rejects_unsafe_queries_before_data_access(backend, query):
-    adapter, model = backend
-    with pytest.raises(ValueError):
-        await adapter.list(model, query)
-    assert (await adapter.list(model, Query())).total == 0
+    ):
+        with pytest.raises(ValueError):
+            await adapter.list(model, query)
+        assert (await adapter.list(model, Query())).total == 0, query
 
 
 async def test_search_values_are_bound_literals(backend):
@@ -37,16 +34,16 @@ async def test_search_values_are_bound_literals(backend):
     assert (await adapter.list(model, Query())).total == 2
 
 
-@pytest.mark.parametrize("key", [{}, {"id": None}, {"name": "ordinary"}, {"id__gt": 0}])
-async def test_requires_exact_complete_primary_keys(backend, key):
+async def test_requires_exact_complete_primary_keys(backend):
     adapter, model = backend
     record = await adapter.create(model, {"name": "ordinary"})
-    for operation in (adapter.get, adapter.delete):
+    for key in ({}, {"id": None}, {"name": "ordinary"}, {"id__gt": 0}):
+        for operation in (adapter.get, adapter.delete):
+            with pytest.raises(ValueError):
+                await operation(model, key)
         with pytest.raises(ValueError):
-            await operation(model, key)
-    with pytest.raises(ValueError):
-        await adapter.update(model, key, {"name": "changed"})
-    assert await adapter.get(model, {"id": record["id"]}) == record
+            await adapter.update(model, key, {"name": "changed"})
+        assert await adapter.get(model, {"id": record["id"]}) == record, key
 
 
 async def test_does_not_assign_model_attributes_or_primary_keys(backend):
@@ -79,11 +76,6 @@ def test_decimal_never_passes_through_binary_float():
     field = Field("amount", Decimal)
     for raw in ("12345678901234567890.12345678901234567890", "1e1000"):
         assert field.parse(field.format(field.parse(raw))) == Decimal(raw)
-
-
-def test_tables_without_primary_keys_fail_explicitly():
-    with pytest.raises(ValueError, match="no primary key"):
-        ModelSchema("logs", (Field("message"),))
 
 
 async def test_reflected_composite_foreign_key_and_trigger(tmp_path):

@@ -6,10 +6,10 @@ from litestar import Litestar
 from quite_admin import Admin, Filter, ModelOptions, Query, RelationAdapter
 from quite_admin.errors import Conflict
 
-from .helpers import csrf, login, revision
+from .helpers import BACKENDS, csrf, login, revision
 
 
-@pytest.fixture(params=["sqlalchemy", "sqlalchemy_async", "sql", "sql_async", "peewee", "tortoise"])
+@pytest.fixture(params=BACKENDS)
 async def related_backend(request, tmp_path):
     from types import ModuleType
 

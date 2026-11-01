@@ -7,16 +7,16 @@ from litestar.middleware.logging import LoggingMiddlewareConfig
 
 from quite_admin import ModelOptions, Page
 
-from .helpers import csrf, login, revision
+from .helpers import BACKENDS, csrf, login, revision
 
 
 @pytest.fixture(params=["fastapi", "litestar", "litestar_logging"])
-def host(request, admin):
+def host(request, web_admin):
     if request.param == "fastapi":
         app = FastAPI()
-        admin.mount_fastapi(app)
+        web_admin.mount_fastapi(app)
     elif request.param == "litestar":
-        app = Litestar(route_handlers=[admin.litestar_route()], debug=True)
+        app = Litestar(route_handlers=[web_admin.litestar_route()], debug=True)
     else:
         # Exercise the real middleware's default body-reading behavior, with a
         # silent sink because bodies include credentials and CSRF in this test.
@@ -27,7 +27,7 @@ def host(request, admin):
             root={"handlers": ["silent"], "level": "INFO"},
         )
         app = Litestar(
-            route_handlers=[admin.litestar_route()],
+            route_handlers=[web_admin.litestar_route()],
             logging_config=config,
             middleware=[LoggingMiddlewareConfig().middleware],
         )
@@ -42,6 +42,7 @@ async def client(host):
         yield client
 
 
+@pytest.mark.parametrize("web_backend", BACKENDS, indirect=True)
 async def test_full_browser_flow(client):
     response = await client.get("/admin/models/items/")
     assert response.status_code == 303
@@ -67,11 +68,9 @@ async def test_full_browser_flow(client):
     assert result.status_code == 303, result.text
     detail_url = result.headers["location"]
     assert detail_url.startswith("/admin/models/items/")
-    detail = await client.get(detail_url)
-    assert detail.status_code == 200, detail.text
-    assert "A cup of tea" in detail.text
     edit = await client.get(detail_url)
-    assert edit.status_code == 200
+    assert edit.status_code == 200, edit.text
+    assert "A cup of tea" in edit.text
     result = await client.post(
         detail_url,
         data={
@@ -147,11 +146,11 @@ async def test_csrf_mass_assignment_and_validation(client):
     assert (await client.post("/admin/models/items/new", json=base)).status_code == 415
 
 
-async def test_permissions_checked_for_direct_requests(client, admin, backend):
-    adapter, model = backend
+async def test_permissions_checked_for_direct_requests(client, web_admin, web_backend):
+    adapter, model = web_backend
     record = await adapter.create(model, {"name": "visible"})
     key = adapter.describe(model).record_key(record)
-    admin.register(
+    web_admin.register(
         model,
         options=ModelOptions(
             can_create=False,
@@ -168,8 +167,8 @@ async def test_permissions_checked_for_direct_requests(client, admin, backend):
     assert (await client.get(f"/admin/models/items/{key}")).status_code == 200
 
 
-async def test_one_record_page_handles_editing_and_read_only_access(client, admin, backend):
-    adapter, model = backend
+async def test_one_record_page_handles_editing_and_read_only_access(client, web_admin, web_backend):
+    adapter, model = web_backend
     record = await adapter.create(model, {"name": "A single record page"})
     key = adapter.describe(model).record_key(record)
     path = f"/admin/models/items/{key}"
@@ -184,7 +183,7 @@ async def test_one_record_page_handles_editing_and_read_only_access(client, admi
         path, data={"__csrf": csrf(page), "__revision": revision(page), "name": "Updated in place"}
     )
     assert saved.status_code == 303 and saved.headers["location"] == path
-    admin.register(
+    web_admin.register(
         model, options=ModelOptions(can_edit=False, can_delete=False, exclude=("internal",))
     )
     readonly = await client.get(path)
@@ -199,10 +198,12 @@ async def test_one_record_page_handles_editing_and_read_only_access(client, admi
     ] == "Updated in place"
 
 
-async def test_list_only_permission_does_not_offer_record_navigation(client, admin, backend):
-    adapter, model = backend
+async def test_list_only_permission_does_not_offer_record_navigation(
+    client, web_admin, web_backend
+):
+    adapter, model = web_backend
     await adapter.create(model, {"name": "List only"})
-    admin.register(
+    web_admin.register(
         model, options=ModelOptions(permission=lambda request, identity, action: action == "list")
     )
     await login(client)
@@ -212,21 +213,21 @@ async def test_list_only_permission_does_not_offer_record_navigation(client, adm
     assert "delete-action" not in page.text
 
 
-async def test_custom_templates_pages_are_authenticated(client, admin, tmp_path):
+async def test_custom_templates_pages_are_authenticated(client, web_admin, tmp_path):
     from jinja2 import FileSystemLoader
 
     (tmp_path / "report.html").write_text(
         '{% extends "quite_admin/base.html" %}{% block content %}'
         "<h1>{{ page.title }}</h1><p>{{ count }}</p><p>{{ example }}</p>{% endblock %}"
     )
-    admin.templates.env.loader.loaders.insert(0, FileSystemLoader(tmp_path))
+    web_admin.templates.env.loader.loaders.insert(0, FileSystemLoader(tmp_path))
 
     async def context(request):
         assert request.state.identity.subject == "admin"
         return {"count": 42, "example": "<b>escaped</b>"}
 
-    admin.add_page(Page("report", "Weekly report", "report.html", context=context))
-    admin.add_page(Page("private", "Hidden", "report.html", permission=lambda *args: False))
+    web_admin.add_page(Page("report", "Weekly report", "report.html", context=context))
+    web_admin.add_page(Page("private", "Hidden", "report.html", permission=lambda *args: False))
     assert (await client.get("/admin/pages/report")).status_code == 303
     await login(client)
     report = await client.get("/admin/pages/report")
@@ -239,12 +240,12 @@ async def test_custom_templates_pages_are_authenticated(client, admin, tmp_path)
     assert (await client.get("/admin/pages/missing")).status_code == 404
 
 
-async def test_search_clear_keeps_sort_and_page_size(client, backend):
+async def test_search_clear_keeps_sort_and_page_size(client, web_backend):
     import re
     from html import unescape
     from urllib.parse import parse_qs, urlsplit
 
-    adapter, model = backend
+    adapter, model = web_backend
     await adapter.create(model, {"name": "First match"})
     await adapter.create(model, {"name": "Second match"})
     await login(client)

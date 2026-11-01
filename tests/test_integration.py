@@ -13,8 +13,8 @@ from .helpers import csrf, login
 
 
 @pytest.mark.parametrize("framework", ["fastapi", "litestar"])
-async def test_nested_mount_and_reverse_proxy_prefix(auth, framework, backend):
-    adapter, model = backend
+async def test_nested_mount_and_reverse_proxy_prefix(auth, framework, web_backend):
+    adapter, model = web_backend
     admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False, adapters=[adapter])
     if framework == "fastapi":
         host = FastAPI()
