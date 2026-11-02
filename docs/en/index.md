@@ -1,6 +1,6 @@
 # quite-admin
 
-Version **0.5.0** (unreleased): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
+Version **0.5.0** (2026-11-02): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
 Native ORM adapters: **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x**.
 Also supports SQL reflection without model imports and custom service adapters.
 Collections, fields and forms come from your existing SQL tables or ORM models.
@@ -22,9 +22,9 @@ No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT li
 | Adapt colors, density and templates | [Interface customization](styling.md) |
 | Check supported databases and limits | [Data access and compatibility](data-safety.md) |
 
-**0.5.0 is unreleased.** The source checkout adds [managed service storage and activity history](storage.md),
+**0.5.0** adds [managed service storage and activity history](storage.md),
 shared date/time controls, count-free cursor lists and SQL read deadlines. The [interface tour](interface-tour.md)
-shows the current screens. The latest finalized release remains **0.4.1** (2026-11-01).
+shows the current screens. The release was finalized on **2026-11-02**.
 
 | New workflow | Where to try or configure it |
 | --- | --- |
@@ -76,7 +76,7 @@ Use English or Russian, configure the [identity and palette](customization.md), 
 
 ## Compatibility and development
 
-Version **0.5.0** is unreleased; **0.4.1** was finalized on **2026-11-01**. Check
+Version **0.5.0** was finalized on **2026-11-02**. Check
 [compatibility evidence and limits](data-safety.md), [development](development.md) and
 [release policy](releases.md) before adopting it.
 

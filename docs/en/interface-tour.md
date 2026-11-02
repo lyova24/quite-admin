@@ -1,6 +1,6 @@
 # Interface tour: 0.5
 
-This tour covers the **unreleased 0.5.0** source checkout. After deployment, open the
+This tour covers **0.5.0**. Open the
 [browser demo](https://lyova24.github.io/quite-admin/demo/) with `admin` / `admin`.
 Use **Reset demo** for the initial fictional records. See [demo coverage](browser-demo.md)
 for the features that need the Python application.
