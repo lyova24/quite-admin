@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Build the static demo before browser-server readiness checks. Allow cold CI
+  fixtures up to 120 seconds to start, with named, unbuffered server logs and
+  HTTP readiness diagnostics; keep the 30-second local limit and all browser tests.
+
 ## 0.5.0 — 2026-11-02
 
 ### Added

@@ -43,7 +43,9 @@ def test_release_requires_matching_versions_tag_and_finalized_changelog(release_
     with pytest.raises(ValueError, match="Finalize the changelog"):
         check(release_tree, "v" + version)
     path = release_tree / "CHANGELOG.md"
-    path.write_text(path.read_text().replace("Unreleased", "2026-10-29", 1))
+    path.write_text(
+        path.read_text().replace(f"## {version} — Unreleased", f"## {version} — 2026-10-29", 1)
+    )
     assert check(release_tree, "v" + version)[0] == version
     path = release_tree / "README.md"
     path.write_text(path.read_text().replace(f"Version: {version}", "Version: 99.0.0"))

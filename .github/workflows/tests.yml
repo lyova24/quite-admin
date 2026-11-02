@@ -88,6 +88,8 @@ jobs:
       - run: npm ci
       - run: npx --no-install playwright install --with-deps ${{ matrix.browser }}
       - run: npm run browser:test -- --project=${{ matrix.browser }}
+        env:
+          DEBUG: pw:webserver
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

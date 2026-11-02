@@ -103,7 +103,10 @@ examples synchronized between translations.
 
 ## Browser and installed-package checks
 
-`npm run browser:test` starts a disposable local fixture and runs the browser suite.
+`npm run browser:test` builds the static demo, starts disposable local servers and
+runs the browser suite. Demo preparation finishes before the server-readiness timers
+start. CI allows up to 120 seconds for each server to become ready and logs their
+startup output and HTTP readiness probes; local runs retain a 30-second limit.
 Install the pinned browsers first with `npx playwright install --with-deps`.
 The fixture uses only fictional data in a temporary SQLite database. Browser jobs run
 Chromium, Firefox and WebKit in CI and retain failure screenshots/traces.

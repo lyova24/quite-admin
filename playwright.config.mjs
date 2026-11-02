@@ -1,5 +1,12 @@
 import {defineConfig} from '@playwright/test';
 
+const serverOptions = {
+  reuseExistingServer: false,
+  timeout: process.env.CI ? 120000 : 30000,
+  stdout: 'pipe',
+  stderr: 'pipe',
+};
+
 export default defineConfig({
   testDir: './tests/browser',
   fullyParallel: true,
@@ -18,14 +25,14 @@ export default defineConfig({
       ? {launchOptions:{executablePath:process.env.QUITE_ADMIN_BROWSER_EXECUTABLE}} : {})},
   })),
   webServer: [{
-    command: 'uv run --no-sync uvicorn tests.browser_app:app --host 127.0.0.1 --port 8127 --log-level warning',
+    ...serverOptions,
+    name: 'ASGI fixture',
+    command: 'uv run --no-sync python -u -m uvicorn tests.browser_app:app --host 127.0.0.1 --port 8127 --log-level info',
     url: 'http://127.0.0.1:8127/health',
-    reuseExistingServer: false,
-    timeout: 30000,
   }, {
-    command: 'uv run --no-sync python scripts/build_demo.py && uv run --no-sync python -m http.server 8128 --bind 127.0.0.1 --directory build/docs/demo',
+    ...serverOptions,
+    name: 'Browser demo',
+    command: 'uv run --no-sync python -u -m http.server 8128 --bind 127.0.0.1 --directory build/docs/demo',
     url: 'http://127.0.0.1:8128/',
-    reuseExistingServer: false,
-    timeout: 30000,
   }],
 });
