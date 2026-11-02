@@ -83,7 +83,7 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, web_backend, fr
         assert "--accent:#2563eb" in ru_css.text
         assert "--bg:#0f172a" in ru_css.text
         assert "--paper:#172033" in ru_css.text
-        assert "--accent:#3e6656" in en_css.text
+        assert "--accent:#3395fd" in en_css.text
         assert "#2563eb" not in en_css.text
 
         bad = await client.post(
@@ -247,11 +247,45 @@ async def test_custom_logo_is_served_safely_under_a_proxy_prefix(auth, tmp_path,
     ) as client:
         page = await client.get("/proxy/control/login")
         assert 'src="/proxy/control/logo"' in page.text
+        assert 'href="/proxy/control/logo"' in page.text
+        assert "social-preview.png" not in page.text
         logo = await client.get("/proxy/control/logo?path=pyproject.toml")
         assert logo.status_code == 200 and logo.text == image.read_text()
         assert logo.headers["content-type"] == "image/svg+xml"
         assert logo.headers["x-content-type-options"] == "nosniff"
         assert "script-src 'none'" in logo.headers["content-security-policy"]
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_default_branding_assets_and_palette_under_a_proxy_prefix(auth, framework):
+    admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False)
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    if framework == "fastapi":
+        admin.mount_fastapi(host, "/control")
+    else:
+        admin.mount_litestar(host, "/control")
+    prefix = "/proxy/control"
+    async with AsyncClient(
+        transport=ASGITransport(app=host, root_path="/proxy"), base_url="http://test"
+    ) as client:
+        page = await client.get(prefix + "/login")
+        assert page.status_code == 200
+        assert f'href="{prefix}/assets/logo.svg"' in page.text
+        assert "social-preview" not in page.text
+        assert "login-cover" not in page.text
+        assert "style-src 'self'" in page.headers["content-security-policy"]
+        logo = await client.get(prefix + "/assets/logo.svg")
+        assert logo.status_code == 200
+        assert logo.headers["content-type"].startswith("image/svg+xml")
+        palette = await client.get(prefix + "/theme.css")
+        assert "--accent:#3395fd" in palette.text
+        assert "--bg:#181818" in palette.text
+        assert "color-scheme:dark" in palette.text
+        assert "#3395fd" in logo.text
+        await login(client, prefix)
+        home = await client.get(prefix + "/")
+        assert 'class="brand-mark"' in home.text
+        assert "social-preview.png" not in home.text
 
 
 def test_logo_configuration_rejects_missing_files_and_non_images(auth, tmp_path):

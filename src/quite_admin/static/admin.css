@@ -1,21 +1,21 @@
 /* Shared interface tokens. /theme.css supplies the instance's color palette. */
 :root {
-  --bg: #f5f6f8;
-  --paper: #ffffff;
-  --text: #20252b;
-  --muted: #626b76;
-  --line: #dce0e5;
-  --accent: #3e6656;
-  --accent-hover: #38594d;
-  --accent-soft: #f0f3f1;
-  --accent-border: #adbcb5;
-  --on-accent: #ffffff;
-  --danger: #b43e3e;
-  --danger-soft: #fcf0f0;
-  --danger-border: #e0b5b5;
-  --on-danger: #ffffff;
-  --subtle: #f7f8f9;
-  --hover: #f2f4f5;
+  --bg: #181818;
+  --paper: #202020;
+  --text: #fefefe;
+  --muted: #b7b2bf;
+  --line: #3b3b45;
+  --accent: #3395fd;
+  --accent-hover: #5caafd;
+  --accent-soft: #222932;
+  --accent-border: #39567c;
+  --on-accent: #111111;
+  --danger: #ff8798;
+  --danger-soft: #32282a;
+  --danger-border: #76525e;
+  --on-danger: #111111;
+  --subtle: #242424;
+  --hover: #292929;
   --text-xs: 11px;
   --text-sm: 12px;
   --text-base: 12px;
@@ -56,8 +56,8 @@ h2 { font-size: var(--text-section); line-height: 1.4; font-weight: 600; }
 .shell { display: grid; grid-template-columns: 184px minmax(0, 1fr); min-height: 100vh; }
 .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; padding: var(--space-6) var(--space-3); background: var(--paper); border-right: var(--border); }
 .brand { display: flex; align-items: center; gap: var(--space-3); min-width: 0; margin: 0 var(--space-3) var(--space-8); font-size: var(--text-section); font-weight: 650; letter-spacing: -.35px; overflow-wrap: anywhere; }
-.brand-mark { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 30px; height: 30px; padding-bottom: 3px; border-radius: var(--radius-control); background: var(--accent); color: var(--on-accent); font-size: 23px; font-weight: 500; letter-spacing: -2px; }
-.brand-mark.large { width: 40px; height: 40px; margin-bottom: var(--space-6); font-size: 30px; }
+.brand-mark { display: inline-block; flex-shrink: 0; width: 30px; height: 30px; background: url("./logo.svg") center / contain no-repeat; }
+.brand-mark.large { width: 40px; height: 40px; margin-bottom: var(--space-6); }
 .brand-logo { display: block; flex-shrink: 0; object-fit: contain; }
 .brand-logo.large { width: 40px; height: 40px; margin-bottom: var(--space-6); }
 .nav-label { display: flex; justify-content: space-between; margin: var(--space-6) var(--space-3) var(--space-2); color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .8px; }
@@ -361,6 +361,9 @@ label, .field-label { display: block; margin-bottom: 6px; font-size: var(--text-
 .shell-login { display: block; background: var(--bg); }
 .shell-login .content { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: var(--space-8) var(--space-6); }
 .login-card { width: 100%; max-width: 400px; padding: var(--space-8); border: var(--border); border-radius: var(--radius); background: var(--paper); }
+.login-brand { display: flex; align-items: center; gap: var(--space-3); }
+.login-brand h1 { min-width: 0; }
+.login-brand .brand-mark, .login-brand .brand-logo { margin-bottom: 0; }
 .login-card .subtitle { margin-bottom: var(--space-6); }
 .login-card .stack { margin-top: var(--space-6); }
 .stack { display: flex; flex-direction: column; gap: var(--space-5); }
@@ -702,14 +705,12 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .list-create { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; }
 @media (max-width: 480px) { .list-tools { flex-wrap: wrap; } .list-tools .list-query-form { flex: 1 1 160px; } }
 
-/* Keep list edges aligned at every density, including custom token overrides. */
-.listing-page .content { max-width: none; padding: var(--space-5) var(--space-4) var(--space-6); }
+/* Lists share the page gutters and reading width of the other admin screens. */
 .listing-page .list-heading { margin-bottom: var(--space-4); }
 .listing-page .list-table-scroll th:first-child, .listing-page .list-table-scroll td:first-child { padding-inline-start: var(--space-3); }
 .listing-page .list-table-scroll th:last-child, .listing-page .list-table-scroll td:last-child { padding-inline-end: var(--space-3); }
 .listing-page .active-filters { padding-inline: 0; }
 .listing-page .pagination { padding-inline: 0; min-height: var(--control-height); }
-@media (max-width: 480px) { .listing-page .content { padding-inline: var(--space-3); } }
 .listing-page .list-table-scroll { position: relative; isolation: isolate; }
 
 .list-toggle-control { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--space-1); vertical-align: middle; }

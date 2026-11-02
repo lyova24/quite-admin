@@ -13,7 +13,7 @@ items:
         href: quickstart.md
       - name: Browser demo
         href: browser-demo.md
-      - name: "Interface tour: 0.5"
+      - name: "Interface tour: 0.5.2"
         href: interface-tour.md
       - name: Integration and adapters
         href: integration.md

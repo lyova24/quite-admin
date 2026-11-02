@@ -1,12 +1,12 @@
 # quite-admin
 
-Version **0.5.0** (2026-11-02): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
+Version **0.5.2** (2026-11-02): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
 Native ORM adapters: **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x**.
 Also supports SQL reflection without model imports and custom service adapters.
 Collections, fields and forms come from your existing SQL tables or ORM models.
 No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT licensed.
 
-[Русский](../ru/index.md) · [Quick start](quickstart.md) · [Browser demo](browser-demo.md) · [Interface tour: 0.5](interface-tour.md)
+[Русский](../ru/index.md) · [Quick start](quickstart.md) · [Browser demo](browser-demo.md) · [Interface tour: 0.5.2](interface-tour.md)
 
 **At a glance:** CRUD and inline cell editing · activity history with before/after values · search, sorting and typed/relationship filters · atomic 1:1/1:N/M:N editors · stale-edit detection · shared date/time controls · JSON highlighting · grouped sidebar · interactive database schema · field permissions · authentication/CSRF · EN/RU UI · themes/templates · write hooks and record actions.
 
@@ -25,6 +25,10 @@ No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT li
 **0.5.0** adds [managed service storage and activity history](storage.md),
 shared date/time controls, count-free cursor lists and SQL read deadlines. The [interface tour](interface-tour.md)
 shows the current screens. The release was finalized on **2026-11-02**.
+
+The **0.5.2** source uses the new charcoal-and-blue [default palette and logo](customization.md),
+consistent page gutters and an aligned sign-in header. The screenshots throughout these guides
+show that interface.
 
 | New workflow | Where to try or configure it |
 | --- | --- |
@@ -76,7 +80,7 @@ Use English or Russian, configure the [identity and palette](customization.md), 
 
 ## Compatibility and development
 
-Version **0.5.0** was finalized on **2026-11-02**. Check
+The last finalized release is **0.5.2** (**2026-11-02**). Check
 [compatibility evidence and limits](data-safety.md), [development](development.md) and
 [release policy](releases.md) before adopting it.
 

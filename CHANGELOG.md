@@ -1,8 +1,32 @@
 # Changelog
 
-## Unreleased
+## 0.5.2 — 2026-11-02
+
+### Fixed
+
+- Use the same content padding and maximum width on collection listings as on
+  Overview, Database schema and Activity history, including narrow screens.
+- Align the sign-in logo beside the title in one row, for both the default mark
+  and custom logos. Apply the same layout to the standalone browser demo.
 
 ### Changed
+
+- Show the social preview and live GitHub release, CI and PyPI badges in README.
+  Give Diplodoc matching dark/light palettes and dark mode on the first visit,
+  while retaining its theme switcher and the current tab's selected mode.
+- Refresh all documentation screenshots from the 0.5.2 Python example, including
+  sign-in, overview, filters, forms, relationships, calendars, history and schema.
+  Update the English/Russian interface tour and replace links to the old light-theme
+  video with the current tour.
+- Use a neutral charcoal dark palette with near-white text and vivid blue accents.
+  Replace the default q mark and favicon. Retain the compact controls and sign-in
+  card. Add a separate 1280×640 GitHub social
+  preview in `.github/social-preview.png` with a clean background and the
+  “Fast to set up. Simple to use.” tagline; do not display it in the admin.
+- Change the `Theme()` color defaults; existing explicit palettes remain supported.
+  To retain the previous appearance, set all previous colors explicitly as described
+  in the EN/RU customization guide. Preserve template API 1 and the original API
+  baselines; the API check accepts only the documented old/new color default pairs.
 
 - Build the static demo before browser-server readiness checks. Allow cold CI
   fixtures up to 120 seconds to start, with named, unbuffered server logs and

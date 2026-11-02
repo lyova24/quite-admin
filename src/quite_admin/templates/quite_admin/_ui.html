@@ -2,7 +2,7 @@
 {% macro csrf_input() -%}<input type="hidden" name="__csrf" value="{{ csrf }}">{%- endmacro %}
 
 {% macro brand_mark(large=false) -%}
-{% if logo_url %}<img class="brand-logo{% if large %} large{% endif %}" src="{{ logo_url }}" width="{{ 48 if large else 32 }}" height="{{ 48 if large else 32 }}" alt="">{% else %}<span class="brand-mark{% if large %} large{% endif %}">q.</span>{% endif %}
+{% if logo_url %}<img class="brand-logo{% if large %} large{% endif %}" src="{{ logo_url }}" width="{{ 48 if large else 32 }}" height="{{ 48 if large else 32 }}" alt="">{% else %}<span class="brand-mark{% if large %} large{% endif %}" aria-hidden="true"></span>{% endif %}
 {%- endmacro %}
 
 {% macro nav_link(href, label, active=false) -%}

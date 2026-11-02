@@ -3,8 +3,8 @@
 {% from "quite_admin/_ui.html" import csrf_input, brand_mark with context %}
 {% block content %}
 <section class="login-card">
-  {{ brand_mark(true) }}
-  <h1>{{ title }}</h1>{% if description %}<p class="subtitle">{{ description }}</p>{% endif %}
+  <div class="login-brand">{{ brand_mark(true) }}<h1>{{ title }}</h1></div>
+  {% if description %}<p class="subtitle">{{ description }}</p>{% endif %}
   {% if error %}<div class="alert" role="alert">{{ t(error) }}</div>{% endif %}
   <form method="post" class="stack">
     {{ csrf_input() }}

@@ -175,6 +175,7 @@ async def build(output):
                 if path.is_file():
                     shutil.copyfile(path, output / path.name)
             shutil.copyfile(ROOT / "src/quite_admin/static/admin.css", output / "admin.css")
+            shutil.copyfile(ROOT / "src/quite_admin/static/logo.svg", output / "logo.svg")
             for script in (
                 "relations.js",
                 "schema.js",

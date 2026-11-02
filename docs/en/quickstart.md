@@ -8,8 +8,8 @@ pip install 'quite-admin[sqlalchemy,fastapi]'
 # For Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
 
-Pin `quite-admin[sqlalchemy,fastapi]==0.5.0` when you need reproducible deployments.
-Source checkout/archive installation is also supported.
+Pin `quite-admin[sqlalchemy,fastapi]==0.5.2` for reproducible installs of the last finalized release.
+The screenshots below show the 0.5.2 source sample. Source checkout/archive installation is also supported.
 
 ## Existing FastAPI application
 
@@ -65,18 +65,18 @@ Python ORM hooks and service rules require a native or service adapter. Review
 
 ## See the interface
 
-![Record list](../assets/screenshots/products.png)
+[![Record list](../assets/screenshots/products.png)](../assets/screenshots/products.png)
 
 The record page contains both scalar fields and relationship editors. The read-only
 field example shows the same page with a protected registration date.
 
-![Unified record page](../assets/screenshots/record.png)
+[![Unified record page](../assets/screenshots/record.png)](../assets/screenshots/record.png)
 
-![Inline relationships](../assets/screenshots/relationships.png)
+[![Inline relationships](../assets/screenshots/relationships.png)](../assets/screenshots/relationships.png)
 
-![Read-only field settings](../assets/screenshots/fields.png)
+[![Read-only field settings](../assets/screenshots/fields.png)](../assets/screenshots/fields.png)
 
-[Watch the 12-second walkthrough (MP4)](../assets/walkthrough.mp4).
+[See the 0.5.2 interface tour](interface-tour.md) for sign-in, calendars and the activity journal.
 
 ## Run the sample application
 

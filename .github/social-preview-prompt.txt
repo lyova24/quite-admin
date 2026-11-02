@@ -1,0 +1,12 @@
+Created using the built-in image_gen tool, in edit mode.
+The selected output is exported to social-preview.png at 1280 x 640.
+
+Use case: precise-object-edit.
+Asset type: 2:1 GitHub repository social preview.
+Input image 1 is the edit target. Remove ONLY the mottled, grainy, cloudy texture from this cover.
+Replace every empty background area with a completely flat, perfectly uniform solid neutral charcoal #181818, like a digital SVG export filled with one color. There must be no visible variation, grain, noise, illumination, vignette, gradient, paper, smudges, clouds or texture. Also make the white wordmark and blue small q and shapes uniformly filled.
+Preserve all exact existing geometry, positions, shapes, proportions, font letterforms, spacing, sizes and text. Do not redesign the cover.
+Keep the large white "quite-admin", white slogan exactly "Fast to set up. Simple to use.", blue small q at upper left, blue thin divider and square, blue dot, and the large cropped subtle gray outline q at right.
+Exact colors: background #181818; text #FEFEFE; blue #3395FD; outline #3B3B45.
+Only two text strings remain. No "Python", "FastAPI", "Litestar", version, extra words or watermark.
+Flat crisp graphic. Target 1280 x 640, 2:1.

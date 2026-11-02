@@ -8,8 +8,8 @@ pip install 'quite-admin[sqlalchemy,fastapi]'
 # Для Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
 
-Для воспроизводимой установки закрепите `quite-admin[sqlalchemy,fastapi]==0.5.0`.
-Установка из исходного checkout или архива также поддерживается.
+Для воспроизводимой установки последнего зафиксированного релиза закрепите `quite-admin[sqlalchemy,fastapi]==0.5.2`.
+Скриншоты ниже показывают пример из исходной версии 0.5.2. Установка из исходного checkout или архива также поддерживается.
 
 ## Существующее FastAPI-приложение
 
@@ -65,18 +65,18 @@ adapter = SQLAdapter(engine)
 
 ## Интерфейс
 
-![Список записей](../assets/screenshots/products.png)
+[![Список записей](../assets/screenshots/products.png)](../assets/screenshots/products.png)
 
 Одна страница содержит поля и редакторы связей. На примере read-only видно ту же
 страницу с защищённой датой регистрации.
 
-![Единая страница записи](../assets/screenshots/record.png)
+[![Единая страница записи](../assets/screenshots/record.png)](../assets/screenshots/record.png)
 
-![Связи в той же форме](../assets/screenshots/relationships.png)
+[![Связи в той же форме](../assets/screenshots/relationships.png)](../assets/screenshots/relationships.png)
 
-![Настройка полей только для чтения](../assets/screenshots/fields.png)
+[![Настройка полей только для чтения](../assets/screenshots/fields.png)](../assets/screenshots/fields.png)
 
-[Посмотреть 12-секундный обзор (MP4)](../assets/walkthrough.mp4).
+[В обзоре интерфейса 0.5.2](interface-tour.md) показаны вход, календари и журнал действий.
 
 ## Запуск готового примера
 

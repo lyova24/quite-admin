@@ -33,6 +33,19 @@ def test_public_contracts_match_the_committed_baseline():
     assert check(profile="modern") == []
 
 
+@pytest.mark.parametrize("parameter", ["primary", "on_primary", "on_danger"])
+def test_theme_default_migration_does_not_allow_other_default_changes(monkeypatch, parameter):
+    original = inspect.signature(quite_admin.Theme)
+    parameters = [
+        item.replace(default="#123456") if item.name == parameter else item
+        for item in original.parameters.values()
+    ]
+    monkeypatch.setattr(
+        quite_admin.Theme, "__signature__", original.replace(parameters=parameters), raising=False
+    )
+    assert f"quite_admin:Theme.{parameter}: changed default" in check()
+
+
 def test_core_import_does_not_load_an_orm():
     subprocess.run(
         [
@@ -251,7 +264,7 @@ async def test_documented_template_context_and_field_include(
         page = await client.get(prefix + "/pages/contract")
         assert page.status_code == 200
         assert '<meta name="contract" content="1">' in page.text
-        assert "contract|admin|GET|Contract admin|Contract description|en|#3e6656|" in page.text
+        assert "contract|admin|GET|Contract admin|Contract description|en|#3395fd|" in page.text
         assert "items|Items|contract|items|Overview|Search|records|Contract admin|" in page.text
         assert prefix + "/models/items/|1|True|True|Application context" in page.text
         listing = await client.get(prefix + "/models/items/")

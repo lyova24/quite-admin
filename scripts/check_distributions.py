@@ -32,7 +32,8 @@ assert quite_admin.__version__ == sys.argv[1] == metadata.version("quite-admin")
 assert Path(quite_admin.__file__).is_relative_to(Path(sys.prefix))
 root = resources.files("quite_admin")
 for name in ("py.typed", "templates/quite_admin/list.html", "templates/quite_admin/_icons.html",
-             "static/admin.css", "static/filters.js", "static/forms.js", "static/inline.js"):
+             "static/admin.css", "static/logo.svg", "static/filters.js",
+             "static/forms.js", "static/inline.js"):
     assert root.joinpath(name).is_file(), name
 engine = create_engine("sqlite:///smoke.db")
 schema = MetaData()
@@ -56,7 +57,7 @@ async def check():
             page = await client.get("/admin/models/items/", params={"f.name.icontains":"packaged"})
             assert page.status_code == 200 and "Packaged record" in page.text
             assert "unsafe-inline" not in page.headers["content-security-policy"]
-            for asset in ("admin.css", "filters.js", "forms.js"):
+            for asset in ("admin.css", "logo.svg", "filters.js", "forms.js"):
                 assert (await client.get("/admin/assets/" + asset)).status_code == 200
             result = await client.get(
                 "/admin/models/items/", params={"export":"csv", "columns":"name"}

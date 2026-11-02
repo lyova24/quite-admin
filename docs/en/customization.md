@@ -27,7 +27,7 @@ admin = Admin(
 ```
 
 All settings are optional. Defaults are `title="Quite Admin"`, `description=""`,
-`language="en"` and a neutral light theme with a restrained green accent.
+`language="en"` and a neutral charcoal theme with a vivid blue accent.
 
 ## Language
 
@@ -61,7 +61,7 @@ Both settings are escaped as text; they do not accept HTML.
 Set `logo` to an existing local SVG, PNG, JPEG, WebP or GIF file. Relative paths are resolved
 against the application's working directory. It is served from the admin's `/logo` route,
 including mount/proxy prefixes, and appears in the sidebar and sign-in page.
-It defaults to the `q.` mark. Missing files and unsupported extensions raise `ValueError`.
+It defaults to the bundled blue q mark, also used as the favicon. Missing files and unsupported extensions raise `ValueError`.
 Custom templates receive `logo_url`; no external image hosts or CSP changes are required.
 
 ## Colors
@@ -69,17 +69,21 @@ Custom templates receive `logo_url`; no external image hosts or CSP changes are 
 `Theme` accepts hexadecimal `#RGB` or `#RRGGBB` colors, case-insensitively.
 Invalid colors raise `ValueError` when constructing the theme.
 
+Version 0.5.2 uses a neutral charcoal palette with vivid blue accents by default. The interface
+retains its compact controls and sign-in card, with the logo beside the title. The GitHub social preview
+is a separate repository asset and is not displayed on the sign-in page.
+
 | Option | Default | Used for |
 | --- | --- | --- |
-| `primary` | `#3e6656` | Primary actions, selected navigation and active search/sort indicators |
-| `background` | `#f5f6f8` | Main page background |
-| `surface` | `#ffffff` | Sidebar, header, cards, inputs and panels |
-| `text` | `#20252b` | Main text |
-| `muted` | `#626b76` | Secondary text and hints |
-| `border` | `#dce0e5` | Separators and borders |
-| `danger` | `#b43e3e` | Delete actions and error messages |
-| `on_primary` | `#ffffff` | Text on primary buttons and brand marks |
-| `on_danger` | `#ffffff` | Text on destructive buttons |
+| `primary` | `#3395fd` | Primary actions, selected navigation and active search/sort indicators |
+| `background` | `#181818` | Main page background |
+| `surface` | `#202020` | Sidebar, header, cards, inputs and panels |
+| `text` | `#fefefe` | Main text |
+| `muted` | `#b7b2bf` | Secondary text and hints |
+| `border` | `#3b3b45` | Separators and borders |
+| `danger` | `#ff8798` | Delete actions and error messages |
+| `on_primary` | `#111111` | Text on primary buttons |
+| `on_danger` | `#111111` | Text on destructive buttons |
 
 Hover colors and tinted backgrounds are derived from the palette. Choose readable text/background
 combinations, including `on_primary` and `on_danger`. For a dark palette:
@@ -104,13 +108,12 @@ No inline styles, external CDN or JavaScript are required; the existing `style-s
 
 ## Shared interface system
 
-Built-in screens share the same tokens and components. The system font stack is retained;
-no font download is required. Typography uses 28 px page titles, 16 px section headings,
-14 px inputs, body text and table values, 13 px labels and 12 px secondary details. Spacing follows
-a 4 px grid; corners use 4 px badges, 6 px controls and 8 px panels. White surfaces sit on a
-neutral page background with 1 px borders and no decorative shadows or gradients.
+Built-in screens share the same compact typography, spacing tokens and components.
+The system font stack is retained; no font download is required. Corners use 4 px badges,
+6 px controls and 8 px panels. Surfaces sit close to the page background, separated by
+1 px borders without decorative shadows or gradients.
 
-Lists use 44 px rows, right-aligned numeric columns and tabular numerals. The current sort
+List row height follows the density tokens, with right-aligned numeric columns and tabular numerals. The current sort
 has a directional arrow and `aria-sort`; a newly selected column sorts ascending first.
 The toolbar sits above the table frame, and the record count sits beside the page title.
 An active search is shown below the toolbar. Clearing it resets the page and preserves
@@ -131,10 +134,10 @@ Use the tokens in your own same-origin stylesheet when extending the interface:
 | Tokens | Purpose |
 | --- | --- |
 | `--text-xs`, `--text-sm`, `--text-base`, `--text-section`, `--text-title` | Typography scale |
-| `--space-1` … `--space-6`, `--space-8`, `--space-10` | 4, 8, 12, 16, 20, 24, 32 and 40 px spacing |
+| `--space-1` … `--space-6`, `--space-8`, `--space-10` | 3, 6, 10, 13, 16, 19, 26 and 32 px spacing |
 | `--radius-sm`, `--radius-control`, `--radius` | Badge, control and surface corners |
 | `--bg`, `--paper`, `--subtle`, `--hover` | Page, surface, inset and row interaction levels |
-| `--line`, `--border`, `--control-height` | Borders and shared 38 px control height |
+| `--line`, `--border`, `--control-height` | Borders and shared 31 px control height |
 
 Existing custom templates that extend the base template inherit the palette and shared styles.
 To use the grouped form layout, wrap each `.form-grid` in a `.form-section` with a labelled
@@ -165,3 +168,22 @@ See [custom pages and templates](custom-pages.md) for template registration.
 
 For a complete CSS loading recipe, density examples and template boundaries, see
 [Customize the interface](styling.md).
+
+## Retain the previous palette
+
+To keep the light palette from 0.5.0, pass its colors explicitly. Custom palettes
+continue to work.
+
+```python
+theme = Theme(
+    primary="#3e6656",
+    background="#f5f6f8",
+    surface="#ffffff",
+    text="#20252b",
+    muted="#626b76",
+    border="#dce0e5",
+    danger="#b43e3e",
+    on_primary="#ffffff",
+    on_danger="#ffffff",
+)
+```

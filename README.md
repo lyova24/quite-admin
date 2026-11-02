@@ -1,6 +1,12 @@
 # quite-admin
 
-**Version: 0.5.0** · [Changelog](CHANGELOG.md)
+[![GitHub release](https://img.shields.io/github/v/release/lyova24/quite-admin?style=for-the-badge&label=release&labelColor=202020&color=3395fd)](https://github.com/lyova24/quite-admin/releases/latest)
+[![Tests](https://img.shields.io/github/actions/workflow/status/lyova24/quite-admin/ci.yml?branch=master&event=push&style=for-the-badge&label=tests&labelColor=202020)](https://github.com/lyova24/quite-admin/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/quite-admin?style=for-the-badge&label=PyPI&labelColor=202020&color=3395fd)](https://pypi.org/project/quite-admin/)
+
+![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/.github/social-preview.png)
+
+**Version: 0.5.2** · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -10,14 +16,14 @@ Supports **CPython 3.11–3.15**. MIT licensed.
 [Browser demo](https://lyova24.github.io/quite-admin/demo/) — `admin` / `admin`.
 Its fictional records stay in browser storage; **Reset demo** restores the examples.
 Try inline edits in **Products**, date/time/JSON controls in **Schedules**, and the
-**Activity history** journal. [Interface tour: 0.5](docs/en/interface-tour.md).
+**Activity history** journal. [Interface tour: 0.5.2](docs/en/interface-tour.md).
 The site workflow publishes this standalone demo alongside the documentation.
 
 [Add to an existing app in two minutes](docs/en/quickstart.md) · [Public API guarantees](docs/en/api-stability.md)
 
-![quite-admin record list](docs/assets/screenshots/products.png)
+![quite-admin record list](https://raw.githubusercontent.com/lyova24/quite-admin/master/docs/assets/screenshots/products.png)
 
-[12-second walkthrough (MP4)](docs/assets/walkthrough.mp4)
+[See the current sign-in, forms, calendars and activity journal](docs/en/interface-tour.md).
 
 Collections, fields and forms are discovered from existing SQL tables or ORM models.
 No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
@@ -73,7 +79,7 @@ Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
 
 | Project | When its documented approach fits |
 |---|---|
-| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.5.0; see the public API guarantees and compatibility evidence. |
+| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.5.2; see the public API guarantees and compatibility evidence. |
 | [SQLAdmin](https://github.com/smithyhq/sqladmin) | A SQLAlchemy/SQLModel application using its model views, sync/async engines and WTForms controls with FastAPI/Starlette. |
 | [Starlette Admin](https://github.com/jowilf/starlette-admin) | Its contrib backend/model-view approach, MongoDB integrations, bulk actions, file handling or import/export fit the application. |
 

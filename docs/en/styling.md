@@ -81,9 +81,9 @@ A custom page can simply extend the packaged base and add its own `head` block.
 ```css
 /* admin-style/custom.css */
 :root {
-  --table-row-height: 40px; /* default 44px */
-  --control-height: 36px;  /* default 38px */
-  --text-title: 26px;      /* default 28px */
+  --table-row-height: 40px; /* default 36px */
+  --control-height: 36px;  /* default 31px */
+  --text-title: 26px;      /* default 23px */
   --radius-control: 4px;   /* default 6px */
 }
 
@@ -99,8 +99,8 @@ A custom page can simply extend the packaged base and add its own `head` block.
 
 | Tokens | Role |
 |---|---|
-| `--text-xs`, `--text-sm`, `--text-base`, `--text-section`, `--text-title` | 12 / 13 / 14 / 16 / 28 px typography |
-| `--space-1` … `--space-6`, `--space-8`, `--space-10` | 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 px spacing |
+| `--text-xs`, `--text-sm`, `--text-base`, `--text-section`, `--text-title` | 11 / 12 / 12 / 14 / 23 px typography |
+| `--space-1` … `--space-6`, `--space-8`, `--space-10` | 3 / 6 / 10 / 13 / 16 / 19 / 26 / 32 px spacing |
 | `--radius-sm`, `--radius-control`, `--radius` | 4 / 6 / 8 px corners |
 | `--bg`, `--paper`, `--subtle`, `--hover` | Page, main surface, inset and hover surface |
 | `--text`, `--muted`, `--line`, `--border` | Text, secondary text and separators |
@@ -147,6 +147,9 @@ The native date input remains available without JavaScript.
 The listing toolbar aligns search, filters, export and Create record in one row,
 with creation on the right. Controls wrap on narrow screens.
 
-Listings use the available main-column width with proportional token-based gutters.
-Table edge cells, heading, toolbar, active conditions and pagination align together;
-record forms retain their own reading-width limit.
+Listings use the same content padding, responsive gutters and maximum width as Overview,
+Database schema and Activity history. Table edge cells, heading, toolbar, active conditions
+and pagination align together; record forms retain their own reading-width limit.
+
+The sign-in logo sits beside the title in a vertically aligned row. This applies to both
+the bundled mark and custom logos; long titles wrap within the card.

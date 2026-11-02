@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ title }}{% endblock %}</title>
   {% if description %}<meta name="description" content="{{ description }}">{% endif %}
+  <link rel="icon" href="{{ logo_url or url('/assets/logo.svg') }}">
   <link rel="stylesheet" href="{{ url('/assets/admin.css') }}">
   <link rel="stylesheet" href="{{ url('/theme.css') }}">
   {% block head %}{% endblock %}
@@ -35,7 +36,7 @@
       <p class="nav-label">{{ t('PAGES') }}</p>
       <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}{{ nav_link(url('/pages/' ~ item.slug), item.title, page and page.slug == item.slug) }}{% endfor %}</nav>
       {% endif %}
-      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.5.0</span></div>
+      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.5.2</span></div>
     </aside>
   {% endif %}
     <main class="main">

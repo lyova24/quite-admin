@@ -15,6 +15,21 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# 0.5.2 intentionally changes the visual defaults. Keep the 0.4 baselines intact
+# and accept only these exact transitions; all other signature checks still apply.
+# Migration: docs/en/customization.md, "Retain the previous palette".
+THEME_DEFAULT_CHANGES = {
+    "primary": ("'#3e6656'", "'#3395fd'"),
+    "background": ("'#f5f6f8'", "'#181818'"),
+    "surface": ("'#ffffff'", "'#202020'"),
+    "text": ("'#20252b'", "'#fefefe'"),
+    "muted": ("'#626b76'", "'#b7b2bf'"),
+    "border": ("'#dce0e5'", "'#3b3b45'"),
+    "danger": ("'#b43e3e'", "'#ff8798'"),
+    "on_primary": ("'#ffffff'", "'#111111'"),
+    "on_danger": ("'#ffffff'", "'#111111'"),
+}
+
 
 def resolve(reference):
     module, name = reference.split(":", 1)
@@ -104,7 +119,9 @@ def compare_signature(name, previous, current):
             if before.get(key) != after.get(key):
                 errors.append(f"{name}.{parameter}: changed {key}")
         if "default" in before and before["default"] != after.get("default"):
-            errors.append(f"{name}.{parameter}: changed default")
+            approved = THEME_DEFAULT_CHANGES.get(parameter) if name == "quite_admin:Theme" else None
+            if approved != (before["default"], after.get("default")):
+                errors.append(f"{name}.{parameter}: changed default")
     for parameter, after in new.items():
         if parameter not in old and after["kind"] in positional | {"KEYWORD_ONLY"}:
             if "default" not in after:

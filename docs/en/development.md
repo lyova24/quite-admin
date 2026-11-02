@@ -16,7 +16,7 @@ Use explicit branches and loops for transaction selection and compound query con
 Keep ORM reflection and async boundaries where their contracts require them; avoid
 introducing an abstraction solely to save a few lines.
 
-The finalized baseline is **0.5.0** (2026-11-02); subsequent work targets a higher version.
+The finalized baseline is **0.5.2** (2026-11-02); subsequent work targets a higher version.
 See `CHANGELOG.md` and [public API guarantees](api-stability.md) for migration and
 compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
 GINO checks run separately with `--profile gino`. Version updates do not publish a release.
@@ -85,6 +85,16 @@ npm run docs:serve
 The output is written to `build/docs`.
 Open [localhost:8001](http://localhost:8001/): the root URL opens the English version.
 Russian is available under `/ru/`.
+
+The documentation opens in dark mode by default. Settings → Dark theme switches between
+dark and light; Diplodoc preserves that choice in the current browser tab's session.
+Both palettes are defined in `docs/theme.yaml`: charcoal surfaces and a vivid blue accent
+in dark mode, pale neutral surfaces and a darker blue for readable links in light mode.
+The native themizer also styles tables, code, notices and article navigation.
+`docs/_assets/script/quite-admin-theme.js` supplies the initial mode;
+`scripts/prepare-pages.mjs` places it before the content and viewer bundles to avoid a light flash.
+The admin application and browser demo keep their own theme configuration.
+The build clears `build/docs` first so pages removed from the source do not remain in the published site.
 
 The build checks translation page coverage, internal links and Diplodoc warnings.
 CI builds both languages and uploads the HTML as an artifact.

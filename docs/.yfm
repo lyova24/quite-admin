@@ -5,6 +5,13 @@ langs:
 allowHtml: false
 strict: true
 staticContent: true
+allowCustomResources: true
+resources:
+  script:
+    - _assets/script/quite-admin-theme.js
+codeHighlight:
+  light: github
+  dark: github-dark
 template:
   features:
     substitutions: false

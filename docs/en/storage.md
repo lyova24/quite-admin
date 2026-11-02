@@ -108,7 +108,7 @@ Follow the [interface tour](interface-tour.md) to filter a user's actions, inspe
 comparison and switch between Journal/Table. The [browser demo](browser-demo.md) shows
 fictional sample events and your local edits; the ASGI example exercises the durable store.
 
-![Activity journal with persisted field comparisons](../assets/screenshots/activity-history.png)
+[![Activity journal with persisted field comparisons](../assets/screenshots/activity-history.png)](../assets/screenshots/activity-history.png)
 
 
 Open **Activity history** in the sidebar. The toolbar reuses the collection listing

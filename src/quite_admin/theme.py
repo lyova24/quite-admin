@@ -32,28 +32,28 @@ def _mix(color: str, background: str, weight: float) -> str:
 class Theme:
     """Main UI colors, as #RGB or #RRGGBB. Related shades are derived automatically."""
 
-    primary: str = "#3e6656"
-    background: str = "#f5f6f8"
-    surface: str = "#ffffff"
-    text: str = "#20252b"
-    muted: str = "#626b76"
-    border: str = "#dce0e5"
-    danger: str = "#b43e3e"
-    on_primary: str = "#ffffff"
-    on_danger: str = "#ffffff"
+    primary: str = "#3395fd"
+    background: str = "#181818"
+    surface: str = "#202020"
+    text: str = "#fefefe"
+    muted: str = "#b7b2bf"
+    border: str = "#3b3b45"
+    danger: str = "#ff8798"
+    on_primary: str = "#111111"
+    on_danger: str = "#111111"
 
     def __init__(
         self,
         *,
-        primary: str = "#3e6656",
-        background: str = "#f5f6f8",
-        surface: str = "#ffffff",
-        text: str = "#20252b",
-        muted: str = "#626b76",
-        border: str = "#dce0e5",
-        danger: str = "#b43e3e",
-        on_primary: str = "#ffffff",
-        on_danger: str = "#ffffff",
+        primary: str = "#3395fd",
+        background: str = "#181818",
+        surface: str = "#202020",
+        text: str = "#fefefe",
+        muted: str = "#b7b2bf",
+        border: str = "#3b3b45",
+        danger: str = "#ff8798",
+        on_primary: str = "#111111",
+        on_danger: str = "#111111",
     ) -> None:
         self.primary = _color("primary", primary)
         self.background = _color("background", background)
