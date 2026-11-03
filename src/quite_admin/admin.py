@@ -32,6 +32,7 @@ from ._admin.web import FORM_BODY_LIMIT as FORM_BODY_LIMIT
 from ._admin.web import LOGO_TYPES, SLUG, STATIC_DIR, SecurityHeaders, litestar_route
 from ._admin.web import TEMPLATE_API_VERSION as TEMPLATE_API_VERSION
 from ._reads import ReadLimits
+from .activity import HistoryLevel, validate_history_level
 from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
 from .config import Action, ModelOptions, Permission
@@ -146,6 +147,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         history_enabled: bool = True,
         query_timeout: float | None = None,
         max_concurrent_reads: int | None = None,
+        history_level: HistoryLevel = "changes",
     ) -> None:
         if len(secret_key.encode()) < 32:
             raise ValueError("secret_key must contain at least 32 bytes of random secret material.")
@@ -177,6 +179,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         self.storage = create_store(storage)
         self.history_permission = history_permission
         self.history_enabled = history_enabled
+        self.history_level = validate_history_level(history_level)
         self._history_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-history")
         self.sources: list[Source] = []
         self.collection_options: dict[str, ModelOptions] = {}

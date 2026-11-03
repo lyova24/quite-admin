@@ -9,6 +9,7 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from .concurrency import canonical
 from .config import is_sensitive_field
@@ -16,6 +17,23 @@ from .config import is_sensitive_field
 MAX_VALUE_BYTES = 4096
 MAX_DETAILS_BYTES = 512 * 1024
 MAX_CHANGES = 200
+HistoryLevel = Literal["changes", "audit", "all"]
+WRITE_ACTIONS = frozenset({"create", "edit", "inline_edit", "delete"})
+
+
+def validate_history_level(level):
+    if level not in ("changes", "audit", "all"):
+        raise ValueError("history_level must be 'changes', 'audit' or 'all'.")
+    return level
+
+
+def activity_allowed(level, action, outcome):
+    if level == "all":
+        return True
+    write = action in WRITE_ACTIONS or action.startswith("action:")
+    if level == "changes":
+        return write and outcome == "success"
+    return write or action in {"login", "logout", "export"}
 
 
 def sensitive_name(name):

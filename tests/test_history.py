@@ -41,6 +41,7 @@ async def history_client(request, web_admin):
 async def test_history_captures_crud_failures_export_actions_and_logout(
     history_client, web_admin, web_backend
 ):
+    web_admin.history_level = "all"
     client = history_client
     assert (await client.get("/admin/history")).status_code == 303
     await login(client)
@@ -417,7 +418,12 @@ async def test_storage_is_lazy_and_history_survives_new_admin(auth, tmp_path):
     assert not path.exists()
     await first.storage.append_activity(event("former-admin", "", action="logout"))
     second = Admin(
-        auth=auth, secret_key="s" * 32, storage=path, secure_cookies=False, language="ru"
+        auth=auth,
+        secret_key="s" * 32,
+        storage=path,
+        secure_cookies=False,
+        language="ru",
+        history_level="audit",
     )
     async with AsyncClient(transport=ASGITransport(app=second), base_url="http://test") as client:
         await login(client, "")

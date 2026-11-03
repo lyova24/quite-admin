@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 from collections.abc import Mapping
 from dataclasses import replace
@@ -14,6 +15,7 @@ from starlette.responses import JSONResponse
 from .. import filters as list_filters
 from ..activity import (
     FieldChange,
+    activity_allowed,
     bounded_details,
     clip_text,
     safe_record_key,
@@ -23,7 +25,7 @@ from ..activity import (
 from ..concurrency import canonical
 from ..errors import NotFound
 from ..schema import Query
-from ..storage import Activity, StorageError
+from ..storage import Activity, ActivityPage, StorageError
 from .web import SLUG
 
 
@@ -35,12 +37,17 @@ class HistoryViews:
         target = state.get("quite_admin_activity")
         if identity is None or target is None:
             return
+        outcome = "success" if state.get("quite_admin_committed") or status < 400 else "failure"
+        if not activity_allowed(self.history_level, target[1], outcome):
+            return
+        if self.history_level == "changes" and not state.get("quite_admin_committed"):
+            return
         event = Activity.new(
             subject=identity.subject,
             display_name=identity.display_name,
             collection=target[0],
             action=target[1],
-            outcome="success" if state.get("quite_admin_committed") or status < 400 else "failure",
+            outcome=outcome,
             status_code=status,
             details=state.get("quite_admin_activity_details"),
         )
@@ -52,6 +59,73 @@ class HistoryViews:
             await self._logging.emit(
                 "warning", "quite_admin.activity_failed", error_type=type(exc).__name__
             )
+
+    def _store_supports_history_level(self, method):
+        if not getattr(self.storage, "supports_history_levels", False):
+            return False
+        # Older subclasses/proxies may inherit the new capability flag while
+        # retaining the original public method signatures.
+        try:
+            return "history_level" in inspect.signature(getattr(self.storage, method)).parameters
+        except (TypeError, ValueError):
+            return False
+
+    async def _history_events(self, **filters):
+        if self._store_supports_history_level("activities"):
+            return await self.storage.activities(history_level=self.history_level, **filters)
+        if self.history_level == "all":
+            return await self.storage.activities(**filters)
+        # Keep the original AdminStore protocol usable. The light level can use
+        # its existing indexed filters; audit fills a page from allowed events.
+        if self.history_level == "changes":
+            if filters.get("outcome") == "failure":
+                return ActivityPage((), False)
+            return await self.storage.activities(
+                **{**filters, "changes_only": True, "outcome": "success"}
+            )
+        limit = filters.pop("limit", 50)
+        before = filters.pop("before", None)
+        events = []
+        while len(events) <= limit:
+            page = await self.storage.activities(**filters, limit=limit, before=before)
+            events.extend(
+                item
+                for item in page.events
+                if activity_allowed(self.history_level, item.action, item.outcome)
+            )
+            if not page.has_more:
+                break
+            if not page.events:
+                raise StorageError()
+            cursor = (page.events[-1].occurred_at, page.events[-1].id)
+            if cursor == before:
+                raise StorageError()
+            before = cursor
+        return ActivityPage(tuple(events[:limit]), len(events) > limit)
+
+    async def _history_actors(self, *, collections, search="", limit=50):
+        if self._store_supports_history_level("actors"):
+            return await self.storage.actors(
+                collections=collections,
+                search=search,
+                limit=limit,
+                history_level=self.history_level,
+            )
+        if self.history_level == "all":
+            return await self.storage.actors(collections=collections, search=search, limit=limit)
+        # Legacy stores need no new methods. Derive autocomplete from the same
+        # allowed stream, excluding actors whose only events are hidden.
+        actors = {}
+        before = None
+        while True:
+            page = await self._history_events(collections=collections, before=before)
+            for item in page.events:
+                if search.casefold() in (item.subject + " " + item.display_name).casefold():
+                    actors.setdefault(item.subject, item.display_name)
+            if not page.has_more:
+                break
+            before = (page.events[-1].occurred_at, page.events[-1].id)
+        return tuple(sorted(actors.items())[:limit])
 
     async def _history_resources(self, request):
         if not self.history_enabled:
@@ -72,7 +146,7 @@ class HistoryViews:
         if len(search) > 200:
             raise HTTPException(400, "Search text is too long.")
         try:
-            users = await self.storage.actors(collections=("", *resources), search=search)
+            users = await self._history_actors(collections=("", *resources), search=search)
         except StorageError as exc:
             raise HTTPException(503, "The admin storage is unavailable.") from exc
         return JSONResponse(
@@ -157,7 +231,16 @@ class HistoryViews:
             raise HTTPException(400, "Invalid history filters.")
         collections = ("", *resources)
         shape = self._fingerprint(
-            [subject, collection, action, outcome, collections, date_from, date_to]
+            [
+                subject,
+                collection,
+                action,
+                outcome,
+                collections,
+                date_from,
+                date_to,
+                self.history_level,
+            ]
         )
         before = None
         token = params.get("before", "")
@@ -180,7 +263,7 @@ class HistoryViews:
             except (BadData, ValueError, KeyError, TypeError) as exc:
                 raise HTTPException(400, "Invalid history cursor.") from exc
         try:
-            result = await self.storage.activities(
+            result = await self._history_events(
                 collections=collections,
                 subject=subject,
                 collection="" if collection == "__auth__" else collection or None,
@@ -191,7 +274,7 @@ class HistoryViews:
                 date_from=start,
                 date_to=end,
             )
-            users = await self.storage.actors(collections=collections)
+            users = await self._history_actors(collections=collections)
         except StorageError as exc:
             raise HTTPException(503, "The admin storage is unavailable.") from exc
         next_url = None
@@ -227,10 +310,19 @@ class HistoryViews:
             period_label = self.gettext("To {date}", date=end.strftime("%d.%m.%Y"))
         filter_choices = {
             "subject": users,
-            "collection": [("__auth__", self.gettext("Authentication"))]
+            "collection": (
+                []
+                if self.history_level == "changes"
+                else [("__auth__", self.gettext("Authentication"))]
+            )
             + [(slug, resource.label) for slug, resource in resources.items()],
-            "action": [(name, self.gettext(label)) for name, label in actions.items()],
-            "outcome": [("success", self.gettext("Success")), ("failure", self.gettext("Failure"))],
+            "action": [
+                (name, self.gettext(label))
+                for name, label in actions.items()
+                if name == "changes" or activity_allowed(self.history_level, name, "success")
+            ],
+            "outcome": [("success", self.gettext("Success"))]
+            + ([] if self.history_level == "changes" else [("failure", self.gettext("Failure"))]),
         }
         filter_values = dict(subject=subject, collection=collection, action=action, outcome=outcome)
         filter_labels = dict(
@@ -261,6 +353,7 @@ class HistoryViews:
             request,
             "quite_admin/history.html",
             history_page=True,
+            history_level=self.history_level,
             events=result.events,
             activity_groups=await self._history_groups(request, result.events, resources),
             history_resources=resources,
@@ -275,7 +368,11 @@ class HistoryViews:
                 "date_mode": date_mode,
                 "date": day if date_mode == "day" else "",
             },
-            history_actions=actions,
+            history_actions={
+                name: label
+                for name, label in actions.items()
+                if name == "changes" or activity_allowed(self.history_level, name, "success")
+            },
             history_filter_descriptors=[
                 {
                     "id": name,

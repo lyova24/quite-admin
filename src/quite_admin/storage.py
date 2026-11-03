@@ -151,6 +151,8 @@ _INDEXES = {
 
 
 class _RelationalStore:
+    supports_history_levels = True
+
     def __init__(self, *, namespace="default"):
         if not isinstance(namespace, str) or not namespace or len(namespace) > 200:
             raise ValueError("Use a nonempty storage namespace of at most 200 characters.")
@@ -384,6 +386,7 @@ class _RelationalStore:
         changes_only=False,
         date_from=None,
         date_to=None,
+        history_level="all",
     ):
         _limit(limit)
         if any(value is not None and type(value) is not date for value in (date_from, date_to)):
@@ -391,6 +394,7 @@ class _RelationalStore:
         if date_from is not None and date_to is not None and date_from > date_to:
             raise ValueError("Activity date bounds are reversed.")
         conditions, params = self._conditions(collections)
+        conditions.extend(_history_conditions(history_level))
         if date_from is not None:
             conditions.append("occurred_at >= :date_from")
             params["date_from"] = date_from.isoformat() + "T00:00:00.000000Z"
@@ -454,9 +458,19 @@ class _RelationalStore:
 
         return await self._run(operation)
 
-    async def actors(self, *, collections, search="", limit=50):
+    async def actors(self, *, collections, search="", limit=50, history_level="all"):
         _limit(limit)
         conditions, params = self._conditions(collections)
+        level_conditions = _history_conditions(history_level, prefix="level_event.")
+        if level_conditions:
+            conditions.append(
+                "EXISTS (SELECT 1 FROM quiteadmin_activity AS level_event WHERE "
+                "level_event.namespace = quiteadmin_actors.namespace AND "
+                "level_event.actor_key = quiteadmin_actors.actor_key AND "
+                "level_event.collection_key = quiteadmin_actors.collection_key AND "
+                + " AND ".join(level_conditions)
+                + ")"
+            )
         if search:
             conditions.append(
                 "(LOWER(subject) LIKE :search ESCAPE '!' "
@@ -478,6 +492,19 @@ class _RelationalStore:
             return tuple((row["subject"], row["display_name"]) for row in rows)
 
         return await self._run(operation)
+
+
+def _history_conditions(level, *, prefix=""):
+    from .activity import WRITE_ACTIONS, validate_history_level
+
+    validate_history_level(level)
+    names = ", ".join("'" + name + "'" for name in sorted(WRITE_ACTIONS))
+    writes = f"({prefix}action IN ({names}) OR {prefix}action LIKE 'action:%')"
+    if level == "changes":
+        return [writes, prefix + "outcome = 'success'"]
+    if level == "audit":
+        return ["(" + writes + " OR " + prefix + "action IN ('login', 'logout', 'export'))"]
+    return []
 
 
 def _limit(value):

@@ -6,6 +6,16 @@ imports, call signatures, defaults and behavior. The adapter contract is
 These guarantees apply to SQL reflection, native ORM adapters and application-service
 adapters alike. CSV/XLSX export does not require an ORM.
 
+## 0.6.1 activity migration
+
+The activity default intentionally becomes `history_level="changes"` in 0.6.1:
+only committed record-write operations are recorded and displayed. Set
+`history_level="all"` to retain 0.6.0 behavior, or `"audit"` to also record
+authentication, exports and failed writes. Existing stored events are preserved.
+See [recording levels](storage.md#recording-level) for filtering and custom-store
+compatibility. Adapter API 1, template API 1 and the required `AdminStore` protocol
+remain unchanged.
+
 ## Covered interfaces
 
 | Interface | Guaranteed surface |

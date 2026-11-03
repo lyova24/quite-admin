@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.1 — unreleased
+
+### Changed
+
+- Add `history_level="changes" | "audit" | "all"` to filter activity before recording
+  and when reading existing history, including user lookup and pagination. The default
+  is now `changes`: only committed record-write operations are recorded. `audit` adds
+  authentication, exports and failed writes; `all` retains the previous full activity
+  stream. Set `history_level="all"` to retain 0.6.0 recording behavior. Existing events
+  are preserved and the service-storage schema is unchanged.
+
 ## 0.6.0 — 2026-11-03
 
 ### Added

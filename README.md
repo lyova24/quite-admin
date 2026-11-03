@@ -6,7 +6,7 @@
 
 ![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/.github/social-preview.png)
 
-**Version: 0.6.0** · [Changelog](CHANGELOG.md)
+**Version: 0.6.1** (unreleased) · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -34,7 +34,8 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Count-free cursor pagination for large collections and configurable SQL read deadlines.
 - Automatic SQLite service storage, optional SQLite/PostgreSQL/MySQL storage and
   permission-aware [activity history](docs/en/storage.md) with before/after field
-  comparisons by user and collection; disable it with `history_enabled=False`.
+  comparisons by user and collection. Recording levels: `changes` (default), `audit`
+  and `all`; disable it with `history_enabled=False`.
 - Interactive database schema and atomic stale-edit detection.
 - Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
 - Inline cell editing, nullable boolean switches and grouped collection navigation.
@@ -81,7 +82,7 @@ Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
 
 | Project | When its documented approach fits |
 |---|---|
-| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.6.0; see the public API guarantees and compatibility evidence. |
+| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.6.1 (unreleased); see the public API guarantees and compatibility evidence. |
 | [SQLAdmin](https://github.com/smithyhq/sqladmin) | A SQLAlchemy/SQLModel application using its model views, sync/async engines and WTForms controls with FastAPI/Starlette. |
 | [Starlette Admin](https://github.com/jowilf/starlette-admin) | Its contrib backend/model-view approach, MongoDB integrations, bulk actions, file handling or import/export fit the application. |
 

@@ -1,4 +1,4 @@
-from .activity import ActivityDetails, FieldChange
+from .activity import ActivityDetails, FieldChange, HistoryLevel
 from .adapters.base import ADAPTER_API_VERSION
 from .adapters.delegating import DelegatingAdapter
 from .admin import TEMPLATE_API_VERSION, Admin, Page
@@ -20,7 +20,7 @@ from .storage import (
 )
 from .theme import Theme
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 __all__ = [
     "ADAPTER_API_VERSION",
@@ -43,6 +43,7 @@ __all__ = [
     "FieldOptions",
     "Filter",
     "Identity",
+    "HistoryLevel",
     "LoggerProtocol",
     "ModelOptions",
     "ModelSchema",

@@ -141,11 +141,45 @@ The database applies the date bounds before pagination using timestamp indexes;
 switching views, clearing condition chips and following pagination links preserve the
 period. Select **Any date** in the period picker to remove the date restriction.
 
-Recorded actions include login/logout, collection/record views, create, edit,
-inline edit, delete, relationship writes inside saves, exports and custom record
-actions. Authenticated failed requests retain their HTTP status. Anonymous requests
-and failed login names are not attributed to a trusted user. History browsing and
-user autocomplete do not record themselves.
+### Recording level
+
+Set one optional constructor argument to choose how much activity to retain:
+
+```python
+admin = Admin(auth=auth, secret_key=session_secret, history_level="changes")
+```
+
+| Level | Events recorded and visible |
+| --- | --- |
+| `changes` (default) | Committed create, edit, inline edit, delete and custom record actions, including relationship writes inside saves. |
+| `audit` | Everything in `changes`, plus failed writes/custom actions, login/logout and exports. |
+| `all` | Everything in `audit`, plus collection listings and record/form views, including failed reads. This retains 0.6.0 behavior. |
+
+The level is enforced **before creating/appending an activity event**, not just in
+templates. Excluded requests write no activity, field-details or actor-index rows.
+The same level filters old events and user autocomplete before paging. Changing the
+level preserves existing data; switching to `all` can show previously stored events,
+but cannot recover events that were never recorded. Constructor configuration is
+authoritative: URL filters and **All actions** cannot increase the level.
+
+**Migration from 0.6.0:** the default intentionally changes to the lightest level in
+0.6.1. Set `history_level="all"` explicitly to keep the previous recording behavior.
+`history_enabled=False` still disables the entire feature. No storage migration is
+needed. Direct `admin.storage` calls remain a raw storage API and default to all events;
+they do not inherit an admin instance's presentation/recording policy.
+
+Authenticated failed requests at an enabled level retain their HTTP status. Anonymous
+requests and failed login names are not attributed to a trusted user. History browsing
+and user autocomplete do not record themselves. Diagnostic/application logging is
+independent of this activity setting. Operations performed outside quite-admin are
+not captured; a committed operation can still have no visible field differences.
+
+Built-in SQLite and SQLAlchemy stores advertise `supports_history_levels=True` and
+accept the optional `history_level` keyword on `activities()` / `actors()`, defaulting
+to `all`. Filtering happens in SQL before limits/cursors. The required `AdminStore`
+protocol is unchanged: older custom stores use its existing filters and paged reads,
+with a filtered fallback for audit pages and user lookup. Implement the optional
+capability for efficient filtering on large custom histories.
 
 Events contain time, authenticated subject/display name, collection slug, action,
 outcome and HTTP status. Successful writes also store changed field names, labels,
