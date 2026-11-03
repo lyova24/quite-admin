@@ -16,7 +16,7 @@ Use explicit branches and loops for transaction selection and compound query con
 Keep ORM reflection and async boundaries where their contracts require them; avoid
 introducing an abstraction solely to save a few lines.
 
-The finalized baseline is **0.5.2** (2026-11-02); subsequent work targets a higher version.
+The finalized baseline is **0.6.0** (2026-11-03); subsequent work targets a higher version.
 See `CHANGELOG.md` and [public API guarantees](api-stability.md) for migration and
 compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
 GINO checks run separately with `--profile gino`. Version updates do not publish a release.

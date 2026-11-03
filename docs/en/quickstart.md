@@ -8,7 +8,7 @@ pip install 'quite-admin[sqlalchemy,fastapi]'
 # For Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
 
-Pin `quite-admin[sqlalchemy,fastapi]==0.5.2` for reproducible installs of the last finalized release.
+Pin `quite-admin[sqlalchemy,fastapi]==0.6.0` for reproducible installs of the last finalized release.
 The screenshots below show the 0.5.2 source sample. Source checkout/archive installation is also supported.
 
 ## Existing FastAPI application

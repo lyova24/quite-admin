@@ -1,6 +1,6 @@
 # quite-admin
 
-Version **0.6.0** (unreleased): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
+Version **0.6.0** (2026-11-03): an embeddable admin for **FastAPI** and **Litestar**, supporting **CPython 3.11–3.15**.
 Native ORM adapters: **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x**.
 Also supports SQL reflection without model imports and custom service adapters.
 Collections, fields and forms come from your existing SQL tables or ORM models.
@@ -80,7 +80,7 @@ Use English or Russian, configure the [identity and palette](customization.md), 
 
 ## Compatibility and development
 
-The last finalized release is **0.5.2** (**2026-11-02**). Check
+The last finalized release is **0.6.0** (**2026-11-03**). Check
 [compatibility evidence and limits](data-safety.md), [development](development.md) and
 [release policy](releases.md) before adopting it.
 

@@ -1,6 +1,6 @@
 # Releases and compatibility policy
 
-Release **0.5.2** was finalized on **2026-11-02**. Subsequent work targets a higher version.
+Release **0.6.0** was finalized on **2026-11-03**. Subsequent work targets a higher version.
 Its changes are recorded in
 the repository `CHANGELOG.md`. A version update alone does not create a tag or release.
 
@@ -67,7 +67,7 @@ The PyPI workflow is top-level rather than reusable, so the publisher always mat
 `pypi.yml`. It accepts only successful release runs from this repository and verifies
 the tag still points to the validated source commit and the GitHub release is published.
 For a retry, run **publish to PyPI** manually from `master`, entering the existing tag,
-for example `v0.5.2`. Manual runs also require a successful full `ci.yml` run for the
+for example `v0.6.0`. Manual runs also require a successful full `ci.yml` run for the
 same source commit. Existing package files are skipped on retry; PyPI versions cannot
 be overwritten. Never move a published tag to change an uploaded package.
 
@@ -77,7 +77,7 @@ be overwritten. Never move a published tag to change an uploaded package.
 pip install 'quite-admin[sqlalchemy,fastapi]'
 uv add 'quite-admin[sqlalchemy,litestar]'
 # Reproduce a particular release:
-pip install 'quite-admin[sqlalchemy,fastapi]==0.5.2'
+pip install 'quite-admin[sqlalchemy,fastapi]==0.6.0'
 ```
 
 The core also installs as `pip install quite-admin` without ORM dependencies.
