@@ -47,6 +47,64 @@ with safe metadata and does not turn a committed write into a failed response. F
 durable audit, write an audit row/outbox inside the adapter/service transaction. There is
 no built-in durable audit store. Callback exception messages and record values are not logged.
 
+## Per-model services and form schemas
+
+Keep the native adapter and attach business creation to the model's normal options:
+
+```python
+async def create_link(operation, payload):
+    user = await users.get(operation.identity.subject)
+    return await links.create(payload, user=user)
+
+admin.register(Link, options=ModelOptions(
+    create_fields=("long_url", "organization_id"),
+    create_schema=LinkCreate,
+    create_handler=create_link,
+    update_schema=LinkUpdate,
+))
+```
+
+`create_handler(operation, payload)` replaces creation for this model only. Other
+models and unconfigured operations keep native adapter behavior. The payload is an
+ordinary dictionary unless `create_schema` is set; then it is the validated Pydantic
+model. Handlers can return a scalar mapping or an ORM instance with loaded scalar
+attributes. Only fields in the adapter schema reach redirects, history and after hooks.
+Return the complete persisted record, including generated/default values and its key.
+
+Install `quite-admin[pydantic]` to opt into Pydantic 2 `create_schema` / `update_schema`.
+Existing FastAPI installations already include Pydantic. Schemas validate after CSRF,
+permissions and scalar field allowlists, before lifecycle hooks and persistence. Field
+errors appear in the form; model-level errors appear at the top. Inputs and error
+context are not logged. Form fields are still discovered from the adapter and configured
+with `create_fields`, `edit_fields` and [input_fields](configuration.md#form-only-input-fields).
+Schemas do not add database columns or implicitly expose additional fields.
+
+Without a custom handler, normalized submitted values go through the native atomic
+save, including stale-edit checks. Unsubmitted schema defaults are not written. Use an
+update schema whose fields are optional for partial/inline edits; validation sees only
+submitted changes, not a merged previous record. A custom handler receives the full
+validated payload, including its schema defaults, and owns the persistence policy.
+
+For a service that owns editing, set `update_handler`:
+
+```python
+async def update_link(operation, payload, *, guard):
+    return await links.update(
+        operation.key, payload, actor=operation.identity.subject,
+        selections=operation.relations, guard=guard,
+    )
+```
+
+The service owns one transaction, rollback and error translation. It must apply a
+non-null `guard` to freshly locked state **inside that transaction**, as described in
+the [checked adapter contract](custom-adapters.md#concurrent-edits). `guard=None` means
+the configured adapter has no checked-write capability. Do not check a stale snapshot
+before a separate write. Relationship selections in `operation.relations` must also be
+saved and checked atomically; a handler replaces the entire write, including relations.
+Handlers run within `current_operation()`, between the normal before/after hooks.
+Sync handlers must not perform blocking I/O. Raise the public `ValidationError`,
+`Conflict` or `NotFound` errors for expected service failures.
+
 ## Record actions
 
 ```python

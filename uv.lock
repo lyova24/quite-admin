@@ -1550,6 +1550,9 @@ litestar = [
 peewee = [
     { name = "peewee" },
 ]
+pydantic = [
+    { name = "pydantic" },
+]
 sqlalchemy = [
     { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'extra-11-quite-admin-sqlalchemy' or (extra == 'extra-11-quite-admin-all' and extra == 'extra-11-quite-admin-gino-legacy') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'extra-11-quite-admin-sqlmodel') or (extra == 'extra-11-quite-admin-gino-legacy' and extra == 'group-11-quite-admin-dev')" },
 ]
@@ -1602,6 +1605,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6,<4" },
     { name = "litestar", marker = "extra == 'litestar'", specifier = ">=2.20,<3" },
     { name = "peewee", marker = "extra == 'peewee'", specifier = ">=3.17,<4" },
+    { name = "pydantic", marker = "extra == 'pydantic'", specifier = ">=2.9,<3" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
     { name = "quite-admin", extras = ["sqlalchemy"], marker = "extra == 'sqlmodel'" },
     { name = "quite-admin", extras = ["sqlalchemy", "sqlmodel", "tortoise", "peewee", "fastapi", "litestar"], marker = "extra == 'all'" },
@@ -1611,7 +1615,7 @@ requires-dist = [
     { name = "starlette", specifier = ">=0.52.1,<2.0" },
     { name = "tortoise-orm", marker = "extra == 'tortoise'", specifier = ">=0.25.4,<1.0" },
 ]
-provides-extras = ["sqlalchemy", "sqlmodel", "tortoise", "peewee", "gino-legacy", "fastapi", "litestar", "all"]
+provides-extras = ["pydantic", "sqlalchemy", "sqlmodel", "tortoise", "peewee", "gino-legacy", "fastapi", "litestar", "all"]
 
 [package.metadata.requires-dev]
 database-check = [

@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Literal
 
+from ._validation import validate_schema
 from .errors import ValidationError
 from .i18n import Message
 from .schema import Field, ModelSchema
@@ -121,8 +122,19 @@ class ModelOptions:
     list_editable: tuple[str, ...] | None = None
     pagination: Literal["offset", "cursor"] = "offset"
     input_fields: tuple[Field, ...] = ()
+    create_schema: type[Any] | None = None
+    update_schema: type[Any] | None = None
+    create_handler: Callable[[Operation, Any], Any | Awaitable[Any]] | None = None
+    update_handler: Callable[..., Any] | None = None
 
     def validate(self, schema: ModelSchema) -> None:
+        validate_schema(self.create_schema)
+        validate_schema(self.update_schema)
+        if any(
+            handler is not None and not callable(handler)
+            for handler in (self.create_handler, self.update_handler)
+        ):
+            raise TypeError("Model write handlers must be callable.")
         if self.pagination not in {"offset", "cursor"}:
             raise ValueError("pagination must be offset or cursor.")
         if self.group is not None and (not isinstance(self.group, str) or not self.group.strip()):

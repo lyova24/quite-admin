@@ -7,6 +7,10 @@
 - Add model-level `input_fields` for form-only values without changing adapter schemas
   or SQL projections. Include a built-in password widget that never echoes credentials;
   input fields are unavailable in lists, search, filters, exports and activity history.
+- Attach creation/editing services and optional Pydantic 2 schemas directly to each
+  model's options. Preserve native checked writes for validation-only customization,
+  pass guards to custom editing services and accept loaded ORM results without a
+  custom adapter or record-conversion helper.
 
 ## 0.5.2 — 2026-11-02
 

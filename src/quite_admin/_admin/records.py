@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import inspect
+from collections.abc import Mapping
 from copy import deepcopy
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
@@ -15,10 +16,11 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from .._validation import validate_payload
 from ..concurrency import CheckedAdapter, StaleRecord, WriteGuard, canonical
 from ..config import FieldOptions
 from ..errors import Conflict, NotFound, ValidationError
-from ..operations import Operation, _operation
+from ..operations import Operation, _operation, current_operation
 
 if TYPE_CHECKING:
     from ..admin import Resource
@@ -61,6 +63,7 @@ class RecordViews:
                 raise HTTPException(422, "Submit exactly one editable field.")
             try:
                 changes = resource.options.parse_values(resource.schema, {name: form[name]}, False)
+                changes, payload = validate_payload(resource.options.update_schema, changes)
                 guard = (
                     self._write_guard(request, resource, form["__revision"], {})
                     if isinstance(resource.adapter, CheckedAdapter)
@@ -69,11 +72,9 @@ class RecordViews:
                 key = resource.schema.parse_key(request.path_params["key"])
 
                 async def execute():
-                    if guard is not None:
-                        return await resource.adapter.save_checked(
-                            resource.model, key, changes, {}, guard=guard
-                        )
-                    return await resource.adapter.update(resource.model, key, changes)
+                    return await self._save_record(
+                        resource, changes, payload, {}, key=key, guard=guard
+                    )
 
                 record = await self._perform_write(
                     request, resource, "edit", record, changes, {}, key, execute
@@ -269,6 +270,10 @@ class RecordViews:
                 changes = resource.options.parse_values(
                     resource.schema, scalar, creating, managed_fields=managed
                 )
+                changes, payload = validate_payload(
+                    resource.options.create_schema if creating else resource.options.update_schema,
+                    changes,
+                )
                 key = None if creating else resource.schema.parse_key(request.path_params["key"])
 
                 guard = (
@@ -278,17 +283,15 @@ class RecordViews:
                 )
 
                 async def execute():
-                    if guard is not None:
-                        return await resource.adapter.save_checked(
-                            resource.model, key, changes, selections, guard=guard
-                        )
-                    if selections:
-                        return await resource.adapter.save_relations(
-                            resource.model, changes, selections, key=key
-                        )
-                    if creating:
-                        return await resource.adapter.create(resource.model, changes)
-                    return await resource.adapter.update(resource.model, key, changes)
+                    return await self._save_record(
+                        resource,
+                        changes,
+                        payload,
+                        selections,
+                        key=key,
+                        guard=guard,
+                        creating=creating,
+                    )
 
                 saved = await self._perform_write(
                     request,
@@ -380,6 +383,35 @@ class RecordViews:
                 if await self._action_allowed(request, resource, action)
             ],
         )
+
+    async def _save_record(
+        self, resource, values, payload, selections, *, key=None, guard=None, creating=False
+    ):
+        handler = resource.options.create_handler if creating else resource.options.update_handler
+        if handler is not None:
+            kwargs = {} if creating else {"guard": guard}
+            saved = handler(current_operation(), payload, **kwargs)
+            if inspect.isawaitable(saved):
+                saved = await saved
+            if isinstance(saved, Mapping):
+                saved = {name: saved[name] for name in resource.schema.by_name if name in saved}
+            else:
+                saved = {item.name: getattr(saved, item.name) for item in resource.schema.fields}
+            resource.schema.validate_key(
+                {item.name: saved.get(item.name) for item in resource.schema.primary_keys}
+            )
+            return saved
+        if guard is not None:
+            return await resource.adapter.save_checked(
+                resource.model, key, values, selections, guard=guard
+            )
+        if selections:
+            return await resource.adapter.save_relations(
+                resource.model, values, selections, key=key
+            )
+        if creating:
+            return await resource.adapter.create(resource.model, values)
+        return await resource.adapter.update(resource.model, key, values)
 
     async def _perform_write(
         self,
