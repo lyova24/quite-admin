@@ -263,3 +263,40 @@ statement timeout and MySQL a temporary SELECT timeout. Connection settings are 
 or the connection is invalidated before pool reuse; failed reads return a safe 504.
 Writes retain their own transaction behavior. Pool acquisition and Python rendering are
 not covered; configure request/pool timeouts in the host application when needed.
+
+## Form-only input fields
+
+Declare extra form inputs without adding fictitious columns to your adapter:
+
+```python
+from quite_admin import Field, ModelOptions
+
+admin.register(User, options=ModelOptions(
+    input_fields=(
+        Field("password1", kind="password", label="Password"),
+        Field("password2", kind="password", label="Confirm password"),
+    ),
+    create_fields=("username", "password1", "password2"),
+    edit_fields=("username",),
+))
+```
+
+Input fields participate in scalar parsing, required-value checks and the create/edit
+field allowlists. Their names must be unique and must not shadow model fields. Use
+`fields={...}` for labels, help and custom controls as usual. Explicitly declaring an
+input permits entering a sensitive name without `expose_sensitive_fields`.
+
+The adapter schema stays unchanged. Inputs are unavailable in lists, sorting, search,
+filters, exports, record labels, schema diagrams, revision fingerprints and activity
+details. An input is not prefilled from a stored record and is hidden on read-only
+record pages. Use `create_fields` / `edit_fields` to select its forms.
+
+`kind="password"` renders an accessible password input with `autocomplete="new-password"`.
+It is never prefilled or echoed after validation/conflict errors, including in custom
+template context. Required passwords reject empty strings on the server. Model fields
+explicitly configured with this kind are also excluded from scalar read displays and
+exports. Password inputs take precedence over custom field templates.
+
+A service adapter must consume input values before calling a native adapter: hash a
+password, validate its confirmation and persist only actual model columns. A native
+adapter cannot persist form-only values. See [application services](custom-adapters.md).

@@ -120,6 +120,7 @@ class ModelOptions:
     group: str | None = None
     list_editable: tuple[str, ...] | None = None
     pagination: Literal["offset", "cursor"] = "offset"
+    input_fields: tuple[Field, ...] = ()
 
     def validate(self, schema: ModelSchema) -> None:
         if self.pagination not in {"offset", "cursor"}:
@@ -128,21 +129,33 @@ class ModelOptions:
             raise ValueError("group must be a nonempty label or None.")
         fields = schema.by_name
         names = set(fields)
+        inputs = {item.name: item for item in self.input_fields}
+        if len(inputs) != len(self.input_fields) or inputs.keys() & names:
+            raise ValueError("input_fields must have unique names distinct from model fields.")
+        if any(item.primary_key or item.generated or item.foreign_key for item in inputs.values()):
+            raise ValueError("Input fields cannot be primary keys, generated or foreign keys.")
         for option in (
             self.list_fields,
             self.list_editable,
+            self.search_fields,
+            self.filter_fields,
+            (self.record_label,) if self.record_label else (),
+        ):
+            unknown = set(option or ()) - names
+            if unknown:
+                raise ValueError(
+                    f"Unknown model fields in {schema.name}: {', '.join(sorted(unknown))}"
+                )
+        for option in (
             self.edit_fields,
             self.create_fields,
             self.readonly_fields,
             self.exclude,
-            self.search_fields,
-            self.filter_fields,
             self.expose_sensitive_fields,
             self.writable_protected_fields,
             tuple(self.fields),
-            (self.record_label,) if self.record_label else (),
         ):
-            unknown = set(option or ()) - names
+            unknown = set(option or ()) - (names | inputs.keys())
             if unknown:
                 raise ValueError(f"Unknown fields in {schema.name}: {', '.join(sorted(unknown))}")
         if len({action.slug for action in self.actions}) != len(self.actions):
@@ -152,13 +165,24 @@ class ModelOptions:
                 raise ValueError("search_fields must contain string fields.")
 
     def visible_fields(self, schema: ModelSchema) -> tuple[Field, ...]:
+        return self._fields(schema, form=False)
+
+    def _fields(self, schema: ModelSchema, *, form: bool) -> tuple[Field, ...]:
         result = []
-        for item in schema.fields:
-            if item.name in self.exclude or (
-                is_sensitive_field(item.name) and item.name not in self.expose_sensitive_fields
+        inputs = {item.name for item in self.input_fields} if form else set()
+        for item in (*schema.fields, *(self.input_fields if form else ())):
+            override = self.fields.get(item.name, _DEFAULT_FIELD_OPTIONS)
+            kind = override.kind or item.kind
+            if (
+                item.name in self.exclude
+                or (
+                    item.name not in inputs
+                    and is_sensitive_field(item.name)
+                    and item.name not in self.expose_sensitive_fields
+                )
+                or (not form and kind == "password")
             ):
                 continue
-            override = self.fields.get(item.name, _DEFAULT_FIELD_OPTIONS)
             result.append(
                 replace(
                     item,
@@ -179,7 +203,7 @@ class ModelOptions:
 
     def form_fields(self, schema: ModelSchema, creating: bool) -> tuple[Field, ...]:
         selected = self.create_fields if creating else self.edit_fields
-        visible = {item.name: item for item in self.visible_fields(schema)}
+        visible = {item.name: item for item in self._fields(schema, form=True)}
         ordered = (
             [visible[name] for name in selected if name in visible]
             if selected is not None

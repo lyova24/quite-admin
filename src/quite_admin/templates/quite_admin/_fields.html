@@ -4,6 +4,7 @@
     <label id="label-{{ field.name }}" for="field-{{ field.name }}">{{ field.label }} {% if not editable %}<span class="field-tag">{{ t('Read only') }}</span>{% elif field.nullable %}<span class="optional-label">{{ t('optional') }}</span>{% endif %}</label>
     {% set descriptions %}{% if help and help.help_text %}help-{{ field.name }} {% endif %}{% if field.foreign_key %}reference-{{ field.name }} {% endif %}{% if errors.get(field.name) %}error-{{ field.name }}{% endif %}{% endset %}
     {% if not editable %}<div class="readonly-value" id="field-{{ field.name }}" aria-labelledby="label-{{ field.name }}">{% if field.kind == 'boolean' and values[field.name] in ('true', 'false') %}{{ t('True' if values[field.name] == 'true' else 'False') }}{% else %}{{ values[field.name] or '—' }}{% endif %}</div>
+    {% elif field.kind == 'password' %}<input id="field-{{ field.name }}" name="{{ field.name }}" type="password" autocomplete="new-password"{% if not field.nullable %} required{% endif %}{% if field.max_length %} maxlength="{{ field.max_length }}"{% endif %}{{ field_attributes(descriptions, errors.get(field.name)) }}>
     {% elif help and help.template %}{% include help.template %}
     {% elif field.kind == 'boolean' or field.choices %}
       <select{% if field.kind == 'boolean' %} data-boolean-toggle{% endif %} id="field-{{ field.name }}" name="{{ field.name }}"{{ field_attributes(descriptions, errors.get(field.name)) }}>

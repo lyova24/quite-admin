@@ -35,8 +35,9 @@ class RecordViews:
             name: item
             for name, item in writable.items()
             if name in listed
+            and name in resource.schema.by_name
             and (configured is None or name in configured)
-            and item.kind not in {"binary", "unsupported"}
+            and item.kind not in {"binary", "unsupported", "password"}
             and not item.foreign_key
             and not resource.options.fields.get(name, FieldOptions()).template
         }
@@ -211,7 +212,11 @@ class RecordViews:
             else ()
         )
         managed = frozenset(name for editor in editors for name in editor["relation"].source_fields)
-        ordered = resource.options.form_fields(resource.schema, creating)
+        ordered = (
+            resource.options.form_fields(resource.schema, creating)
+            if editable
+            else resource.options.visible_fields(resource.schema)
+        )
         if not creating:
             selected = {item.name for item in ordered}
             ordered += tuple(
@@ -220,7 +225,13 @@ class RecordViews:
                 if item.name not in selected
             )
         fields = tuple(item for item in ordered if item.name not in managed)
-        values = {item.name: item.format(record.get(item.name)) for item in fields}
+        inputs = {item.name for item in resource.options.input_fields}
+        values = {
+            item.name: ""
+            if item.name in inputs or item.kind == "password"
+            else item.format(record.get(item.name))
+            for item in fields
+        }
         errors = {}
         defaults = {item.name for item in fields if creating and item.has_default}
         status = 200
@@ -240,7 +251,14 @@ class RecordViews:
             form = FormData(
                 (name, value) for name, value in form.multi_items() if name != "__revision"
             )
-            values.update({name: str(value) for name, value in form.items() if name in values})
+            passwords = {item.name for item in fields if item.kind == "password"}
+            values.update(
+                {
+                    name: str(value)
+                    for name, value in form.items()
+                    if name in values and name not in passwords
+                }
+            )
             defaults = {
                 name.removeprefix("__default__")
                 for name in form

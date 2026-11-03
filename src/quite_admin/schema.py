@@ -101,6 +101,8 @@ class Field:
             self.choices = tuple(str(item.value) for item in python_type)
 
     def parse(self, value: Any) -> Any:
+        if self.kind == "password" and value == "" and not self.nullable:
+            raise ValueError(Message("A value is required."))
         if value is None or (value == "" and self.nullable):
             if not self.nullable:
                 raise ValueError(Message("A value is required."))
