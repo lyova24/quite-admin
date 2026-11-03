@@ -264,6 +264,39 @@ or the connection is invalidated before pool reuse; failed reads return a safe 5
 Writes retain their own transaction behavior. Pool acquisition and Python rendering are
 not covered; configure request/pool timeouts in the host application when needed.
 
+## Shared read limits
+
+Configure a shared queue and an operation deadline directly on the admin, with any adapter:
+
+```python
+admin = Admin(
+    auth=auth_backend, secret_key=session_secret, adapters=[adapter],
+    query_timeout=3.0,
+    max_concurrent_reads=2,
+)
+```
+
+Both options default to `None`, preserving existing behavior. The positive timeout
+includes waiting for the shared read slot, asynchronous pool acquisition and the read
+itself. Expiry returns a safe 504. The positive integer concurrency limit is shared
+across all models/adapters of this `Admin` in one process; it is not a cross-worker limit.
+Choose it below the business pool capacity when sharing a pool, leaving room for the
+host's ordinary traffic. Each worker has its own queue.
+
+The policy covers asynchronous discovery, lists, cursor pages, record lookup,
+relationship reads/pickers and exports, including batches. It applies only to reads
+performed by the admin: direct adapter calls, authentication services, service-handler
+I/O and service storage retain their own policies. Writes and commits are never timed
+out by this setting. Failure of a post-commit history reread preserves the successful
+write response and emits the existing safe history warning.
+
+Cancellation releases the slot after adapter cleanup. Synchronous database workers
+finish before releasing their connection/slot, so a synchronous query can delay the
+504 beyond the deadline. Also configure the native SQL/SQLAlchemy `query_timeout`
+above to interrupt database execution itself. Async adapters such as GINO receive
+cancellation during pool acquisition or query execution; a second adapter wrapper,
+semaphore or timeout exception handler is unnecessary.
+
 ## Form-only input fields
 
 Declare extra form inputs without adding fictitious columns to your adapter:
@@ -297,6 +330,7 @@ template context. Required passwords reject empty strings on the server. Model f
 explicitly configured with this kind are also excluded from scalar read displays and
 exports. Password inputs take precedence over custom field templates.
 
-A service adapter must consume input values before calling a native adapter: hash a
+A [model handler](extensions.md#per-model-services-and-form-schemas) or service adapter
+must consume input values before calling a native adapter: hash a
 password, validate its confirmation and persist only actual model columns. A native
 adapter cannot persist form-only values. See [application services](custom-adapters.md).

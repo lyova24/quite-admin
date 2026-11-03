@@ -118,14 +118,14 @@ class ListingViews:
             if not isinstance(resource.adapter, WindowAdapter):
                 raise HTTPException(400, "This adapter does not support cursor pagination.")
             after, before = self._window_boundaries(request, resource)
-            window = await resource.adapter.list_window(
-                resource.model, query, after=after, before=before
+            window = await self._read(
+                resource.adapter.list_window, resource.model, query, after=after, before=before
             )
             result = window
         else:
             if "after" in request.query_params or "before" in request.query_params:
                 raise HTTPException(400, "Cursor parameters require cursor pagination.")
-            result = await resource.adapter.list(resource.model, query)
+            result = await self._read(resource.adapter.list, resource.model, query)
         permissions = {
             action: await self._allowed(request, resource, action)
             for action in ("view", "create", "edit", "delete")

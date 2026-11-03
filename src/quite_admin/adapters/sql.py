@@ -4,7 +4,7 @@ import warnings
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
-from anyio import Lock, to_thread
+from anyio import Lock
 from sqlalchemy import (
     JSON,
     MetaData,
@@ -23,6 +23,7 @@ from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.types import TypeEngine
 
+from quite_admin._reads import run_sync
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.pagination import (
@@ -91,7 +92,7 @@ class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
                 with self.engine.begin() if write else self.engine.connect() as connection:
                     return execute(connection)
 
-            return await to_thread.run_sync(run)
+            return await run_sync(run)
         except IntegrityError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
         except (DataError, OverflowError) as exc:

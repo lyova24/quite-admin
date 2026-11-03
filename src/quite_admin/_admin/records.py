@@ -124,7 +124,9 @@ class RecordViews:
         )
 
     async def _record(self, resource: Resource, token: str) -> dict[str, Any]:
-        record = await resource.adapter.get(resource.model, resource.schema.parse_key(token))
+        record = await self._read(
+            resource.adapter.get, resource.model, resource.schema.parse_key(token)
+        )
         if record is None:
             raise NotFound("Record not found.")
         return record

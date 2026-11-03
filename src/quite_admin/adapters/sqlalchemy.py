@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
-from anyio import to_thread
 from sqlalchemy import JSON, Column, String, Text, and_, func, inspect, select
 from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
+from quite_admin._reads import run_sync
 from quite_admin.concurrency import CheckedWrites, check_record, sqlite_session_lock
 from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.pagination import (
@@ -145,7 +145,7 @@ class SQLAlchemyAdapter(CheckedWrites, SQLAlchemyRelations, WindowReads):
                 with self.session_factory() as session:
                     return execute(session)
 
-            return await to_thread.run_sync(run)
+            return await run_sync(run)
         except IntegrityError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
         except (DataError, OverflowError) as exc:

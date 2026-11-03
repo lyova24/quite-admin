@@ -56,7 +56,8 @@ class ExportViews:
         source_columns = {item["field"].name for item in columns if item["editor"] is None}
         if editors:
             source_columns.update(item.name for item in resource.schema.primary_keys)
-        result = await resource.adapter.list(
+        result = await self._read(
+            resource.adapter.list,
             resource.model,
             replace(
                 query,
@@ -77,7 +78,8 @@ class ExportViews:
                 for record in result.records
             ]
             for name in editors:
-                batch = await resource.adapter.related_batch(
+                batch = await self._read(
+                    resource.adapter.related_batch,
                     resource.model,
                     name,
                     keys,

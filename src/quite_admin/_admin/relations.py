@@ -104,7 +104,8 @@ class RelationViews:
             linked = (
                 None
                 if creating
-                else await resource.adapter.related(
+                else await self._read(
+                    resource.adapter.related,
                     resource.model,
                     relation.name,
                     resource.schema.parse_key(resource.schema.record_key(record)),
@@ -115,8 +116,8 @@ class RelationViews:
             truncated = linked is not None and linked.total > 1000
             editable = editable and not truncated
             candidates = (
-                await target.adapter.list(
-                    target.model, Query(limit=25, columns=target._projection())
+                await self._read(
+                    target.adapter.list, target.model, Query(limit=25, columns=target._projection())
                 )
                 if editable
                 else None
@@ -205,7 +206,7 @@ class RelationViews:
             search_fields=tuple(name for name in searchable if name in visible),
             columns=target._projection(name for name in searchable if name in visible),
         )
-        result = await target.adapter.list(target.model, query)
+        result = await self._read(target.adapter.list, target.model, query)
         return JSONResponse(
             {
                 "items": [

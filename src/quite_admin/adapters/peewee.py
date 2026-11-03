@@ -8,8 +8,8 @@ from typing import Any
 from uuid import UUID
 
 import peewee as pw
-from anyio import to_thread
 
+from quite_admin._reads import run_sync
 from quite_admin.concurrency import CheckedWrites, check_record, guarded
 from quite_admin.errors import Conflict, NotFound, ValidationError
 from quite_admin.pagination import (
@@ -130,7 +130,7 @@ class PeeweeAdapter(CheckedWrites, PeeweeRelations, WindowReads):
                     return operation()
 
         try:
-            return await to_thread.run_sync(run)
+            return await run_sync(run)
         except pw.IntegrityError as exc:
             raise Conflict("The operation conflicts with a database constraint.") from exc
         except (pw.DataError, OverflowError) as exc:

@@ -109,6 +109,43 @@ The adapter also supports [related-record filters](filters.md),
 [atomic stale-edit detection](configuration.md#concurrent-edits) and
 [database schema metadata](database-schema.md).
 
+## Application services without an adapter subclass
+
+Keep `GinoAdapter(db)` and configure optional behavior where the model is registered:
+
+```python
+from quite_admin import Admin, Field, ModelOptions
+from quite_admin.adapters.gino import GinoAdapter
+
+async def create_user(operation, payload):
+    return await users.create(payload, actor=operation.identity.subject)
+
+admin = Admin(
+    auth=auth_backend, secret_key=session_secret,
+    adapters=[GinoAdapter(db, models=[User])],
+    query_timeout=3.0, max_concurrent_reads=2,
+)
+admin.register(User, options=ModelOptions(
+    input_fields=(Field("password1", kind="password"), Field("password2", kind="password")),
+    create_fields=("username", "password1", "password2", "organization_id"),
+    edit_fields=("full_name", "email", "is_active", "organization_id"),
+    create_schema=UserCreate,
+    update_schema=UserUpdate,
+    create_handler=create_user,
+))
+admin.mount_fastapi(app)
+```
+
+`users.create` is your service: it validates domain rules, hashes passwords, preserves
+organization/actor information and commits atomically. It may return a loaded GINO
+instance; no hand-written record conversion or SQL projection repair is needed.
+`UserCreate` / `UserUpdate` are existing Pydantic 2 schemas. The update schema should
+accept partial changes; native GINO edits keep atomic stale-record checks.
+See [model services](extensions.md#per-model-services-and-form-schemas) and
+[shared read limits](configuration.md#shared-read-limits) for the contracts.
+The existing host-owned pool and lifespan remain unchanged. Choose a concurrency
+limit that leaves pool capacity for public requests.
+
 ## Run the PostgreSQL checks
 
 GINO has a separate locked environment and PostgreSQL CI job for CPython 3.11–3.15.

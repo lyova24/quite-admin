@@ -112,6 +112,42 @@ CRUD, поиск буквального текста, стабильная па�
 [атомарную проверку устаревшей формы](configuration.md#konkuriruyushee-redaktirovanie)
 и [метаданные схемы БД](database-schema.md).
 
+## Сервисы приложения без подкласса адаптера
+
+Оставьте `GinoAdapter(db)` и задайте дополнительное поведение при регистрации модели:
+
+```python
+from quite_admin import Admin, Field, ModelOptions
+from quite_admin.adapters.gino import GinoAdapter
+
+async def create_user(operation, payload):
+    return await users.create(payload, actor=operation.identity.subject)
+
+admin = Admin(
+    auth=auth_backend, secret_key=session_secret,
+    adapters=[GinoAdapter(db, models=[User])],
+    query_timeout=3.0, max_concurrent_reads=2,
+)
+admin.register(User, options=ModelOptions(
+    input_fields=(Field("password1", kind="password"), Field("password2", kind="password")),
+    create_fields=("username", "password1", "password2", "organization_id"),
+    edit_fields=("full_name", "email", "is_active", "organization_id"),
+    create_schema=UserCreate,
+    update_schema=UserUpdate,
+    create_handler=create_user,
+))
+admin.mount_fastapi(app)
+```
+
+`users.create` — сервис вашего приложения: он проверяет бизнес-правила, хеширует пароль,
+сохраняет организацию/автора и атомарно завершает запись. Можно вернуть загруженный
+GINO-объект: ручное преобразование записи и исправление SQL-проекции не нужны.
+`UserCreate` / `UserUpdate` — существующие схемы Pydantic 2. Схема обновления должна
+принимать частичные изменения; штатные GINO-правки сохраняют атомарную проверку ревизии.
+Контракты описаны в [сервисах моделей](extensions.md) и [лимитах чтения](configuration.md).
+Пул и lifespan остаются под управлением приложения. Выбирайте параллелизм так,
+чтобы у публичных запросов оставались свободные соединения.
+
 ## Проверки с PostgreSQL
 
 Для GINO предусмотрены отдельное locked-окружение и PostgreSQL CI job для CPython 3.11–3.15.

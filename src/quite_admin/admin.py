@@ -31,6 +31,7 @@ from ._admin.rendering import Rendering
 from ._admin.web import FORM_BODY_LIMIT as FORM_BODY_LIMIT
 from ._admin.web import LOGO_TYPES, SLUG, STATIC_DIR, SecurityHeaders, litestar_route
 from ._admin.web import TEMPLATE_API_VERSION as TEMPLATE_API_VERSION
+from ._reads import ReadLimits
 from .adapters.base import Adapter
 from .auth import AuthBackend, Identity, LoginThrottle
 from .config import Action, ModelOptions, Permission
@@ -143,6 +144,8 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         storage: AdminStore | str | Path | None = None,
         history_permission: Permission | None = None,
         history_enabled: bool = True,
+        query_timeout: float | None = None,
+        max_concurrent_reads: int | None = None,
     ) -> None:
         if len(secret_key.encode()) < 32:
             raise ValueError("secret_key must contain at least 32 bytes of random secret material.")
@@ -170,6 +173,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         self._logging = EventLogger(logger, structured=log_structured)
         self.logger = self._logging.logger
         self.hooks = hooks if hooks is not None else OperationHooks()
+        self._read_limits = ReadLimits(query_timeout, max_concurrent_reads)
         self.storage = create_store(storage)
         self.history_permission = history_permission
         self.history_enabled = history_enabled
@@ -309,9 +313,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         """Refresh metadata lazily, including models registered during host startup."""
         result: dict[str, Resource] = {}
         for source in self.sources:
-            discovered = source.adapter.discover() if source.discover else ()
-            if inspect.isawaitable(discovered):
-                discovered = await discovered
+            discovered = await self._read(source.adapter.discover) if source.discover else ()
             resolver = getattr(source.adapter, "resolve_model", None)
             registered = {
                 resolver(model) if resolver is not None else model: options
@@ -341,6 +343,9 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
                     )
                 result[slug] = Resource(slug, model, source.adapter, schema, options)
         return dict(sorted(result.items(), key=lambda pair: pair[1].label.casefold()))
+
+    async def _read(self, operation, *args, **kwargs):
+        return await self._read_limits.run(operation, *args, **kwargs)
 
     def mount_fastapi(self, app: Any, path: str = "/admin") -> None:
         app.mount(self._mount_path(path), self, name="quite-admin")

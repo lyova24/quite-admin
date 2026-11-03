@@ -125,6 +125,13 @@ Optional `RelationAdapter` methods are **not** forwarded automatically: that cou
 the overridden `update()`. Implement all three explicitly when the service can save
 fields and relationships atomically.
 
+Count-free `list_window` reads are forwarded when the delegate supports `WindowAdapter`
+and the subclass inherits the normal `list()` method. A reader without cursor support
+stays outside that optional protocol. If a subclass overrides `list()` (for example,
+tenant filtering), it must implement `list_window()` explicitly with the same read
+policy; automatic forwarding would bypass it. Relationship and checked writes still
+require explicit implementations and are never forwarded by this convenience.
+
 ## Compatibility contract
 
 `ADAPTER_API_VERSION` is `1`. Structural adapters need no version attribute or base class.

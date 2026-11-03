@@ -6,19 +6,8 @@ from time import monotonic
 
 from sqlalchemy.exc import DBAPIError
 
+from quite_admin._reads import validate_timeout as validate_timeout
 from quite_admin.errors import QueryTimeout
-
-
-def validate_timeout(seconds):
-    if seconds is not None and (
-        type(seconds) not in {int, float}
-        or not math.isfinite(seconds)
-        or not 0 < seconds <= 2147483
-    ):
-        raise ValueError(
-            "query_timeout must be a positive finite number of seconds, at most 2147483."
-        )
-    return seconds
 
 
 @contextmanager

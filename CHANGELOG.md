@@ -11,6 +11,11 @@
   model's options. Preserve native checked writes for validation-only customization,
   pass guards to custom editing services and accept loaded ORM results without a
   custom adapter or record-conversion helper.
+- Configure shared per-admin read concurrency and operation deadlines, including the
+  queue, asynchronous pool acquisition, discovery, related reads and exports. Leave
+  writes unchanged and wait for database cleanup before reusing a slot. Synchronous
+  SQL/ORM workers are not abandoned on cancellation. Preserve safe optional cursor
+  reads through DelegatingAdapter without bypassing overridden list policies.
 
 ## 0.5.2 — 2026-11-02
 

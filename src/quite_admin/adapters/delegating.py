@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from ..pagination import WindowAdapter
 from ..schema import LEGACY_FILTER_OPERATORS, Query, RecordPage
 from .base import Adapter
 
@@ -17,6 +18,20 @@ class DelegatingAdapter:
 
     def __init__(self, delegate: Adapter) -> None:
         self.delegate = delegate
+        # Preserve optional reads only when they cannot bypass a subclass's list
+        # policy. Do not advertise windows for readers that cannot execute them.
+        if (
+            isinstance(delegate, WindowAdapter)
+            and getattr(self.list, "__func__", None) is DelegatingAdapter.list
+            and not hasattr(self, "list_window")
+        ):
+            self.list_window = self._list_window
+
+    async def _list_window(self, model, query, *, after=None, before=None):
+        if getattr(self.list, "__func__", None) is not DelegatingAdapter.list:
+            raise ValueError("Implement list_window explicitly when overriding list.")
+        query.validate(self.describe(model))
+        return await self.delegate.list_window(model, query, after=after, before=before)
 
     @property
     def supported_filter_operators(self):

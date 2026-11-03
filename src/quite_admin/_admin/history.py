@@ -451,9 +451,13 @@ class HistoryViews:
         if action == "delete":
             after = None
         elif action.startswith("action:"):
-            after = await resource.adapter.get(resource.model, key)
+            after = await self._read(resource.adapter.get, resource.model, key)
         elif not isinstance(after, Mapping):
-            after = await resource.adapter.get(resource.model, key) if key is not None else None
+            after = (
+                await self._read(resource.adapter.get, resource.model, key)
+                if key is not None
+                else None
+            )
         changes = scalar_changes(resource.schema, resource.options, before, after)
         for editor in editors:
             relation, target = editor["relation"], editor["target"]
@@ -465,7 +469,8 @@ class HistoryViews:
                 for field in target.schema.primary_keys
             ) or any(sensitive_name(name) for name in relation.source_fields):
                 continue
-            linked = await resource.adapter.related(
+            linked = await self._read(
+                resource.adapter.related,
                 resource.model,
                 relation.name,
                 resource.schema.parse_key(resource.schema.record_key(dict(after))),
