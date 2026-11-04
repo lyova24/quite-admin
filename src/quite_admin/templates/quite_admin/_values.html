@@ -1,0 +1,15 @@
+{% macro render_value(field, value, compact=false, formatted=false) %}
+{% set model = display_value(resource, field, value, formatted=formatted) %}
+<div class="field-display" data-field-display="{{ model.kind }}" data-empty="{{ 'false' if model.text else 'true' }}" data-expand-label="{{ t('Show full value') }}">
+<div class="value-content">
+{% if not model.text %}<span class="null-value" data-copy-source>—</span>
+{% elif model.kind == 'url' %}
+  {% if model.href %}<a class="value-url" data-copy-source href="{{ model.href }}" target="_blank" rel="noopener noreferrer" title="{{ model.text }}">{{ model.text }}</a>{% else %}<span class="value-url" data-copy-source>{{ model.text }}</span>{% endif %}
+{% elif compact and model.expandable %}
+  <details class="value-details"><summary><span class="sr-only">{{ t('Show full value') }}: </span>{{ model.preview }}</summary><pre class="value-pre" data-copy-source>{{ model.text }}</pre></details>
+{% else %}<pre class="value-pre" data-copy-source>{{ model.text }}</pre>{% endif %}
+</div>
+<button type="button" hidden class="value-copy button small secondary" data-copy-value data-copied="{{ t('Value copied') }}" data-copy-failed="{{ t('Copy the selected value with Ctrl+C or ⌘C.') }}" aria-label="{{ t('Copy value') }}: {{ field.label }}">{{ t('Copy') }}</button>
+<span class="sr-only" data-copy-status role="status" aria-live="polite"></span>
+</div>
+{% endmacro %}

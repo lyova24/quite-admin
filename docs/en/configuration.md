@@ -111,6 +111,11 @@ Excluding a PK does not make its identity secret: record URLs encode the key.
 
 ## Custom field controls
 
+`FieldOptions(display="url")`, `display="json"` and `display="multiline"` add built-in value controls.
+`url_template="https://short.example/{value}"` builds a display-only link from a scalar
+without a formatter. See [value displays](field-widgets.md) for URL safety, copying,
+read-only behavior and unchanged persistence/export semantics.
+
 `FieldOptions` accepts `kind`, `parser`, `formatter` and `template` in addition to labels
 and help text. For example, a counter formatted as `#7`:
 

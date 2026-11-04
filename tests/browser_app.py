@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     Date,
@@ -43,8 +44,37 @@ entries = Table(
     Column("clock", Time),
     Column("customer_id", ForeignKey("customers.id")),
 )
+previews = Table(
+    "previews",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("title", String(100)),
+    Column("url", Text),
+    Column("code", String(100)),
+    Column("payload", JSON),
+    Column("body", Text),
+)
 metadata.create_all(engine)
 with engine.begin() as connection:
+    connection.execute(
+        previews.insert(),
+        [
+            {
+                "title": "Value controls",
+                "url": "https://example.test/page?q=hello&next=world",
+                "code": "abc/123",
+                "payload": {"hello": "Привет", "nested": [1, 2]},
+                "body": "First line\nSecond line " + "long text " * 20,
+            },
+            {
+                "title": "Unsafe URL",
+                "url": "javascript:alert(1)",
+                "code": None,
+                "payload": {"text": "<img src=x onerror=alert(1)>"},
+                "body": "<script>alert(1)</script>",
+            },
+        ],
+    )
     connection.execute(
         customers.insert(),
         [{"id": 51, "caption": "Alex Johnson"}, {"id": 52, "caption": "Maria Jones"}],
@@ -99,6 +129,7 @@ for mount, theme in (
         adapters=[
             SQLAdapter(
                 engine,
+                include_tables=("customers", "entries"),
                 column_types={
                     "entries": {"status": Enum("pending", "paid", "cancelled", native_enum=False)}
                 },
@@ -121,3 +152,73 @@ for mount, theme in (
         "customers", options=ModelOptions(record_label="id", search_fields=("caption",))
     )
     admin.mount_fastapi(app, mount)
+
+values_admin = Admin(
+    auth=PasswordAuth.single_user("admin", "browser-test-password"),
+    secret_key="browser-values-fixture-" * 3,
+    secure_cookies=False,
+    session_cookie="values_session",
+    storage=f"{_storage.name}/values-state.sqlite3",
+    adapters=[SQLAdapter(engine, include_tables=("previews",))],
+)
+values_admin.configure(
+    "previews",
+    options=ModelOptions(
+        can_edit=False,
+        can_create=False,
+        can_delete=False,
+        record_label="title",
+        list_fields=("url", "code", "payload", "body"),
+        fields={
+            "url": FieldOptions(display="url"),
+            "code": FieldOptions(url_template="https://short.example/{value}"),
+            "payload": FieldOptions(display="json"),
+            "body": FieldOptions(display="multiline"),
+        },
+    ),
+)
+values_admin.mount_fastapi(app, "/values")
+
+editing_adapter = SQLAdapter(engine, include_tables=("previews",))
+
+
+async def rename_preview(operation, payload, *, guard):
+    return await editing_adapter.save_checked(
+        operation.model,
+        operation.key,
+        {
+            **payload,
+            "url": "https://example.test/renamed",
+            "payload": {"renamed": True},
+            "body": "Updated text\n" + "Long value " * 20,
+        },
+        {},
+        guard=guard,
+    )
+
+
+editing_admin = Admin(
+    auth=PasswordAuth.single_user("admin", "browser-test-password"),
+    secret_key="browser-edit-values-" * 3,
+    secure_cookies=False,
+    session_cookie="editing_session",
+    storage=f"{_storage.name}/editing-state.sqlite3",
+    adapters=[editing_adapter],
+)
+editing_admin.configure(
+    "previews",
+    options=ModelOptions(
+        create_fields=("title",),
+        edit_fields=("title",),
+        list_editable=("title",),
+        list_fields=("url", "title", "payload", "body"),
+        record_label="title",
+        update_handler=rename_preview,
+        fields={
+            "url": FieldOptions(display="url"),
+            "payload": FieldOptions(display="json"),
+            "body": FieldOptions(display="multiline"),
+        },
+    ),
+)
+editing_admin.mount_fastapi(app, "/editing")

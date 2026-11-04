@@ -3,6 +3,7 @@
 {% from "quite_admin/_filter_controls.html" import add_filter_button, condition_chips with context %}
 {% from "quite_admin/_ui.html" import empty_state, page_links with context %}
 {% from "quite_admin/_ui.html" import csrf_input with context %}
+{% from "quite_admin/_values.html" import render_value with context %}
 {% block content %}
 <div data-form-messages hidden data-messages='{{ form_messages|tojson }}'></div>
 {% if inline_fields %}<p data-list-save-status class="field-error" role="status" aria-live="polite" hidden></p><dialog class="inline-dialog" data-inline-dialog data-messages='{{ {"none": t("None"), "save": t("Save changes"), "cancel": t("Cancel"), "loading": t("Loading…"), "error": t("Unable to save. Review permissions or reload the list."), "edit": t("Edit field"), "conflict": t("The record changed. Reload the list before switching again.")}|tojson }}'><form method="dialog"><h2 id="inline-title"></h2><div data-inline-control></div><p data-inline-error class="field-error" role="alert"></p><div class="button-group"><button type="button" class="button secondary" data-inline-cancel>{{ t('Cancel') }}</button><button type="submit" class="button primary" data-inline-save>{{ t('Save changes') }}</button></div></form></dialog>{% endif %}
@@ -48,9 +49,10 @@
     <tr class="record-row{% if can_open %} record-row-clickable{% endif %}">
       {% if bulk_actions %}<td class="selection-col"><input type="checkbox" name="keys" value="{{ key }}" form="bulk-actions" data-bulk-key aria-label="{{ t('Select record') }}: {{ resource.record_label(record) }}"></td>{% endif %}
       {% for field in columns %}<td data-list-field="{{ field.name }}"{% if field.kind in ('integer', 'number') %} class="numeric"{% elif field.name == primary_name %} class="cell-primary"{% endif %}>
-        {% if loop.first and can_open and field.name not in inline_fields and field.kind != 'boolean' %}<a class="record-row-link" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key) }}" aria-label="{{ t('Open record') }}: {{ resource.record_label(record) }}">{% endif %}
-        {% if loop.first and can_open and (field.name in inline_fields or field.kind == 'boolean') %}<a class="record-row-link cell-open" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key) }}" aria-label="{{ t('Open record') }}">↗</a>{% endif %}
-        {% if field.kind == 'boolean' %}
+        {% if loop.first and can_open and field.name not in inline_fields and field.name not in display_fields and field.kind != 'boolean' %}<a class="record-row-link" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key) }}" aria-label="{{ t('Open record') }}: {{ resource.record_label(record) }}">{% endif %}
+        {% if loop.first and can_open and (field.name in inline_fields or field.kind == 'boolean' or field.name in display_fields) %}<a class="record-row-link cell-open" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key) }}" aria-label="{{ t('Open record') }}">↗</a>{% endif %}
+        {% if field.name in display_fields %}{{ render_value(field, record[field.name], compact=true) }}
+        {% elif field.kind == 'boolean' %}
         <span class="list-toggle-control" data-list-toggle-control data-value="{{ 'null' if record[field.name] is none else 'true' if record[field.name] else 'false' }}"{% if field.name in inline_fields %} data-toggle-endpoint="{{ inline_endpoint(record, field.name) }}"{% endif %}>
           <button class="boolean-toggle list-boolean-toggle" type="button" role="switch" data-field-label="{{ field.label }}" aria-label="{{ field.label }}{% if record[field.name] is none %}: {{ t('None') }}{% endif %}" aria-checked="{{ 'true' if record[field.name] else 'false' }}"{% if field.name not in inline_fields %} disabled{% endif %} data-list-switch></button>
           <span class="toggle-null-state"{% if record[field.name] is not none %} hidden{% endif %}>{{ t('None') }}</span>
@@ -61,7 +63,7 @@
         {% if record[field.name] is none %}<span data-cell-value class="null-value">—</span>{% elif field.kind == 'boolean' %}<span data-cell-value class="boolean-badge {{ 'yes' if record[field.name] else 'no' }}">{{ t('True' if record[field.name] else 'False') }}</span>{% elif field.primary_key %}<span data-cell-value class="record-id">{{ field.format(record[field.name])|truncate(64) }}</span>{% else %}<span data-cell-value class="cell-value" title="{{ field.format(record[field.name]) }}">{{ field.format(record[field.name])|truncate(90) }}</span>{% endif %}
         {% if field.name in inline_fields %}<span class="cell-edit-mark" aria-hidden="true">✎</span></button>{% endif %}
         {% endif %}
-        {% if loop.first and can_open and field.name not in inline_fields and field.kind != 'boolean' %}</a>{% endif %}
+        {% if loop.first and can_open and field.name not in inline_fields and field.name not in display_fields and field.kind != 'boolean' %}</a>{% endif %}
       </td>{% else %}<td>{% if can_open %}<a class="record-row-link" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key) }}">{{ t('Open record') }}</a>{% else %}—{% endif %}</td>{% endfor %}
       {% if permissions.delete %}<td class="delete-col"><a class="button small danger-outline delete-action" title="{{ t('Delete record') }}: {{ resource.record_label(record) }}" href="{{ url('/models/' ~ resource.slug ~ '/' ~ key ~ '/delete') }}"><span class="sr-only">{{ t('Delete') }}</span><svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></a></td>{% endif %}
     </tr>

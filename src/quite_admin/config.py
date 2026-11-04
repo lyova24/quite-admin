@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Literal
 
+from ._display import _http_url
 from ._validation import validate_schema
 from .errors import ValidationError
 from .i18n import Message
@@ -96,6 +97,8 @@ class FieldOptions:
     parser: Callable[[Any], Any] | None = None
     formatter: Callable[[Any], str] | None = None
     template: str | None = None
+    display: Literal["text", "url", "json", "multiline"] | None = None
+    url_template: str | None = None
 
 
 _DEFAULT_FIELD_OPTIONS = FieldOptions()
@@ -136,6 +139,26 @@ class ModelOptions:
     def validate(self, schema: ModelSchema) -> None:
         if not isinstance(self.bulk_delete, bool):
             raise ValueError("bulk_delete must be a boolean.")
+        if any(
+            item.display not in {None, "text", "url", "json", "multiline"}
+            for item in self.fields.values()
+        ):
+            raise ValueError("display must be text, url, json, multiline or None.")
+        for item in self.fields.values():
+            if item.url_template is None:
+                continue
+            template = item.url_template
+            if (
+                not isinstance(template, str)
+                or "{value}" not in template
+                or "{" in template.replace("{value}", "")
+                or "}" in template.replace("{value}", "")
+                or item.display not in {None, "url"}
+                or _http_url(template.replace("{value}", "value")) is None
+            ):
+                raise ValueError(
+                    "url_template must be an HTTP(S) URL containing only {value} placeholders."
+                )
         validate_schema(self.create_schema)
         validate_schema(self.update_schema)
         if any(

@@ -9,6 +9,7 @@ from typing import Any
 from starlette.requests import Request
 from starlette.responses import Response
 
+from .._display import display_kind, display_value
 from .web import STATIC_DIR, TEMPLATE_API_VERSION
 
 
@@ -35,6 +36,19 @@ class Rendering:
                 page for page in self.pages.values() if await self._page_allowed(request, page)
             ]
         groups = {}
+        resource = context.get("resource")
+        display_fields = (
+            {
+                item.name: display_kind(resource.options.fields[item.name])
+                for item in resource.options.visible_fields(resource.schema)
+                if item.name in resource.options.fields
+                and display_kind(resource.options.fields[item.name]) != "text"
+            }
+            if resource is not None
+            else {}
+        )
+        if display_fields and template in {"quite_admin/list.html", "quite_admin/form.html"}:
+            trusted_scripts += ("values.js",)
         if any(item.options.group is not None for item in resources):
             for item in resources:
                 label = item.options.group or self.gettext("Other collections")
@@ -57,6 +71,7 @@ class Rendering:
                 "listing.js",
                 "inline.js",
                 "history.js",
+                "values.js",
             }:
                 raise ValueError("Unknown built-in script.")
             digest = base64.b64encode(
@@ -84,6 +99,8 @@ class Rendering:
             "pages": pages,
             "history_allowed": identity is not None and await self._history_allowed(request),
             "csrf": self._csrf(request),
+            "display_fields": display_fields,
+            "display_value": display_value,
             "url": lambda path="/": self._url(request, path),
             "breadcrumbs": self._breadcrumbs(request, template, context),
         }

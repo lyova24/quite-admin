@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0 — unreleased
+## 0.7.0 — 2026-11-04
 
 - Automatically attach service-storage cleanup to FastAPI and Litestar lifespans;
   expose `Admin.lifespan()` / `Admin.aclose()` for other integrations. Dispose only
@@ -24,6 +24,11 @@
   handlers/hooks. Confirm up to 100 signed, session-bound keys, recheck permissions
   and revisions, then show per-record partial results and record individual history.
   `ModelOptions(bulk_delete=False)` disables the built-in bulk delete command.
+
+- Add optional URL/JSON/multiline value displays with escaped output, safe HTTP(S)
+  links, clipboard/manual-copy fallback and no-script disclosure. Build short links
+  with `FieldOptions(url_template=...)` without changing stored/exported/history values.
+  Keep rich cells synchronized after service-driven inline updates.
 
 ## 0.6.1 — 2026-11-04
 

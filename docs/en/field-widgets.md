@@ -5,6 +5,51 @@ TEXT uses a textarea, dates/times use the shared picker, JSON uses a local edito
 booleans use nullable-aware switches and enums use selects. See the full
 [control table](configuration.md#database-type-controls), including precision and no-script behavior.
 
+## Built-in value displays
+
+Choose a display without changing the database type or adding a template:
+
+```python
+admin.configure("links", options=ModelOptions(fields={
+    "long_url": FieldOptions(display="url"),
+    "hash": FieldOptions(url_template="https://short.example/{value}"),
+    "metadata": FieldOptions(display="json"),
+    "description": FieldOptions(display="multiline"),
+}))
+```
+
+| Option | Behavior |
+|---|---|
+| `display=None` or `"text"` | Existing plain display; default |
+| `display="url"` | Open an absolute HTTP(S) URL and copy the displayed value |
+| `url_template="https://short.example/{value}"` | Build a URL for display; implies `display="url"` |
+| `display="json"` | Format valid JSON with indentation; invalid text remains escaped text |
+| `display="multiline"` | Preserve line breaks and reveal long values in lists |
+
+These controls apply to list cells and read-only fields on record pages. JSON/long
+text expands with native details controls; record pages show the full text. Writable
+URL fields also show a link/copy preview beside their normal input. Explicit rich
+displays use the full record editor rather than inline editing; ordinary displayed
+columns retain their existing inline behavior. Service changes to rich fields refresh
+those cells after another column is saved inline.
+
+`url_template` accepts only `{value}` placeholders in an absolute HTTP(S) URL. The
+formatted scalar value is URL-encoded as one component, so `abc/123` becomes `abc%2F123`.
+It changes only presentation: forms, persistence, filtering, sorting, exports and
+history keep their original value. An existing `formatter` continues to affect its
+usual surfaces; URL display can also use its output. No other record fields or Python
+expressions are evaluated by URL templates. Use `display="url"` or leave `display`
+unset with `url_template`; other combinations are configuration errors.
+
+Links allow only absolute HTTP(S) addresses, open with `noopener noreferrer` and
+remain escaped. Relative/unsafe addresses are displayed as text. JSON/text is never
+interpreted as HTML. Copying uses the browser clipboard API; when unavailable, the
+value is selected for manual copying. Links and disclosure work without JavaScript;
+copy buttons appear only after the built-in script loads. Values are not stored in
+browser storage or sent to external services. Existing visibility, password and
+read-only restrictions still apply. The built-in script follows the normal CSP/SRI
+policy and needs no application asset registration.
+
 ## Choose a supported extension
 
 | Need | Configuration |

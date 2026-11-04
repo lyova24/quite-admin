@@ -16,6 +16,7 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from .._display import display_kind, display_value
 from .._validation import validate_payload
 from ..concurrency import CheckedAdapter, StaleRecord, WriteGuard, canonical
 from ..config import FieldOptions
@@ -42,6 +43,8 @@ class RecordViews:
             and item.kind not in {"binary", "unsupported", "password"}
             and not item.foreign_key
             and not resource.options.fields.get(name, FieldOptions()).template
+            and resource.options.fields.get(name, FieldOptions()).display in {None, "text"}
+            and resource.options.fields.get(name, FieldOptions()).url_template is None
         }
 
     async def _inline_edit(self, request):
@@ -116,6 +119,12 @@ class RecordViews:
                         "null": record.get(item.name) is None,
                         "kind": item.kind,
                         "boolean": record.get(item.name) is True,
+                        **(
+                            {"display": display_value(resource, item, record.get(item.name))}
+                            if display_kind(resource.options.fields.get(item.name, FieldOptions()))
+                            != "text"
+                            else {}
+                        ),
                     }
                     for item in visible
                     if item.name in listed

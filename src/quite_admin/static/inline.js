@@ -23,6 +23,7 @@
   function updateRow(row,result){
       for(const td of row.querySelectorAll('[data-list-field]')){
         const cell=result.cells[td.dataset.listField]; if(!cell)continue;
+        if(cell.display){window.quiteAdminUpdateValue?.(td.querySelector('[data-field-display]'),cell.display);continue;}
         const group=td.querySelector('[data-list-toggle-control]');
         if(group){
           group.dataset.value=cell.null?'null':cell.boolean?'true':'false';

@@ -111,6 +111,11 @@ admin.register(User, options=ModelOptions(
 
 ## Собственные контролы полей
 
+`FieldOptions(display="url")`, `display="json"` и `display="multiline"` добавляют встроенные контролы значений.
+`url_template="https://short.example/{value}"` собирает ссылку из скалярного значения
+только для отображения, без formatter. [Подробности](field-widgets.md): безопасные URL,
+копирование, read-only и сохранение прежних правил записи/экспорта.
+
 `FieldOptions` принимает `kind`, `parser`, `formatter`, `template`, подпись и подсказку.
 Пример счётчика `#7`:
 

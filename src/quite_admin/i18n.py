@@ -21,6 +21,11 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Show full value": "Показать полностью",
+    "Copy value": "Скопировать значение",
+    "Copy": "Копировать",
+    "Value copied": "Значение скопировано",
+    "Copy the selected value with Ctrl+C or ⌘C.": "Скопируйте выделенное значение: Ctrl+C или ⌘C.",
     "Delete selected records": "Удалить выбранные записи",
     "Selected record": "Выбранная запись",
     "Select record": "Выбрать запись",
