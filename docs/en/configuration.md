@@ -92,6 +92,7 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 | `create_schema`, `update_schema` | Optional Pydantic 2 models validating submitted values |
 | `create_handler`, `update_handler` | Per-model services replacing native creation/editing; see [services and schemas](extensions.md) |
 | `actions` | Tuple of permission-checked `RecordAction` buttons on the record page |
+| `bulk_delete` | `True`; allow page-local bulk delete subject to ordinary delete permission; [bulk actions](extensions.md) |
 
 `FieldOptions(read_only=True)` also makes a field read-only.
 Unknown configuration fields raise a configuration error.

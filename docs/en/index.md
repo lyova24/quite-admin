@@ -8,7 +8,7 @@ No additional Pydantic models, DTOs or `ModelAdmin` classes are required. MIT li
 
 [Русский](../ru/index.md) · [Quick start](quickstart.md) · [Browser demo](browser-demo.md) · [Interface tour](interface-tour.md)
 
-**At a glance:** CRUD and inline cell editing · activity history with before/after values · search, sorting and typed/relationship filters · atomic 1:1/1:N/M:N editors · stale-edit detection · shared date/time controls · JSON highlighting · grouped sidebar · interactive database schema · field permissions · authentication/CSRF · EN/RU UI · themes/templates · write hooks and record actions.
+**At a glance:** CRUD and inline cell editing · activity history with before/after values · search, sorting and typed/relationship filters · atomic 1:1/1:N/M:N editors · stale-edit detection · shared date/time controls · JSON highlighting · grouped sidebar · interactive database schema · field permissions · authentication/CSRF · EN/RU UI · themes/templates · write hooks, record actions and confirmed bulk commands.
 
 [![Record list with active filters](../assets/screenshots/products.png)](../assets/screenshots/products.png)
 

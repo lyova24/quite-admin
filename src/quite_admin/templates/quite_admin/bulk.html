@@ -1,0 +1,23 @@
+{% extends "quite_admin/base.html" %}
+{% from "quite_admin/_ui.html" import csrf_input with context %}
+{% block content %}
+<a class="back-link" href="{{ back_url }}">← {{ resource.label }}</a>
+<div class="page-heading"><h1>{{ t('Bulk action results') if results is not none else t('Confirm bulk action') }}</h1></div>
+{% if results is not none %}
+<p role="status">{{ t('Succeeded: {count}', count=succeeded) }} · {{ t('Failed: {count}', count=failed) }}</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">{{ t('Record') }}</th><th scope="col">{{ t('Result') }}</th></tr></thead><tbody>
+{% for item in results %}<tr><td>{{ item.label }}</td><td{% if not item.success %} class="field-error"{% endif %}>{{ item.message }}</td></tr>{% endfor %}
+</tbody></table></div>
+<p><a class="button secondary" href="{{ back_url }}">{{ t('Back to records') }}</a></p>
+{% else %}
+<section class="panel bulk-confirmation">
+<h2>{{ bulk_label }}</h2>
+<p>{{ t('Selected records: {count}', count=selected_labels|length) }}</p>
+<p class="field-help">{{ t('Each record is processed separately. Successful changes remain saved if another record fails.') }}</p>
+<ul>{% for label in selected_labels %}<li>{{ label }}</li>{% endfor %}</ul>
+<form method="post">{{ csrf_input() }}<input type="hidden" name="__confirmation" value="{{ confirmation }}">
+<div class="button-group"><a class="button secondary" href="{{ back_url }}">{{ t('Cancel') }}</a><button class="button danger" type="submit">{{ t('Confirm action') }}</button></div>
+</form>
+</section>
+{% endif %}
+{% endblock %}

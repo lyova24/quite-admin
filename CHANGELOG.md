@@ -20,6 +20,11 @@
   all events or use an application-managed retention policy. Custom stores need the
   optional purge capability for automatic cleanup; their required API is unchanged.
 
+- Add page-local bulk deletion and opt-in `RecordAction(bulk=True)` using existing
+  handlers/hooks. Confirm up to 100 signed, session-bound keys, recheck permissions
+  and revisions, then show per-record partial results and record individual history.
+  `ModelOptions(bulk_delete=False)` disables the built-in bulk delete command.
+
 ## 0.6.1 — 2026-11-04
 
 ### Changed

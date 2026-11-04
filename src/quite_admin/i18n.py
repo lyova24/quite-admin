@@ -21,6 +21,36 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Delete selected records": "Удалить выбранные записи",
+    "Selected record": "Выбранная запись",
+    "Select record": "Выбрать запись",
+    "Select all records on this page": "Выбрать все записи на странице",
+    "Selected records: {count}": "Выбрано записей: {count}",
+    "Succeeded: {count}": "Успешно: {count}",
+    "Failed: {count}": "С ошибкой: {count}",
+    "Bulk action results": "Результат массового действия",
+    "Confirm bulk action": "Подтвердите массовое действие",
+    "With selected": "С выбранными",
+    "Continue": "Продолжить",
+    "Confirm action": "Подтвердить действие",
+    "Back to records": "Вернуться к записям",
+    (
+        "Each record is processed separately. "
+        "Successful changes remain saved if another record fails."
+    ): (
+        "Каждая запись обрабатывается отдельно. Успешные изменения сохраняются, "
+        "даже если другая запись вызвала ошибку."
+    ),
+    "Invalid bulk selection.": "Некорректный выбор записей.",
+    "Select between 1 and 100 records.": "Выберите от 1 до 100 записей.",
+    "Select between 1 and 100 distinct records.": "Выберите от 1 до 100 разных записей.",
+    "The bulk confirmation expired or is invalid. Select records again.": (
+        "Подтверждение массового действия истекло или некорректно. Выберите записи заново."
+    ),
+    "The record changed. Select it again before performing this action.": (
+        "Запись изменилась. Выберите её заново перед выполнением действия."
+    ),
+    "Unable to complete this action.": "Не удалось выполнить действие.",
     "Activity journal": "Журнал изменений",
     "Activity view": "Вид истории",
     "Journal": "Журнал",

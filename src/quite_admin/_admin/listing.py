@@ -156,11 +156,13 @@ class ListingViews:
         if permissions["view"]:
             export_columns = await self._export_columns(request, resource)
         inline_fields = self._inline_fields(resource) if permissions["edit"] else {}
+        bulk_actions = await self._bulk_choices(request, resource)
         return await self._render(
             request,
             "quite_admin/list.html",
             listing_page=True,
             inline_fields=inline_fields,
+            bulk_actions=bulk_actions,
             inline_endpoint=lambda record, name: self._url(
                 request,
                 f"/models/{resource.slug}/{resource.schema.record_key(record)}/inline/"

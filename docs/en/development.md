@@ -128,7 +128,7 @@ GitHub release downloads remain source-code archives; see [publishing](releases.
 
 ## Current limitations
 
-File uploads, bulk actions and a row-level permission API are not implemented.
+File uploads and a row-level permission API are not implemented.
 [Activity history](storage.md) records admin operations, with configurable recording levels;
 it does not provide an atomic audit of all application writes. See [relationships](relationships.md)
 for supported editors and their limits.

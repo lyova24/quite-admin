@@ -128,3 +128,45 @@ Handlers can raise the public adapter errors. Keep action labels in the configur
 
 Adapter compatibility is governed by `ADAPTER_API_VERSION` and the documented
 [adapter contract](custom-adapters.md#compatibility-contract). See [public API guarantees](api-stability.md) for template and extension boundaries.
+
+## Bulk actions
+
+Lists offer page-local checkboxes and **With selected** when an allowed bulk action
+is available. Select up to 100 distinct records, choose a command, review the labels
+and confirm. The selection never expands to all matching pages. Delete is available
+when normal delete permission allows it; disable only bulk deletion with
+`ModelOptions(bulk_delete=False)`. Collections without allowed commands show no selector.
+
+Reuse a record handler for batch operations by adding `bulk=True`:
+
+```python
+from quite_admin import ModelOptions, RecordAction
+
+async def reset_counter(operation):
+    return await counter_service.reset(operation.key, user=operation.identity)
+
+admin.configure("counters", options=ModelOptions(actions=(
+    RecordAction("reset", "Reset counters", reset_counter, bulk=True),
+)))
+```
+
+The same handler stays available on the record page. `bulk` defaults to `False`;
+`permission` and `required_permission` retain their record-action meaning. Each
+selected key is processed separately, with fresh list/action permissions and
+`request.path_params["key"]`, the existing `Operation`, `current_operation()`,
+`before_write` and `after_write` hooks. A rule that needs record data belongs in the
+handler or `before_write`. No new adapter methods or bulk-specific service class is required.
+
+Confirmation is signed, bound to the collection, command, identity and session, and
+expires after 15 minutes. CSRF is required for both steps. A fingerprint detects
+record changes since confirmation before dispatching each command; this is not an
+atomic compare-and-delete or a replacement for a handler's transaction/locking.
+Handlers own the same transaction and idempotency responsibilities as single-record
+actions. Commands run sequentially in the request, at most 100 records; background
+jobs and cross-page selection are not implied.
+
+The result reports success or failure for each record. Failed records do not stop
+the remaining selection; committed successes remain saved. There is no transaction
+covering the whole batch. Each operation has its own activity event according to
+`history_level`; failures require `"audit"` or `"all"`. Unexpected errors expose a
+generic message, while logs contain only the exception type and command metadata.

@@ -20,7 +20,7 @@ from sqlalchemy import (
     create_engine,
 )
 
-from quite_admin import Admin, FieldOptions, ModelOptions, PasswordAuth, Theme
+from quite_admin import Admin, FieldOptions, ModelOptions, PasswordAuth, RecordAction, Theme
 from quite_admin.adapters.sql import SQLAdapter
 
 _storage = TemporaryDirectory(prefix="quite-admin-browser-")
@@ -67,6 +67,10 @@ with engine.begin() as connection:
 app = FastAPI()
 
 
+async def reset_counter(operation):
+    return await SQLAdapter(engine).update(operation.model, operation.key, {"count": 0})
+
+
 @app.get("/health")
 async def health():
     return {"ok": True}
@@ -110,6 +114,7 @@ for mount, theme in (
             list_fields=("id", "name", "status", "active", "count", "day"),
             list_editable=("note", "active", "day"),
             fields={"name": FieldOptions(label="Name")},
+            actions=(RecordAction("reset", "Reset counters", reset_counter, bulk=True),),
         ),
     )
     admin.configure(

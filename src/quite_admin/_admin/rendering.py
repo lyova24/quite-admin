@@ -112,6 +112,17 @@ class Rendering:
                 items.append({"label": self.gettext("Create record"), "url": None})
             elif template == "quite_admin/delete.html":
                 items.append({"label": self.gettext("Delete record"), "url": None})
+            elif template == "quite_admin/bulk.html":
+                items.append(
+                    {
+                        "label": self.gettext(
+                            "Bulk action results"
+                            if context.get("results") is not None
+                            else "Confirm bulk action"
+                        ),
+                        "url": None,
+                    }
+                )
         elif context.get("schema_page"):
             items.append({"label": self.gettext("Database schema"), "url": None})
         elif context.get("history_page"):

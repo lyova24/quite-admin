@@ -60,6 +60,7 @@ class RecordAction:
     handler: Callable[[Operation], Mapping[str, Any] | None | Awaitable[Mapping[str, Any] | None]]
     permission: Permission | None = None
     required_permission: Action = "edit"
+    bulk: bool = False
 
     def __init__(
         self,
@@ -70,16 +71,20 @@ class RecordAction:
         ],
         permission: Permission | None = None,
         required_permission: Action = "edit",
+        bulk: bool = False,
     ) -> None:
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", slug):
             raise ValueError("Action slugs must contain letters, digits, hyphens or underscores.")
         if required_permission not in {"list", "view", "create", "edit", "delete"}:
             raise ValueError("Unknown required action permission.")
+        if not isinstance(bulk, bool):
+            raise ValueError("bulk must be a boolean.")
         self.slug = slug
         self.label = label
         self.handler = handler
         self.permission = permission
         self.required_permission = required_permission
+        self.bulk = bulk
 
 
 @dataclass(frozen=True)
@@ -126,8 +131,11 @@ class ModelOptions:
     update_schema: type[Any] | None = None
     create_handler: Callable[[Operation, Any], Any | Awaitable[Any]] | None = None
     update_handler: Callable[..., Any] | None = None
+    bulk_delete: bool = True
 
     def validate(self, schema: ModelSchema) -> None:
+        if not isinstance(self.bulk_delete, bool):
+            raise ValueError("bulk_delete must be a boolean.")
         validate_schema(self.create_schema)
         validate_schema(self.update_schema)
         if any(

@@ -24,6 +24,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 from starlette.types import Receive, Scope, Send
 
+from ._admin.bulk import BulkViews
 from ._admin.exporting import ExportViews
 from ._admin.history import HistoryViews
 from ._admin.listing import ListingViews
@@ -123,7 +124,9 @@ class Source:
     options: dict[Any, ModelOptions] = field(default_factory=dict)
 
 
-class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, ExportViews):
+class Admin(
+    BulkViews, HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, ExportViews
+):
     """Standalone ASGI admin. Business engines remain application-owned."""
 
     def __init__(
@@ -167,6 +170,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         )
         self._revision_secret = secret_key.encode()
         self._cursor_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-list-cursor")
+        self._bulk_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-bulk-confirmation")
         self._revision_max_age = session_max_age
         self.auth = auth
         self.title = title
@@ -219,6 +223,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
             Route("/pages/{slug}", self._page),
             Route("/models/{slug}/", self._list),
             Route("/models/{slug}/new", self._create, methods=["GET", "POST"]),
+            Route("/models/{slug}/actions/bulk", self._bulk, methods=["POST"]),
             Route("/models/{slug}/relationships/{relation}/options", self._relation_options),
             Route(
                 "/models/{slug}/{key}/inline/{field:path}",

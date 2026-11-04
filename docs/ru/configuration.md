@@ -92,6 +92,7 @@ admin.register(User, options=ModelOptions(
 | `create_schema`, `update_schema` | Необязательные модели Pydantic 2 для проверки переданных значений |
 | `create_handler`, `update_handler` | Сервисы модели вместо нативного создания/редактирования; см. [сервисы и схемы](extensions.md) |
 | `actions` | Кортеж кнопок `RecordAction` с проверкой прав на странице записи |
+| `bulk_delete` | `True`; массовое удаление на странице с обычной проверкой delete; [массовые действия](extensions.md) |
 
 `FieldOptions(read_only=True)` тоже запрещает изменение поля.
 Опечатка в настройке имени поля вызывает ошибку конфигурации.

@@ -46,7 +46,7 @@ No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
 - Typed adapter filters/projections and delegation to application services for writes.
 - Type-aware forms: TEXT textareas, date/time pickers and JSON/JSONB syntax highlighting.
 - Custom pages and Jinja2 template overrides.
-- Write lifecycle hooks, custom field controls and permission-checked record actions.
+- Write lifecycle hooks, custom field controls, record actions and confirmed bulk commands.
 - Form-only inputs, safe password controls and per-model service handlers with optional
   Pydantic form validation; ordinary ORM discovery needs no schemas or handlers.
 - English/Russian UI, configurable colors, admin name and description.

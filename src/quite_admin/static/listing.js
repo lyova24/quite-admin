@@ -1,11 +1,29 @@
 /* Progressive list behavior; no record values are persisted. */
 (function () {
   function enhance(scope = document, storageKey = location.pathname) {
+  const bulk = scope.querySelector('[data-bulk-form]');
+  if (bulk) {
+    const boxes = [...scope.querySelectorAll('[data-bulk-key]')];
+    const all = scope.querySelector('[data-bulk-all]');
+    const count = bulk.querySelector('[data-bulk-count]');
+    const label = count.dataset.label;
+    const submit = bulk.querySelector('button[type=submit]');
+    const update = () => {
+      const selected = boxes.filter(box => box.checked).length;
+      count.textContent = label.replace('{count}', String(selected));
+      submit.disabled = !selected;
+      if (all) { all.checked = selected === boxes.length; all.indeterminate = selected > 0 && selected < boxes.length; }
+    };
+    for (const box of boxes) box.addEventListener('change', update);
+    if (all) { all.disabled = false; all.addEventListener('change', () => {for(const box of boxes)box.checked=all.checked;update();}); }
+    update();
+  }
   const form = scope.querySelector('.list-query-form');
   if (!form) return () => {};
   const input = form.querySelector('input[name=q]');
   if (!input) return () => {};
   let timer, composing = false;
+  bulk?.addEventListener('submit', () => clearTimeout(timer));
   const initial = input.value;
   const key = 'quite-admin:search-focus:' + storageKey;
   try {
