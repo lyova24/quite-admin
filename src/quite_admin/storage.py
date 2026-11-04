@@ -109,6 +109,12 @@ class AdminStore(Protocol):
     ) -> tuple[tuple[str, str], ...]: ...
 
 
+class HistoryRetentionStore(Protocol):
+    """Optional bounded, namespace-scoped cleanup capability for service stores."""
+
+    async def purge_activities(self, *, before: datetime, limit: int = 1000) -> int: ...
+
+
 def _digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -358,6 +364,63 @@ class _RelationalStore:
 
         await self._run(operation, write=True)
 
+    async def purge_activities(self, *, before: datetime, limit: int = 1000) -> int:
+        """Delete one batch, its details and newly unreferenced actor entries atomically."""
+        _limit(limit)
+        if not isinstance(before, datetime) or before.utcoffset() is None:
+            raise ValueError("The retention cutoff must be a timezone-aware datetime.")
+        params = {
+            "namespace": self._namespace,
+            "before": before.astimezone(UTC)
+            .isoformat(timespec="microseconds")
+            .replace("+00:00", "Z"),
+            "limit": limit,
+        }
+
+        def operation(execute):
+            rows = execute(
+                "SELECT id, actor_key, collection_key FROM quiteadmin_activity "
+                "WHERE namespace = :namespace AND occurred_at < :before "
+                "ORDER BY occurred_at, id LIMIT :limit",
+                params,
+            ).rows
+            removed = 0
+            for offset in range(0, len(rows), 200):
+                batch = rows[offset : offset + 200]
+                ids = {f"id_{index}": row["id"] for index, row in enumerate(batch)}
+                condition = "namespace = :namespace AND "
+                condition += "id IN (" + ", ".join(":" + name for name in ids) + ")"
+                execute(
+                    "DELETE FROM quiteadmin_activity_details WHERE "
+                    + condition.replace("id IN", "activity_id IN"),
+                    {**ids, "namespace": self._namespace},
+                )
+                removed += execute(
+                    "DELETE FROM quiteadmin_activity WHERE " + condition,
+                    {**ids, "namespace": self._namespace},
+                ).rowcount
+                actors = {}
+                pairs = []
+                for index, (actor, collection) in enumerate(
+                    dict.fromkeys((row["actor_key"], row["collection_key"]) for row in batch)
+                ):
+                    actors.update({f"actor_{index}": actor, f"collection_{index}": collection})
+                    pairs.append(
+                        f"(actor_key = :actor_{index} AND collection_key = :collection_{index})"
+                    )
+                execute(
+                    "DELETE FROM quiteadmin_actors WHERE namespace = :namespace AND ("
+                    + " OR ".join(pairs)
+                    + ") AND NOT EXISTS (SELECT 1 FROM quiteadmin_activity AS retained WHERE "
+                    "retained.namespace = quiteadmin_actors.namespace AND "
+                    "retained.actor_key = quiteadmin_actors.actor_key AND "
+                    "retained.collection_key = quiteadmin_actors.collection_key)",
+                    {**actors, "namespace": self._namespace},
+                )
+            return removed
+
+        return await self._run(operation, write=True)
+
     def _conditions(self, collections):
         params = {"namespace": self._namespace}
         conditions = ["namespace = :namespace"]
@@ -601,20 +664,20 @@ class SQLiteStore(_RelationalStore):
             raise StorageError() from exc
 
 
-def create_store(value: AdminStore | str | Path | None) -> AdminStore:
+def create_store(value: AdminStore | str | Path | None, *, namespace="default") -> AdminStore:
     if value is None:
         value = os.environ.get("QUITE_ADMIN_STORAGE_URL", ".quite-admin/state.sqlite3")
     if isinstance(value, Path):
-        return SQLiteStore(value)
+        return SQLiteStore(value, namespace=namespace)
     if not isinstance(value, str):
         return value
     if value.startswith("sqlite:///"):
         path = value.removeprefix("sqlite:///")
         if "?" in path or "#" in path:
             raise ValueError("Pass a SQLite file path without URL options.")
-        return SQLiteStore(unquote(path))
+        return SQLiteStore(unquote(path), namespace=namespace)
     if "://" not in value:
-        return SQLiteStore(value)
+        return SQLiteStore(value, namespace=namespace)
     from .stores.sqlalchemy import SQLAlchemyStore
 
-    return SQLAlchemyStore(value)
+    return SQLAlchemyStore(value, namespace=namespace)

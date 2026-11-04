@@ -30,6 +30,16 @@ from .web import SLUG
 
 
 class HistoryViews:
+    async def purge_history(self, *, limit: int = 1000) -> int:
+        """Purge one batch using the configured retention period; None keeps everything."""
+        if self.history_retention_days is None:
+            return 0
+        purge = getattr(self.storage, "purge_activities", None)
+        if purge is None:
+            raise NotImplementedError("The store does not support activity retention.")
+        before = datetime.now(UTC) - timedelta(days=self.history_retention_days)
+        return await purge(before=before, limit=limit)
+
     async def _record_activity(self, state, status):
         if not self.history_enabled:
             return

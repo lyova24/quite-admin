@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 from anyio import to_thread
@@ -149,6 +150,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         query_timeout: float | None = None,
         max_concurrent_reads: int | None = None,
         history_level: HistoryLevel = "changes",
+        history_retention_days: int | None = 90,
     ) -> None:
         if len(secret_key.encode()) < 32:
             raise ValueError("secret_key must contain at least 32 bytes of random secret material.")
@@ -156,6 +158,10 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
             raise ValueError("session_max_age must be positive.")
         if not isinstance(history_enabled, bool):
             raise ValueError("history_enabled must be a boolean.")
+        if history_retention_days is not None and (
+            type(history_retention_days) is not int or not 1 <= history_retention_days <= 365000
+        ):
+            raise ValueError("history_retention_days must be between 1 and 365000, or None.")
         self._revision_signer = URLSafeTimedSerializer(
             secret_key, salt="quite-admin-record-revision"
         )
@@ -181,6 +187,8 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         self.history_permission = history_permission
         self.history_enabled = history_enabled
         self.history_level = validate_history_level(history_level)
+        self.history_retention_days = history_retention_days
+        self._next_history_cleanup = 0.0
         self._lifespan_users = 0
         self._history_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-history")
         self.sources: list[Source] = []
@@ -264,6 +272,18 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
             await self.storage.initialize()
         except StorageError as exc:
             raise HTTPException(503, "The admin storage is unavailable.") from exc
+        if self.history_enabled and self.history_retention_days is not None:
+            now = monotonic()
+            if now >= self._next_history_cleanup:
+                self._next_history_cleanup = now + 300
+                try:
+                    await self.purge_history()
+                except Exception as exc:
+                    await self._logging.emit(
+                        "warning",
+                        "quite_admin.history_cleanup_failed",
+                        error_type=type(exc).__name__,
+                    )
 
     def gettext(self, message: str, **values: Any) -> str:
         return self._translations.gettext(message, **values)

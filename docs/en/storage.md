@@ -239,6 +239,42 @@ This hides the section, returns 404 for both history URLs and skips event record
 field capture and automatic history-storage initialization. Existing history is
 preserved. `admin.storage` remains available independently for other service features.
 
+## History retention
+
+`Admin(history_retention_days=90)` keeps 90 days by default. Set another positive
+integer (up to 365000), or `None` to retain history indefinitely. The setting applies
+to activity events and their before/after details, independently of `history_level`.
+It does not delete business records or saved service documents.
+
+With history enabled, the first request that initializes the store also performs
+one cleanup batch (at most 1000 expired events). Later requests trigger at most one
+batch every five minutes per Admin/process. No scheduler or background worker is
+required. Cleanup is eventually applied: an inactive admin performs no cleanup,
+and a large existing backlog needs several batches. Multi-worker cleanup is safe;
+each transaction is scoped to the configured namespace. Unreferenced actor entries
+are removed with the events. Cleanup errors emit a sanitized warning and preserve
+the request; they never undo a business write. `history_enabled=False` disables
+automatic cleanup as well as recording.
+
+To drain a backlog immediately, use the command below. It defaults to 90 days and
+1000 events per transaction, repeating batches until finished. Use the same storage
+and namespace as the application. `QUITE_ADMIN_STORAGE_URL` is used when `--storage`
+is omitted; avoid putting credential-bearing URLs in shell history.
+
+```bash
+python -m quite_admin cleanup-history --storage /var/lib/my-app/admin.sqlite3 --namespace backoffice
+python -m quite_admin cleanup-history --days 30 --batch-size 500
+```
+
+Application code can run one batch with `await admin.purge_history(limit=1000)`.
+The store-level capability `HistoryRetentionStore.purge_activities(before=..., limit=1000)`
+accepts a timezone-aware datetime and returns the number removed. Built-in SQLite
+and SQLAlchemy stores implement it. Custom stores remain compatible with `AdminStore`;
+to support automatic retention, implement this optional capability atomically, including
+details/actor cleanup. Without it, cleanup logs a warning; explicit `purge_history()`
+raises `NotImplementedError`. Set `history_retention_days=None` for stores with an
+application-managed retention policy. Raw store methods perform no automatic cleanup.
+
 ## Failure and durability semantics
 
 With history enabled, storage initialization failures return a safe 503 before login or a protected
@@ -252,5 +288,5 @@ The business database and service store do not participate in one atomic transac
 even when they use the same engine. A process/storage failure can leave a gap in
 history. Strict atomic auditing requires an application-owned transactional outbox
 or another integration at the business transaction boundary. Changes performed
-outside quite-admin are not captured. Events are not automatically expired; plan
-disk space and backups for the required retention period.
+outside quite-admin are not captured. Events expire according to the configured retention policy; plan
+disk space and backups for that period.

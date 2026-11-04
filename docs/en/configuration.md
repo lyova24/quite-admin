@@ -20,6 +20,7 @@ All `Admin(...)` arguments are keyword-only. Configure the instance before servi
 | `storage` | `None`; environment URL or private local SQLite, or an explicit path, URL or `AdminStore`; see [storage](storage.md) |
 | `history_enabled` | `True`; record and display activity history |
 | `history_level` | `"changes"`; committed writes; `"audit"` adds authentication, exports and failures, `"all"` adds reads |
+| `history_retention_days` | `90`; positive days to retain history, or `None` to disable cleanup; [retention](storage.md) |
 | `history_permission` | `None`; optional sync/async callback restricting history and user lookup |
 | `query_timeout` | `None`; optional positive deadline in seconds for an admin read, including its queue and async pool wait |
 | `max_concurrent_reads` | `None`; optional positive integer limiting simultaneous reads across this admin in one process |

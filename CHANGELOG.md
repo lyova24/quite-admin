@@ -10,6 +10,16 @@
 - Redirect the bare FastAPI mount path before a later catch-all route, preserving
   query parameters, parent mounts and reverse-proxy prefixes.
 
+- Keep activity history for 90 days by default (`history_retention_days`); support
+  another positive period or `None` for indefinite retention. On admin requests,
+  clean one bounded batch per five minutes, including details and unused actors.
+- Add `Admin.purge_history()`, the optional `HistoryRetentionStore` capability and
+  `python -m quite_admin cleanup-history` for explicit batched maintenance.
+- Migration / переход: existing history older than 90 days is now deleted when
+  the admin is used. Set `history_retention_days=None` / задайте `None` to preserve
+  all events or use an application-managed retention policy. Custom stores need the
+  optional purge capability for automatic cleanup; their required API is unchanged.
+
 ## 0.6.1 — 2026-11-04
 
 ### Changed
