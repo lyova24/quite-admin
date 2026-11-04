@@ -123,6 +123,7 @@ for mount, theme in (
     admin = Admin(
         auth=PasswordAuth.single_user("admin", "browser-test-password"),
         secret_key="browser-fixture-only-" * 3,
+        history_level="all",
         secure_cookies=False,
         session_cookie=mount[1:] + "_session",
         storage=f"{_storage.name}/admin-state.sqlite3",
