@@ -68,7 +68,25 @@ admin = Admin(
 
 The application retains ownership of borrowed engines. Service operations always use
 their own connections and transactions, never the business session. URL-created
-engines close connections after each operation and need no host shutdown hook.
+engines default to `NullPool`, closing connections after each operation. To configure
+an owned pool directly, pass engine options with the URL:
+
+```python
+storage = SQLAlchemyStore(
+    database_url,
+    namespace="backoffice",
+    engine_options={"pool_size": 2, "max_overflow": 0, "pool_timeout": 3,
+                    "pool_pre_ping": True},
+)
+```
+
+`engine_options` accepts SQLAlchemy `create_engine()` keyword arguments and is valid
+only with a URL. Without an explicit pool class or sizing options, `NullPool` is used.
+Driver-specific timeouts can be supplied through `connect_args`.
+FastAPI and Litestar mount helpers automatically dispose URL-created storage engines
+on shutdown. `await admin.aclose()` / `async with admin.lifespan():` support other
+integrations. Borrowed engines are never disposed; `await storage.aclose()` follows the
+same ownership rule. No separate shutdown code is needed for the normal mount flow.
 Async drivers require an application-owned `AsyncEngine`; string URLs use sync drivers.
 All workers/replicas must point to the same store, namespace and session secret.
 Namespaces separate service data for different admins sharing one database.

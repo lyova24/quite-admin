@@ -20,7 +20,7 @@ from .storage import (
 )
 from .theme import Theme
 
-__version__ = "0.6.1"
+__version__ = "0.7.0"
 
 __all__ = [
     "ADAPTER_API_VERSION",

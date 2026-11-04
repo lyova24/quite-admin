@@ -15,7 +15,7 @@ Use explicit branches and loops for transaction selection and compound query con
 Keep ORM reflection and async boundaries where their contracts require them; avoid
 introducing an abstraction solely to save a few lines.
 
-The current release is **0.6.1** (2026-11-04). Release history and migration instructions
+The development version is **0.7.0** (unreleased). Release history and migration instructions
 live in `CHANGELOG.md`; see [public API guarantees](api-stability.md) for compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
 GINO checks run separately with `--profile gino`. Version updates do not publish a release.
 

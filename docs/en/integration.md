@@ -2,6 +2,16 @@
 
 The admin is an independent ASGI application.
 Your host application owns its engines, session factories, startup, shutdown and migrations.
+Mount helpers attach cleanup of admin service storage automatically, preserving the
+host lifespan and its state. They never dispose business engines or adapter resources.
+Register mounts before any catch-all route. `mount_fastapi()` also redirects the bare
+mount URL (`/admin`) to `/admin/`, including behind parent mounts and proxy prefixes.
+
+For another ASGI integration that does not forward mounted-app lifespan events, enter
+`async with admin.lifespan():` in the host lifespan, or call `await admin.aclose()` on
+shutdown. Stores can optionally implement `async aclose()` to release resources they own;
+the required `AdminStore` protocol is unchanged. The built-in SQLite store opens and
+closes connections per operation and needs no extra cleanup.
 
 ## SQL reflection: no ORM models
 

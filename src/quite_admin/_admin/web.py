@@ -85,6 +85,11 @@ def litestar_route(admin, path: str) -> Any:
             await self.app(scope, limited_receive if scope["type"] == "http" else receive, send)
 
     class AdminASGIHandler(asgi):
+        def on_registration(self, app):
+            super().on_registration(app)
+            if admin.aclose not in app.on_shutdown:
+                app.on_shutdown.append(admin.aclose)
+
         # Litestar 2's body-reading LoggingMiddleware calls this HTTP-handler
         # method even for ASGI mounts. Keep the compatibility bridge local.
         def resolve_request_max_body_size(self) -> int:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import secrets
 from collections.abc import Awaitable, Callable, Iterable, Mapping
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -122,7 +123,7 @@ class Source:
 
 
 class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, ExportViews):
-    """Standalone ASGI admin. Host applications own engines and their lifespan."""
+    """Standalone ASGI admin. Business engines remain application-owned."""
 
     def __init__(
         self,
@@ -180,6 +181,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         self.history_permission = history_permission
         self.history_enabled = history_enabled
         self.history_level = validate_history_level(history_level)
+        self._lifespan_users = 0
         self._history_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-history")
         self.sources: list[Source] = []
         self.collection_options: dict[str, ModelOptions] = {}
@@ -222,6 +224,7 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
         ]
         self.app = Starlette(
             routes=routes,
+            lifespan=self.lifespan,
             middleware=[
                 Middleware(SecurityHeaders),
                 Middleware(
@@ -350,8 +353,41 @@ class Admin(HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, E
     async def _read(self, operation, *args, **kwargs):
         return await self._read_limits.run(operation, *args, **kwargs)
 
+    @asynccontextmanager
+    async def lifespan(self, app: Any = None):
+        """Close storage-owned resources after the last attached lifespan exits."""
+        self._lifespan_users += 1
+        try:
+            yield
+        finally:
+            self._lifespan_users -= 1
+            if not self._lifespan_users:
+                await self.aclose()
+
+    async def aclose(self) -> None:
+        """Release service-storage resources; adapters and business engines are untouched."""
+        close = getattr(self.storage, "aclose", None)
+        if close is not None:
+            await close()
+
     def mount_fastapi(self, app: Any, path: str = "/admin") -> None:
-        app.mount(self._mount_path(path), self, name="quite-admin")
+        path = self._mount_path(path)
+
+        async def redirect(request):
+            # A relative Location preserves parent mounts and reverse-proxy prefixes.
+            query = request.url.query
+            return RedirectResponse(path.rsplit("/", 1)[-1] + "/" + ("?" + query if query else ""))
+
+        app.router.routes.append(Route(path, redirect, methods=["GET", "HEAD"]))
+        app.mount(path, self, name="quite-admin")
+        previous = app.router.lifespan_context
+
+        @asynccontextmanager
+        async def lifespan(host):
+            async with self.lifespan(host), previous(host) as state:
+                yield state
+
+        app.router.lifespan_context = lifespan
 
     def litestar_route(self, path: str = "/admin") -> Any:
         return litestar_route(self, path)

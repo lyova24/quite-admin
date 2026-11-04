@@ -6,7 +6,7 @@
 
 ![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/.github/social-preview.png)
 
-**Version: 0.6.1** · [Changelog](CHANGELOG.md)
+**Version: 0.7.0** (unreleased) · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.

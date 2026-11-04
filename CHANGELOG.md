@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — unreleased
+
+- Automatically attach service-storage cleanup to FastAPI and Litestar lifespans;
+  expose `Admin.lifespan()` / `Admin.aclose()` for other integrations. Dispose only
+  storage-owned engines and preserve application-owned engines and lifespan state.
+- Accept SQLAlchemy engine options directly with a storage URL, including bounded
+  pools, without requiring application code to create and dispose a separate engine.
+- Redirect the bare FastAPI mount path before a later catch-all route, preserving
+  query parameters, parent mounts and reverse-proxy prefixes.
+
 ## 0.6.1 — 2026-11-04
 
 ### Changed

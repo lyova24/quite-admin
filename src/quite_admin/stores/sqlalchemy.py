@@ -18,17 +18,19 @@ class SQLAlchemyStore(_RelationalStore):
     """Business sessions/transactions are never reused. Borrowed engines remain app-owned.
 
     Core SQL also works with SQLAlchemy 1.3 in the isolated GINO environment.
-    URL-created engines use NullPool, so mounted ASGI apps need no shutdown hook.
+    URL-created engines default to NullPool. Mount helpers close owned engines.
     """
 
-    def __init__(self, engine, *, namespace="default"):
+    def __init__(self, engine, *, namespace="default", engine_options=None):
         super().__init__(namespace=namespace)
+        self._owns_engine = isinstance(engine, str)
+        if engine_options is not None and not self._owns_engine:
+            raise ValueError("engine_options requires a storage URL, not a borrowed engine.")
+        options = {"hide_parameters": True, **(engine_options or {})}
+        if not any(name in options for name in ("poolclass", "pool_size", "max_overflow")):
+            options["poolclass"] = NullPool
         try:
-            self.engine = (
-                create_engine(engine, poolclass=NullPool, hide_parameters=True)
-                if isinstance(engine, str)
-                else engine
-            )
+            self.engine = create_engine(engine, **options) if self._owns_engine else engine
         except (SQLAlchemyError, ImportError) as exc:
             raise StorageError() from exc
         self._async = hasattr(self.engine, "sync_engine")
@@ -36,6 +38,14 @@ class SQLAlchemyStore(_RelationalStore):
         if dialect not in {"sqlite", "postgresql", "mysql"}:
             raise ValueError("Admin storage supports SQLite, PostgreSQL and MySQL.")
         self._dialect = dialect
+
+    async def aclose(self):
+        """Dispose only an engine created from this store's URL."""
+        if self._owns_engine:
+            if self._async:
+                await self.engine.dispose()
+            else:
+                await to_thread.run_sync(self.engine.dispose)
 
     @staticmethod
     def _executor(connection):
