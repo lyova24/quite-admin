@@ -6,22 +6,17 @@
 
 ## Установка
 
-Установите исходный checkout версии 0.2.0, как в [быстром старте](quickstart.md).
+Установите legacy-extra в отдельном виртуальном окружении:
 
 ```bash
-pip install '/path/to/quite-admin[gino-legacy,fastapi]'
-# Или: pip install '/path/to/quite-admin[gino-legacy,litestar]'
+pip install 'quite-admin[gino-legacy,fastapi]==0.6.1'
+# Или: pip install 'quite-admin[gino-legacy,litestar]==0.6.1'
 ```
 
 GINO 1.x требует SQLAlchemy 1.3, а адаптеры SQL reflection и SQLAlchemy — SQLAlchemy 2.x.
 В приложении GINO выбирайте extra `gino-legacy` вместо `sqlalchemy` или `all`.
 Существующий extra `all` сохраняет набор зависимостей современных адаптеров и не включает
 GINO. См. [описание совместимости GINO](https://python-gino.org/docs/en/1.0/how-to/faq.html).
-
-Нерелизное имя установки `quite-admin[gino]` заменено на `quite-admin[gino-legacy]`;
-Python-импорт `quite_admin.adapters.gino.GinoAdapter` сохранён. Выпущенные версии GINO
-требуют старый стек SQLAlchemy. Современные модели SQLAlchemy используют
-[адаптер SQLAlchemy](integration.md), а модели GINO — этот адаптер.
 
 ## Подключение существующих моделей
 

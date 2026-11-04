@@ -69,7 +69,7 @@ Custom templates receive `logo_url`; no external image hosts or CSP changes are 
 `Theme` accepts hexadecimal `#RGB` or `#RRGGBB` colors, case-insensitively.
 Invalid colors raise `ValueError` when constructing the theme.
 
-Version 0.5.2 uses a neutral charcoal palette with vivid blue accents by default. The interface
+The default theme uses a neutral charcoal palette with vivid blue accents by default. The interface
 retains its compact controls and sign-in card, with the logo beside the title. The GitHub social preview
 is a separate repository asset and is not displayed on the sign-in page.
 
@@ -168,22 +168,3 @@ See [custom pages and templates](custom-pages.md) for template registration.
 
 For a complete CSS loading recipe, density examples and template boundaries, see
 [Customize the interface](styling.md).
-
-## Retain the previous palette
-
-To keep the light palette from 0.5.0, pass its colors explicitly. Custom palettes
-continue to work.
-
-```python
-theme = Theme(
-    primary="#3e6656",
-    background="#f5f6f8",
-    surface="#ffffff",
-    text="#20252b",
-    muted="#626b76",
-    border="#dce0e5",
-    danger="#b43e3e",
-    on_primary="#ffffff",
-    on_danger="#ffffff",
-)
-```

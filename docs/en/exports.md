@@ -1,6 +1,6 @@
 # Export table data
 
-In **0.3.0**, open a collection list, apply search and [filters](filters.md), choose the
+Open a collection list, apply search and [filters](filters.md), choose the
 sort order, then expand **Export data**. Select columns, choose **CSV** or **XLSX** and
 press **Download**. All matching records are exported, including other pages; pagination
 settings do not limit the file. The selected columns affect only the download.
@@ -21,7 +21,7 @@ the exported related collection. Large analytical exports should use application
 **No ORM required:** `SQLAdapter` exports reflected SQL tables with the same column
 selection, filters and formats. Foreign keys enable related columns automatically.
 Custom adapters need only the normal `list` contract for scalar exports; related columns
-require the optional `RelationAdapter` contract.
+require the optional `RelationAdapter` and `BatchRelationAdapter` contracts.
 
 ## Formats and safety
 

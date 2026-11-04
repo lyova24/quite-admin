@@ -134,8 +134,8 @@ and stale-edit errors, a read-only record, the database schema and a narrow view
 Verify text contrast,
 keyboard focus and that the sticky form footer leaves the final fields reachable.
 
-The default density in 0.3.0 is compact, close to the previous UI at 80% browser zoom.
-Typography, spacing, sidebar and control sizes shrink together without CSS zoom; browser
+The default density is compact. Typography, spacing, sidebar and controls use shared
+sizing tokens without CSS zoom; browser
 zoom remains available for accessibility. Touch controls retain a larger minimum target.
 Override the documented CSS tokens to tune density for your application.
 

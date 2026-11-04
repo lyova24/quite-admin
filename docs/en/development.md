@@ -8,17 +8,15 @@ frozen-object mutations. They remain dataclasses for equality, representation an
 `dataclasses.replace()`. They are mutable configuration objects: finish constructing them
 before serving requests. Do not mutate registered metadata during requests; use
 `Admin.configure()` to replace collection options. Constructor validation does not run on
-later attribute assignments. Code that relied on these four objects being hashable or
-raising `FrozenInstanceError` must stop doing so. Request operation snapshots, identities,
-query objects and write guards keep their existing protections.
+later attribute assignments. These objects are unhashable. Request operation snapshots,
+identities, query objects and write guards have independent immutable contracts.
 
 Use explicit branches and loops for transaction selection and compound query conditions.
 Keep ORM reflection and async boundaries where their contracts require them; avoid
 introducing an abstraction solely to save a few lines.
 
-The finalized baseline is **0.6.0** (2026-11-03); subsequent work targets a higher version.
-See `CHANGELOG.md` and [public API guarantees](api-stability.md) for migration and
-compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
+The current release is **0.6.1** (2026-11-04). Release history and migration instructions
+live in `CHANGELOG.md`; see [public API guarantees](api-stability.md) for compatibility rules. Run `python scripts/check_api.py --profile modern` before committing;
 GINO checks run separately with `--profile gino`. Version updates do not publish a release.
 
 ## Python support
@@ -53,8 +51,8 @@ warnings are not suppressed.
 ```bash
 uv sync --locked
 uv run pytest -q
-uv run ruff check src tests examples
-uv run ruff format --check src tests examples
+uv run ruff check src tests examples scripts
+uv run ruff format --check src tests examples scripts
 ```
 
 Integration tests exercise SQLite CRUD with synchronous and asynchronous SQL reflection,
@@ -130,8 +128,9 @@ GitHub release downloads remain source-code archives; see [publishing](releases.
 
 ## Current limitations
 
-This is the first working library release. File uploads, bulk actions, an audit log
-and a row-level permission API are not implemented. See [relationships](relationships.md)
+File uploads, bulk actions and a row-level permission API are not implemented.
+[Activity history](storage.md) records admin operations, with configurable recording levels;
+it does not provide an atomic audit of all application writes. See [relationships](relationships.md)
 for supported editors and their limits.
 Built-in edit forms detect stale records atomically; custom adapters opt in through
 `CheckedAdapter`. See [concurrent edits](configuration.md#concurrent-edits).

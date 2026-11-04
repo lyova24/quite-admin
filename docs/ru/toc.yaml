@@ -13,7 +13,7 @@ items:
         href: quickstart.md
       - name: Демо в браузере
         href: browser-demo.md
-      - name: "Обзор интерфейса: 0.5.2"
+      - name: "Обзор интерфейса"
         href: interface-tour.md
       - name: Интеграция и адаптеры
         href: integration.md
@@ -41,7 +41,7 @@ items:
         href: custom-pages.md
       - name: Операции и расширения
         href: extensions.md
-      - name: Проект API виджетов полей
+      - name: Контролы полей и свои виджеты
         href: field-widgets.md
   - name: Безопасность и эксплуатация
     items:

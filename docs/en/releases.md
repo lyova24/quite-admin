@@ -1,8 +1,7 @@
 # Releases and compatibility policy
 
-Release **0.6.0** was finalized on **2026-11-03**. Subsequent work targets a higher version.
-Its changes are recorded in
-the repository `CHANGELOG.md`. A version update alone does not create a tag or release.
+The current release is **0.6.1**, finalized on **2026-11-04**. Release history and
+migration instructions live in the repository [CHANGELOG](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md). A version update alone does not create a tag or release.
 
 ## Version rules
 
@@ -16,7 +15,7 @@ the first published release, compare with the previous recorded version.
 Every task uses its own Conventional Commit. Commit messages do not automatically
 publish a package. Required adapter-contract changes also increment `ADAPTER_API_VERSION`.
 
-The 0.4.x line follows explicit [public API guarantees](api-stability.md). Incompatible
+The library follows explicit [public API guarantees](api-stability.md). Incompatible
 changes before 1.0 require MINOR and EN/RU migration notes; after 1.0 they require MAJOR.
 Deprecated APIs remain through at least one subsequent compatible MINOR release, with
 the replacement and removal version announced. Python/framework/ORM support follows
@@ -40,8 +39,8 @@ and verifies that the published version tag still points to that exact commit.
 
 GitHub release downloads remain the automatic source-code ZIP/tar.gz archives.
 Wheel/sdist files go to PyPI, not GitHub release assets. Python test matrix jobs do not
-build packages. Both distributions explicitly use core metadata **2.4**, avoiding the
-previous unsupported metadata 2.5 error. The checks reject a different metadata version.
+build packages. Both distributions explicitly use core metadata **2.4**; checks reject
+a different metadata version.
 
 ## One-time PyPI setup
 
@@ -67,7 +66,7 @@ The PyPI workflow is top-level rather than reusable, so the publisher always mat
 `pypi.yml`. It accepts only successful release runs from this repository and verifies
 the tag still points to the validated source commit and the GitHub release is published.
 For a retry, run **publish to PyPI** manually from `master`, entering the existing tag,
-for example `v0.6.0`. Manual runs also require a successful full `ci.yml` run for the
+for example `v0.6.1`. Manual runs also require a successful full `ci.yml` run for the
 same source commit. Existing package files are skipped on retry; PyPI versions cannot
 be overwritten. Never move a published tag to change an uploaded package.
 
@@ -77,11 +76,11 @@ be overwritten. Never move a published tag to change an uploaded package.
 pip install 'quite-admin[sqlalchemy,fastapi]'
 uv add 'quite-admin[sqlalchemy,litestar]'
 # Reproduce a particular release:
-pip install 'quite-admin[sqlalchemy,fastapi]==0.6.0'
+pip install 'quite-admin[sqlalchemy,fastapi]==0.6.1'
 ```
 
 The core also installs as `pip install quite-admin` without ORM dependencies.
-Other extras are `sqlmodel`, `tortoise`, `peewee`, `gino-legacy`, `fastapi`, `litestar`
+Other extras are `sqlmodel`, `tortoise`, `peewee`, `gino-legacy`, `pydantic`, `fastapi`, `litestar`
 and `all`. GINO 1.x requires a separate environment from modern SQLAlchemy adapters.
 Installation from an unpacked source archive remains available.
 
@@ -94,14 +93,9 @@ all severities and fails on high/critical findings. Public PRs also use
 Network/advisory service errors fail checks. No blanket advisory ignores are configured.
 See `SECURITY.md` for private reporting and the early-release maintenance policy.
 
-The 2026-11-01 CI/CD changes included in **0.4.1** update Diplodoc and pin patched
-transitive packages (including decode-uri-component, fast-xml-parser, glob, minimatch
-and KaTeX). The refreshed npm audit reports **zero vulnerabilities**; advisory data can
-change, so every run audits again. `scripts/diplodoc.cjs` adapts older CommonJS consumers
-to the patched ESM exports of markdown-it and decode-uri-component on Node 24.
-It changes module interop only; it does not suppress audits or alter parser behavior.
-Strict EN/RU builds verify compatibility. Remove overrides when upstream can use the
-patched versions directly.
+Documentation tooling pins transitive dependencies through `package-lock.json` and
+`package.json` overrides. `scripts/diplodoc.cjs` handles CommonJS/ESM interop on Node 24.
+Strict EN/RU builds and fresh security audits validate that environment.
 
 ## Required checks and artifacts
 

@@ -127,5 +127,4 @@ flow/custom page and redirect behavior in the application. GET never executes an
 Handlers can raise the public adapter errors. Keep action labels in the configured UI language.
 
 Adapter compatibility is governed by `ADAPTER_API_VERSION` and the documented
-[adapter contract](custom-adapters.md#compatibility-contract). Template changes and safe
-field-default changes are listed in `CHANGELOG.md` for the 0.2.0 migration.
+[adapter contract](custom-adapters.md#compatibility-contract). See [public API guarantees](api-stability.md) for template and extension boundaries.

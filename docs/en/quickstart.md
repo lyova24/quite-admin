@@ -8,8 +8,8 @@ pip install 'quite-admin[sqlalchemy,fastapi]'
 # For Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
 
-Pin `quite-admin[sqlalchemy,fastapi]==0.6.0` for reproducible installs of the last finalized release.
-The screenshots below show the 0.5.2 source sample. Source checkout/archive installation is also supported.
+Pin `quite-admin[sqlalchemy,fastapi]==0.6.1` for reproducible installs.
+Installation from a source checkout or archive is also supported.
 
 ## Existing FastAPI application
 
@@ -76,7 +76,7 @@ field example shows the same page with a protected registration date.
 
 [![Read-only field settings](../assets/screenshots/fields.png)](../assets/screenshots/fields.png)
 
-[See the 0.5.2 interface tour](interface-tour.md) for sign-in, calendars and the activity journal.
+[See the interface tour](interface-tour.md) for sign-in, calendars and the activity journal.
 
 ## Run the sample application
 
@@ -90,6 +90,20 @@ Open [localhost:8000/admin/](http://localhost:8000/admin/) and sign in with
 `admin` / `local-demo-only`. This creates an isolated sample SQLite database;
 `QUITE_ADMIN_DEMO_DB` can select a different path. Use uv 0.13.6+ to download stable
 Python 3.15. The Python package does not need Node.js; only documentation builds do.
+
+## Storage and deployment
+
+The admin initializes its own `.quite-admin/state.sqlite3` service store. Use a persistent,
+writable directory or configure `storage` / `QUITE_ADMIN_STORAGE_URL` for containers and
+replicas. History defaults to committed writes (`history_level="changes"`); choose
+`"audit"` or `"all"` for more events, or `history_enabled=False` to disable it.
+See [storage, backups and recording levels](storage.md).
+
+For HTTPS deployment, keep `secure_cookies=True`, share a stable secret across workers,
+review discovered collections and permissions, and keep the host's database startup/shutdown.
+[Read limits](configuration.md#shared-read-limits) can reserve pool capacity for application
+traffic. [Session and proxy settings](authentication.md) explain access revocation and cookies;
+[integration](integration.md) covers mount paths and reverse-proxy prefixes.
 
 ## Next steps
 

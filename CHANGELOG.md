@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.1 — unreleased
+## 0.6.1 — 2026-11-04
 
 ### Changed
 
@@ -10,6 +10,12 @@
   authentication, exports and failed writes; `all` retains the previous full activity
   stream. Set `history_level="all"` to retain 0.6.0 recording behavior. Existing events
   are preserved and the service-storage schema is unchanged.
+
+- Refresh the complete English/Russian documentation for the current release: add an
+  Admin constructor reference and complete collection options, document supported
+  field-control customization, and correct installation, activity-history and deployment
+  guidance. Keep release history and migration instructions in this changelog; remove
+  comparisons with other admin projects from user documentation.
 
 ## 0.6.0 — 2026-11-03
 
@@ -52,13 +58,33 @@
   preview in `.github/social-preview.png` with a clean background and the
   “Fast to set up. Simple to use.” tagline; do not display it in the admin.
 - Change the `Theme()` color defaults; existing explicit palettes remain supported.
-  To retain the previous appearance, set all previous colors explicitly as described
-  in the EN/RU customization guide. Preserve template API 1 and the original API
+  To retain the previous appearance, set all previous colors explicitly using the
+  migration recipe below. Preserve template API 1 and the original API
   baselines; the API check accepts only the documented old/new color default pairs.
 
 - Build the static demo before browser-server readiness checks. Allow cold CI
   fixtures up to 120 seconds to start, with named, unbuffered server logs and
   HTTP readiness diagnostics; keep the 30-second local limit and all browser tests.
+
+### Migration: retain the 0.5.0 light palette
+
+Pass every color explicitly; custom palettes remain supported:
+
+```python
+from quite_admin import Theme
+
+theme = Theme(
+    primary="#3e6656",
+    background="#f5f6f8",
+    surface="#ffffff",
+    text="#20252b",
+    muted="#626b76",
+    border="#dce0e5",
+    danger="#b43e3e",
+    on_primary="#ffffff",
+    on_danger="#ffffff",
+)
+```
 
 ## 0.5.0 — 2026-11-02
 
@@ -358,6 +384,15 @@
 - The Litestar queue logging test connects its configured console sink on Python 3.11.
 - Documentation deployment publishes generated Diplodoc HTML through GitHub Pages
   Actions instead of passing Jinja examples to Jekyll/Liquid.
+
+### Migration from the earlier 0.2.0 development checkout
+
+Regenerate the application's lockfile within the supported ranges. The earlier broad
+floors included SQLAlchemy releases that failed to import on Python 3.15, SQLModel
+0.0.22 that could not construct table models there, Tortoise 0.25.0 using a removed
+aiosqlite API and Starlette/Litestar paths using deprecated asyncio APIs. Install the
+`sqlmodel` extra or `all` for modern adapters; isolate `gino-legacy` from SQLAlchemy 2.x.
+Adapter API 1 and record data formats are unchanged.
 
 ## 0.1.0
 

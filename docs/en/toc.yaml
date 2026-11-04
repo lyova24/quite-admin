@@ -13,7 +13,7 @@ items:
         href: quickstart.md
       - name: Browser demo
         href: browser-demo.md
-      - name: "Interface tour: 0.5.2"
+      - name: "Interface tour"
         href: interface-tour.md
       - name: Integration and adapters
         href: integration.md
@@ -41,7 +41,7 @@ items:
         href: custom-pages.md
       - name: Operations and extensions
         href: extensions.md
-      - name: Field widget design proposal
+      - name: Field controls and custom widgets
         href: field-widgets.md
   - name: Security and operations
     items:

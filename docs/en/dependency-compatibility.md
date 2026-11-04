@@ -94,15 +94,3 @@ The suite runs in the locked and modern endpoint jobs, and in the PostgreSQL/MyS
 contract jobs. Its JSON/SQLModel tests use Pydantic 2. SQLModel support uses the native
 SQLAlchemy adapter; it does not automatically run application-level Pydantic validation
 for admin writes. Application invariants still belong in parsers, hooks or a service adapter.
-
-## Upgrading from the earlier 0.2.0 development checkout
-
-Update the application environment to the ranges above and regenerate its lockfile.
-The earlier broad floors included combinations that failed on modern Python or with
-current transitive dependencies. Old SQLAlchemy releases failed to import on Python 3.15;
-SQLModel 0.0.22 did not construct table models there; Tortoise 0.25.0 used an aiosqlite API
-removed in newer aiosqlite. Older Starlette/Litestar paths also used deprecated asyncio APIs.
-
-Install `quite-admin[sqlmodel,fastapi]` (from this source checkout until publication) for
-SQLModel, or use `all` for the modern adapter bundle. Keep GINO in its separate legacy
-environment. Adapter API version 1 and record data formats remain unchanged.

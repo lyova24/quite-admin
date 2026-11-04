@@ -1,7 +1,6 @@
-# Interface tour: 0.5.2
+# Interface tour
 
-The screenshots show the **0.5.2 source version**, captured from the local Python example
-with fictional records and the default charcoal-and-blue palette. Open the
+The screenshots show the local Python example with fictional records and the default charcoal-and-blue palette. Open the
 [browser demo](https://lyova24.github.io/quite-admin/demo/) with `admin` / `admin`.
 Use **Reset demo** for the initial fictional records. See [demo coverage](browser-demo.md)
 for the features that need the Python application.
@@ -70,9 +69,11 @@ endpoints include the entire UTC day. Switching to **Table** preserves these sel
 
 [![History period with two inclusive UTC calendars](../assets/screenshots/activity-period.png)](../assets/screenshots/activity-period.png)
 
-The Python application records authenticated activity automatically, with no application
-migration. It defaults to its own SQLite file; another SQLite/PostgreSQL/MySQL store is
-optional. `Admin(history_enabled=False, ...)` disables the feature. Read
+The Python application records committed record changes automatically with
+`history_level="changes"`. Choose `"audit"` to include authentication, exports and failed
+writes, or `"all"` for reads too. Its default SQLite file needs a persistent writable
+directory; SQLite/PostgreSQL/MySQL storage is configurable.
+`Admin(history_enabled=False, ...)` disables the feature. Read
 [storage and history](storage.md) for permissions, redaction, backups and durability limits.
 
 ## Navigate and export
@@ -88,6 +89,6 @@ and related columns such as Tags → Name; [exports](exports.md) documents limit
 Finally, change a product's tags on its record page and explore **Database schema**:
 expand fields, toggle **N:M** to reveal `product_tags`, and move a table. **Auto layout**
 releases the fixed positions. Both the [relationship editor](relationships.md) and
-[schema](database-schema.md) remain available alongside the new screens.
+[schema](database-schema.md) show the same registered collections and relationships.
 
 [![Database schema with the expanded product_tags junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)

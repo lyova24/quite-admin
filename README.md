@@ -6,7 +6,7 @@
 
 ![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/.github/social-preview.png)
 
-**Version: 0.6.1** (unreleased) · [Changelog](CHANGELOG.md)
+**Version: 0.6.1** · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -16,7 +16,7 @@ Supports **CPython 3.11–3.15**. MIT licensed.
 [Browser demo](https://lyova24.github.io/quite-admin/demo/) — `admin` / `admin`.
 Its fictional records stay in browser storage; **Reset demo** restores the examples.
 Try inline edits in **Products**, date/time/JSON controls in **Schedules**, and the
-**Activity history** journal. [Interface tour: 0.5.2](docs/en/interface-tour.md).
+**Activity history** journal. [Interface tour](docs/en/interface-tour.md).
 The site workflow publishes this standalone demo alongside the documentation.
 
 [Add to an existing app in two minutes](docs/en/quickstart.md) · [Public API guarantees](docs/en/api-stability.md)
@@ -63,6 +63,8 @@ pip install 'quite-admin[sqlalchemy,fastapi]'
 Choose `sqlmodel`, `tortoise`, `peewee` or `gino-legacy` for another adapter.
 Use `pip install quite-admin` for the ORM-independent core. Native GINO requires a
 separate environment from SQLAlchemy 2.x. [PyPI package](https://pypi.org/project/quite-admin/).
+Install the `pydantic` extra for optional per-model form schemas; it is unnecessary
+for ordinary model discovery. See [services and form validation](docs/en/extensions.md).
 
 ## Run the demo
 
@@ -77,17 +79,6 @@ Open [localhost:8000/admin/](http://localhost:8000/admin/) and sign in with
 `admin` / `local-demo-only`. For Litestar, use `examples.litestar_app:app` instead.
 The demo seeds a local SQLite database. Its HTTP cookie settings are intended for local development.
 Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
-
-## Choosing an admin
-
-| Project | When its documented approach fits |
-|---|---|
-| quite-admin | Automatic SQL table/model discovery, FastAPI/Litestar mounts, Peewee/Tortoise/SQLAlchemy or application-service adapters. Version 0.6.1 (unreleased); see the public API guarantees and compatibility evidence. |
-| [SQLAdmin](https://github.com/smithyhq/sqladmin) | A SQLAlchemy/SQLModel application using its model views, sync/async engines and WTForms controls with FastAPI/Starlette. |
-| [Starlette Admin](https://github.com/jowilf/starlette-admin) | Its contrib backend/model-view approach, MongoDB integrations, bulk actions, file handling or import/export fit the application. |
-
-The choices follow each project's documented integration boundaries. SQL reflection
-does not execute Python ORM hooks; select a native/service adapter when those rules matter.
 
 ## Documentation
 
@@ -118,8 +109,8 @@ See [integration](docs/en/integration.md), [field configuration](docs/en/configu
 
 ```bash
 uv run pytest -q
-uv run ruff check src tests examples
-uv run ruff format --check src tests examples
+uv run ruff check src tests examples scripts
+uv run ruff format --check src tests examples scripts
 ```
 
 GitHub releases provide source-code ZIP/tar.gz archives. A version tag publishes the

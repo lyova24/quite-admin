@@ -6,22 +6,17 @@ Litestar use the same adapter.
 
 ## Install
 
-Install the 0.2.0 source checkout as in the [quick start](quickstart.md).
+Install the legacy extra in a separate virtual environment:
 
 ```bash
-pip install '/path/to/quite-admin[gino-legacy,fastapi]'
-# Or: pip install '/path/to/quite-admin[gino-legacy,litestar]'
+pip install 'quite-admin[gino-legacy,fastapi]==0.6.1'
+# Or: pip install 'quite-admin[gino-legacy,litestar]==0.6.1'
 ```
 
 GINO 1.x requires SQLAlchemy 1.3, while the SQL reflection and SQLAlchemy adapters
 require SQLAlchemy 2.x. Use the `gino-legacy` extra instead of `sqlalchemy` or `all` in a
 GINO application. The existing `all` extra retains the modern adapter dependency set
 and does not include GINO. See the upstream [GINO compatibility notes](https://python-gino.org/docs/en/1.0/how-to/faq.html).
-
-The unreleased `quite-admin[gino]` installation name has been replaced by
-`quite-admin[gino-legacy]`; the Python import `quite_admin.adapters.gino.GinoAdapter`
-is unchanged. Released GINO requires the legacy SQLAlchemy stack. Modern SQLAlchemy
-models use the [SQLAlchemy adapter](integration.md), not this GINO adapter.
 
 ## Connect existing models
 

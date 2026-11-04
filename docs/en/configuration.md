@@ -1,5 +1,38 @@
 # Collections and fields
 
+## Admin settings
+
+All `Admin(...)` arguments are keyword-only. Configure the instance before serving requests.
+
+| Argument | Default and purpose |
+|---|---|
+| `auth`, `secret_key` | Required authentication backend and persistent random secret of at least 32 bytes; see [authentication](authentication.md) |
+| `adapters` | `()`; existing data adapters, with discovery enabled |
+| `title`, `description` | `"Quite Admin"`, `""`; application name and optional introduction |
+| `language` | `"en"`; `"en"` or `"ru"` for the built-in interface |
+| `theme`, `logo` | `None`; default `Theme()` and bundled logo, or a palette and local image path; see [appearance](customization.md) |
+| `templates_dir` | `None`; application template directory with precedence over packaged templates |
+| `secure_cookies` | `True`; use `False` only for local HTTP |
+| `session_cookie` | `"quite_admin_session"`; choose distinct names for separate admins on the same domain |
+| `session_max_age` | `28800` seconds (8 hours); positive session, revision and cursor lifetime |
+| `logger`, `log_structured` | `None`, `False`; application-owned [logging](logging.md) |
+| `hooks` | `None`; optional `OperationHooks` for the [write lifecycle](extensions.md) |
+| `storage` | `None`; environment URL or private local SQLite, or an explicit path, URL or `AdminStore`; see [storage](storage.md) |
+| `history_enabled` | `True`; record and display activity history |
+| `history_level` | `"changes"`; committed writes; `"audit"` adds authentication, exports and failures, `"all"` adds reads |
+| `history_permission` | `None`; optional sync/async callback restricting history and user lookup |
+| `query_timeout` | `None`; optional positive deadline in seconds for an admin read, including its queue and async pool wait |
+| `max_concurrent_reads` | `None`; optional positive integer limiting simultaneous reads across this admin in one process |
+
+Use `add_adapter(adapter, discover=True, namespace=None)` to attach a data source,
+`register(model, adapter=..., options=...)` to select/configure a model and
+`configure(slug, options=...)` to configure a discovered collection. `ModelOptions` replaces
+the collection's options as a whole; include every setting you want to retain.
+Mount with `mount_fastapi(app, "/admin")`, `mount_litestar(app, "/admin")` or
+`litestar_route("/admin")`; see [integration](integration.md).
+
+## Register collections
+
 Auto-discovery is optional. Register only the existing models you want to expose:
 
 ```python
@@ -26,7 +59,6 @@ admin.register(User, options=ModelOptions(
 Each existing record has one page for viewing and editing. Its fields become read-only when
 the user cannot edit; the server also rejects direct POST requests. `edit_fields` orders and
 selects writable form fields; other visible fields remain on that page as read-only values.
-The old `/edit` GET URL redirects to the record page; POST remains a compatibility alias.
 Click a table row to open that page. Its link also supports keyboard navigation and opening a
 new tab. The only separate row action is deletion, which opens a confirmation page.
 Users without view/edit permission receive no record link; delete controls follow delete permission.
@@ -37,6 +69,7 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 
 | Option | Behavior |
 | --- | --- |
+| `slug`, `label` | Collection URL name and display name; defaults come from the adapter schema |
 | `list_fields` | Columns in the list; the default is the first six visible fields |
 | `edit_fields` | Field order and selection for edit forms |
 | `create_fields` | Field order and selection for create forms |
@@ -48,6 +81,16 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 | `record_label` | Field used to label records in relationship selectors |
 | `fields` | Labels, help text and per-field read-only settings |
 | `can_create`, `can_edit`, `can_delete` | Enable or disable operations |
+| `permission` | Sync/async `(request, identity, action)` callback; see [permissions](authentication.md) |
+| `expose_sensitive_fields` | Explicit exceptions to automatic secret-name hiding; `exclude` still wins |
+| `writable_protected_fields` | Explicit exceptions to automatic service/privilege-field protection |
+| `group` | Optional nonempty sidebar group label |
+| `list_editable` | `None` enables eligible displayed fields, a tuple selects fields, `()` disables inline edits |
+| `pagination` | `"offset"` for totals/page numbers or `"cursor"` for count-free primary-key traversal |
+| `input_fields` | Tuple of form-only `Field` definitions consumed by a handler/service |
+| `create_schema`, `update_schema` | Optional Pydantic 2 models validating submitted values |
+| `create_handler`, `update_handler` | Per-model services replacing native creation/editing; see [services and schemas](extensions.md) |
+| `actions` | Tuple of permission-checked `RecordAction` buttons on the record page |
 
 `FieldOptions(read_only=True)` also makes a field read-only.
 Unknown configuration fields raise a configuration error.
@@ -62,7 +105,6 @@ Use `expose_sensitive_fields=("api_key",)` only for a deliberate exception.
 `is_superuser`, `is_staff`, `roles` and `permissions` are read-only by default.
 Opt in with `writable_protected_fields=("is_admin",)` when the application allows it.
 This never overrides explicit, generated or adapter-provided read-only restrictions.
-These defaults change 0.1.0 behavior; add deliberate exceptions when upgrading.
 Excluding a PK does not make its identity secret: record URLs encode the key.
 
 ## Custom field controls
@@ -144,7 +186,7 @@ form edits, not delete requests or custom actions. Custom adapters opt in throug
 
 See [list filters](filters.md) for `filter_fields` and related-record filtering.
 
-## Database type controls (0.3.0)
+## Database type controls
 
 | Database/model type | Built-in control |
 |---|---|
@@ -199,7 +241,7 @@ ISO text inputs and JSON remains a normal textarea. The no-script native calenda
 on browser/OS. Server-side parsing, model constraints, field permissions, CSRF and signed
 stale-edit revisions remain authoritative. Built-in scripts use the existing per-page CSP hash.
 
-Future widget extension approaches are compared in the [widget design proposal](field-widgets.md).
+See [field controls and custom widgets](field-widgets.md) for a complete template/parser example.
 
 ## Sidebar groups
 

@@ -89,10 +89,10 @@ Reserve the entire `quiteadmin_` prefix. These tables never appear as ordinary a
 collections, including when SQL discovery uses the same database. Table creation
 requires DDL permissions; routine operations require read/write permissions.
 Initialization is serialized across workers. Unknown storage schema versions are
-rejected rather than overwritten. The current physical schema version is 2. Version 1
-is upgraded automatically, preserving documents and events. Older events retain
-metadata only: values that were never recorded cannot be recovered. Structural
-upgrades belong to the library, not the application's migration project.
+rejected rather than overwritten. The physical schema version is 2; the library manages
+service-schema initialization and upgrades independently of application migrations.
+Existing documents and events are preserved. Metadata-only events have no field
+comparisons; values that were never recorded cannot be recovered.
 
 `admin.storage` exposes the `AdminStore` protocol. Documents contain a key, kind,
 owner, JSON payload, format version and revision. `save_document()` creates with
@@ -120,7 +120,8 @@ recorded activity, including accounts that have since been removed. The lookup
 searches recorded subjects and display names with a bounded result set; selecting
 a result applies the exact subject. Events are ordered newest first in UTC, with signed pagination
 and no extra total-count query. The journal groups events by day and shows changes
-by default; select **All actions** to include views, exports and authentication.
+by default; **All actions** includes other events allowed by `history_level`.
+Exports and authentication require `audit` or `all`; views require `all`.
 Expand an event to compare **Field / Before / After**, follow its record link, or use
 **Expand all changes** to review the whole page.
 Use the **Journal / Table** toggle above the events to switch to the compact table.
@@ -153,7 +154,7 @@ admin = Admin(auth=auth, secret_key=session_secret, history_level="changes")
 | --- | --- |
 | `changes` (default) | Committed create, edit, inline edit, delete and custom record actions, including relationship writes inside saves. |
 | `audit` | Everything in `changes`, plus failed writes/custom actions, login/logout and exports. |
-| `all` | Everything in `audit`, plus collection listings and record/form views, including failed reads. This retains 0.6.0 behavior. |
+| `all` | Everything in `audit`, plus collection listings and record/form views, including failed reads. |
 
 The level is enforced **before creating/appending an activity event**, not just in
 templates. Excluded requests write no activity, field-details or actor-index rows.
@@ -162,11 +163,8 @@ level preserves existing data; switching to `all` can show previously stored eve
 but cannot recover events that were never recorded. Constructor configuration is
 authoritative: URL filters and **All actions** cannot increase the level.
 
-**Migration from 0.6.0:** the default intentionally changes to the lightest level in
-0.6.1. Set `history_level="all"` explicitly to keep the previous recording behavior.
-`history_enabled=False` still disables the entire feature. No storage migration is
-needed. Direct `admin.storage` calls remain a raw storage API and default to all events;
-they do not inherit an admin instance's presentation/recording policy.
+Direct `admin.storage` calls are a raw storage API and default to all events;
+they do not inherit an admin instance's recording/display policy.
 
 Authenticated failed requests at an enabled level retain their HTTP status. Anonymous
 requests and failed login names are not attributed to a trusted user. History browsing
@@ -195,7 +193,7 @@ are redacted. Current field visibility and relationship permissions are reapplie
 when viewing historical values. Values are limited to 4 KiB each, 200 field changes
 and 512 KiB per event, with visible truncation notices. Form bodies, search terms
 and SQL text are not stored. Ordinary diagnostic logs contain no field values.
-Backups of service storage now contain historical business values; apply the same
+Backups of service storage contain historical business values; apply the same
 access controls as to the source data.
 
 By default every authenticated admin can open history. The history page and user

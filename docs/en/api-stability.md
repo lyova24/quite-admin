@@ -1,20 +1,10 @@
 # Public API guarantees
 
-**0.4.0 is the compatibility baseline for 0.4.x.** Patch releases preserve documented
+Patch releases preserve documented
 imports, call signatures, defaults and behavior. The adapter contract is
 `ADAPTER_API_VERSION = 1`; the template contract is `TEMPLATE_API_VERSION = 1`.
 These guarantees apply to SQL reflection, native ORM adapters and application-service
 adapters alike. CSV/XLSX export does not require an ORM.
-
-## 0.6.1 activity migration
-
-The activity default intentionally becomes `history_level="changes"` in 0.6.1:
-only committed record-write operations are recorded and displayed. Set
-`history_level="all"` to retain 0.6.0 behavior, or `"audit"` to also record
-authentication, exports and failed writes. Existing stored events are preserved.
-See [recording levels](storage.md#recording-level) for filtering and custom-store
-compatibility. Adapter API 1, template API 1 and the required `AdminStore` protocol
-remain unchanged.
 
 ## Covered interfaces
 
@@ -29,8 +19,8 @@ remain unchanged.
 
 Names beginning with `_`, ORM-specific implementation helpers, DOM structure, CSS
 classes, built-in JavaScript internals and undocumented context entries are implementation
-details. The field-widget registry described in [the proposal](field-widgets.md) is
-not an implemented API. Use the existing `FieldOptions.template`, parser and formatter.
+details. Supported [field-control extensions](field-widgets.md) use
+`FieldOptions.template`, parser and formatter; there is no named widget registry.
 
 ## Adapter and write behavior
 
@@ -38,7 +28,7 @@ The [adapter contract](custom-adapters.md) defines typed scalar mappings, comple
 primary keys, filtering before count/pagination, projection and atomic writes.
 Record keys are opaque strings: use `ModelSchema.record_key()` / `parse_key()`;
 do not decode their internal encoding in application code. Existing valid keys continue
-to round-trip within 0.4.x. `NotFound`, `Conflict` and `ValidationError` remain
+to round-trip under adapter API 1. `NotFound`, `Conflict` and `ValidationError` remain
 `AdminError` subclasses with HTTP statuses 404, 409 and 422. `ValidationError.errors`
 maps field names to messages; exact translated wording is not an API.
 
@@ -93,6 +83,14 @@ The include is called only for writable fields. The surrounding form owns CSRF a
 revision tokens. Replacing the entire form must retain those tokens and writable-field
 policies. Custom templates do not grant extra script permissions or bypass CSP.
 
+`Field`, `ModelSchema`, `RecordAction` and `Theme` are mutable, unhashable configuration
+objects. Finish configuring them before requests; later assignments do not rerun
+constructor validation. Equality and `dataclasses.replace()` are supported.
+
+In cursor mode, `result` is `RecordWindow`, with `records` and no exact `total`.
+Use `cursor_mode`, `cursor_previous_url` and `cursor_next_url` for navigation.
+Default offset lists provide `RecordPage`. Templates must support the configured mode.
+
 ## Change and deprecation rules
 
 Compatible additions use MINOR; compatible fixes use PATCH. In 0.x, an incompatible
@@ -121,20 +119,3 @@ Keep existing baseline entries when extending the API. A planned incompatible re
 must explicitly review/update the baseline and migration notes; regenerating it merely
 to silence a failure is not an API review. Structural checks cannot prove semantics:
 adapter, security, hook, template and browser integration tests remain required.
-
-## Migrating from 0.3.x
-
-Existing constructor calls, adapters and field includes continue to work. `Field`,
-`ModelSchema`, `RecordAction` and `Theme` now use explicit constructors and ordinary
-assignments. They are mutable and unhashable; stop relying on `FrozenInstanceError`
-or using them as dictionary/set keys. Constructor validation, equality and
-`dataclasses.replace()` remain. Configure metadata before requests; later assignment
-does not rerun validation. Use `Admin.configure()` for collection options, not mutation
-of shared metadata during a request. Operation snapshots and write guards retain
-their protections. No database migration or new mandatory adapter method is required.
-
-The optional cursor list mode supplies `result` as `RecordWindow` instead of
-`RecordPage`: use `result.records` and the `cursor_mode`, `cursor_previous_url`,
-`cursor_next_url` context entries. A window has no exact total. Templates opting into
-this collection mode must avoid `result.total`; default offset lists retain their
-existing context and Template API 1.

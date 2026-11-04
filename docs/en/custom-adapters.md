@@ -71,7 +71,7 @@ No raw SQL or arbitrary lookup operators are accepted.
 
 `total` counts matches before pagination. Sorting appends primary-key tie breakers.
 Projection returns exactly the requested scalar keys; include PK fields when records
-must remain addressable. It does not guarantee that an ORM loads only these columns.
+must remain addressable. Built-in adapters also restrict the database SELECT; custom adapters must honor the returned projection.
 Relationship queries follow the same contract. The HTML list does not expose a
 filter-expression or projection query language.
 
