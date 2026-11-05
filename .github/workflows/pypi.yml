@@ -113,7 +113,7 @@ jobs:
       - name: Install the released package from PyPI outside the checkout
         run: |
           for attempt in 1 2 3 4 5 6; do
-            if uv run --no-project --with "quite-admin==$PACKAGE_VERSION" python -I -c 'import os, quite_admin; from importlib import metadata, resources; assert quite_admin.__version__ == metadata.version("quite-admin") == os.environ["PACKAGE_VERSION"]; assert resources.files("quite_admin").joinpath("static/forms.js").is_file(); print("Installed quite-admin", quite_admin.__version__)'; then
+            if uv run --no-project --refresh-package quite-admin --with "quite-admin==$PACKAGE_VERSION" python -I -c 'import os, quite_admin; from importlib import metadata, resources; assert quite_admin.__version__ == metadata.version("quite-admin") == os.environ["PACKAGE_VERSION"]; assert resources.files("quite_admin").joinpath("static/forms.js").is_file(); print("Installed quite-admin", quite_admin.__version__)'; then
               exit 0
             fi
             sleep 10
