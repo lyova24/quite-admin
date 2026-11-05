@@ -456,7 +456,7 @@ label, .field-label { display: block; margin-bottom: 0.375rem; font-size: var(--
 .picker-chip > span { overflow-wrap: anywhere; }
 .picker-chip .button { border: 0; padding: 0.125rem 0.375rem; min-height: 1.625rem; background: transparent; }
 .picker-menu { max-width: 38.75rem; }
-.picker-trigger { display: inline-flex; gap: 0.5rem; cursor: pointer; list-style: none; }
+.picker-trigger { display: inline-flex; max-width: 100%; gap: 0.5rem; white-space: normal; cursor: pointer; list-style: none; }
 .picker-trigger::-webkit-details-marker { display: none; }
 .picker-trigger::after { content: '⌄'; margin-left: 0.75rem; }
 .picker-panel { margin-top: 0.5rem; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.75rem; background: var(--paper); }

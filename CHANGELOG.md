@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.8.1 — 2026-11-05
+## 0.8.1 — 2026-11-06
+
+- Wrap long relationship-picker labels within the form at enlarged font sizes.
 
 - Keep list text neutral when hovering a row; highlight only its background.
   Apply the accent color to links to related records only while the link is hovered.

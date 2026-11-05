@@ -120,4 +120,10 @@ test('an application can retain compact sizing or enlarge the rem base without c
   await fitsViewport(page, page.locator('.list-table-scroll'));
   await page.goto('/admin/models/entries/new');
   await fitsViewport(page, page.locator('.record-form'));
+  const picker = page.locator('[data-relation-picker]').filter({has:page.locator('[name="__relation__to_customers_by_customer_id"]')});
+  const trigger = picker.locator('.picker-trigger');
+  await trigger.evaluate(node => { node.firstChild.textContent = 'Choose records with a longer label'; });
+  await fitsViewport(page, trigger);
+  await trigger.click();
+  await expect(picker.getByRole('searchbox')).toBeVisible();
 });
