@@ -8,7 +8,7 @@ export function listCell({slug, row, field, editable, t, e}) {
   if (field.kind === "boolean") return `<span class="list-toggle-control" data-list-toggle-control data-value="${value==null?'null':value}" ${editable?`data-toggle-endpoint="${endpoint}"`:''}><button class="boolean-toggle list-boolean-toggle" type="button" role="switch" data-field-label="${e(field.label)}" aria-label="${e(field.label+(value==null?': '+t('None'):''))}" aria-checked="${value==='true'}" ${editable?'':'disabled'} data-list-switch></button><span class="toggle-null-state" ${value==null?'':'hidden'}>${e(t('None'))}</span>${field.nullable&&editable?`<button class="list-null-button" type="button" title="${e(t('None'))}" aria-label="${e(t('None')+': '+field.label)}" aria-pressed="${value==null}" data-list-null>∅</button>`:''}</span>`;
   const text = value ?? "—";
   const content = `<span data-cell-value class="${value==null?'null-value':field.primaryKey?'record-id':'cell-value'}" title="${e(text)}">${e(text.length>90?text.slice(0,87)+'…':text)}</span>`;
-  return editable ? `<button class="cell-edit" type="button" data-inline-endpoint="${endpoint}" aria-label="${e(t('Edit field')+': '+field.label)}" title="${e(t('Edit field')+': '+field.label)}">${content}<span class="cell-edit-mark" aria-hidden="true">✎</span></button>` : content;
+  return editable ? `${content}<button class="cell-edit" type="button" data-inline-endpoint="${endpoint}" aria-label="${e(t('Edit field')+': '+field.label)}" title="${e(t('Edit field')+': '+field.label)}"><span class="cell-edit-mark" aria-hidden="true">✎</span></button>` : content;
 }
 export function csv(collection, rows, columns) {
   const quote = value => {

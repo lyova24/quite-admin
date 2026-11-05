@@ -124,6 +124,18 @@ test('inline values, toggles and stale edits preserve the latest record', async 
   await expect(page.locator('td[data-list-field=day]')).toContainText('2026-11-30');
 });
 
+test('cell values open the record while only the pencil opens inline editing', async ({page})=>{
+  const cell=page.locator('td[data-list-field=day]').first();
+  const text=await cell.locator('[data-cell-value]').textContent();
+  await cell.locator('.cell-edit').click();
+  await expect(page.locator('[data-inline-dialog]')).toBeVisible();
+  await page.locator('[data-inline-cancel]').click();
+  const bounds=await cell.locator('[data-cell-value]').boundingBox();
+  await page.mouse.click(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  await expect(page).toHaveURL(/\/admin\/models\/entries\/[^/]+$/);
+  await expect(page.locator('input[name=day]')).toHaveValue(text);
+});
+
 test('calendar uses the theme and remains usable on a narrow screen', async ({page})=>{
   await login(page,'/dark');await page.goto('/dark/models/entries/');await page.setViewportSize({width:390,height:844});
   await open(page,'f.moment');await dialog(page).locator('#filter-value-0').fill('2026-11-01');

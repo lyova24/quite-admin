@@ -265,7 +265,8 @@ read-only; without JavaScript the original select remains usable.
 
 ## Editing list cells
 
-Click the pencil/value of a writable displayed field to edit it without opening a record.
+Click the pencil of a writable displayed field to edit it without opening a record.
+Clicking the value or another part of the row opens the record page. Boolean switches save immediately.
 `ModelOptions(list_editable=None)` (default) enables all eligible displayed fields;
 `list_editable=("name", "active")` selects a subset; `list_editable=()` disables it.
 Only list columns also allowed by `edit_fields` and field policies are eligible. Hidden,

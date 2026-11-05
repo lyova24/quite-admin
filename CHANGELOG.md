@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 — 2026-11-05
+
+- Open inline field editors only from the pencil button. Keep cell values on the
+  record navigation target and preserve immediate boolean switches.
+
 ## 0.7.0 — 2026-11-04
 
 - Automatically attach service-storage cleanup to FastAPI and Litestar lifespans;

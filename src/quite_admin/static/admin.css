@@ -689,7 +689,7 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .toggle-control [aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .boolean-toggle::after { transition: none; } }
 
-.cell-edit { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; border: 0; border-radius: var(--radius-sm); padding: var(--space-1) 0; color: inherit; background: transparent; text-align: inherit; font: inherit; }
+.cell-edit { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; border: 0; border-radius: var(--radius-sm); margin-inline-start: var(--space-2); padding: var(--space-1) var(--space-2); color: inherit; background: transparent; text-align: inherit; font: inherit; }
 .cell-edit:hover { color: var(--accent); }
 .cell-edit-mark { color: var(--muted); opacity: .35; font-size: var(--text-xs); }
 .cell-edit:hover .cell-edit-mark, .cell-edit:focus-visible .cell-edit-mark { opacity: 1; }
