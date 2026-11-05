@@ -87,7 +87,7 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 | `writable_protected_fields` | Explicit exceptions to automatic service/privilege-field protection |
 | `group` | Optional nonempty sidebar group label |
 | `list_editable` | `None` enables eligible displayed fields, a tuple selects fields, `()` disables inline edits |
-| `pagination` | `"offset"` for totals/page numbers or `"cursor"` for count-free primary-key traversal |
+| `pagination` | `"offset"` for totals/page numbers or `"cursor"` for count-free sorted traversal |
 | `input_fields` | Tuple of form-only `Field` definitions consumed by a handler/service |
 | `create_schema`, `update_schema` | Optional Pydantic 2 models validating submitted values |
 | `create_handler`, `update_handler` | Per-model services replacing native creation/editing; see [services and schemas](extensions.md) |
@@ -289,22 +289,27 @@ unchanged and show an error; rapid repeated clicks are disabled during saving.
 
 For a large collection, use `ModelOptions(pagination="cursor")`. Every built-in adapter
 supports this mode. It reads at most one extra record to show Next/Previous, without an
-exact `COUNT(*)` or a growing OFFSET. It orders by the complete primary key (first part
-ascending/descending, remaining parts ascending), including composite keys. Other columns
-do not offer sort controls in this mode. The default `pagination="offset"` retains exact
-totals, page numbers and arbitrary visible-field sorting.
+exact `COUNT(*)` or a growing OFFSET. Click any scalar column header, including dates,
+to sort ascending or descending without additional configuration. The complete primary
+key breaks ties in ascending order, including composite keys. NULL values come last in
+both directions. With no chosen column, the primary key determines the order.
+JSON, binary and unsupported types have no cursor sort control. The default
+`pagination="offset"` retains exact totals and page numbers.
 
 Cursor links are signed, expire with the configured session age and are bound to the
-collection, identity, filters, search, ordering and page size. Changing a filter/search
+collection, identity, filters, search, ordering and page size. Changing a filter, search or sort
 starts a new traversal. They do not freeze database contents; concurrent inserts/deletes
 can change the visible pages. Exports still include all matching records within export
 limits, regardless of the current cursor.
 
 Custom adapters can implement `WindowAdapter.list_window(model, query, after=...,
 before=...)` from `quite_admin.pagination`. It returns `RecordWindow(records, has_next,
-has_previous, next_key, previous_key)`, with typed complete source keys. Use only one
-boundary, a zero query offset and primary-key ordering. A projected window must include
-all primary-key fields. This method is separate from the required Adapter API.
+has_previous, next_key, previous_key)`, with typed complete source keys. Use one boundary
+and a zero query offset. Set the optional `supports_window_sorting = True` capability
+when the implementation accepts `query.order_by`: boundaries and projections must include
+the sort field as well as every primary-key field. Preserve ascending primary-key ties
+and NULL-last ordering. Existing custom adapters without this capability retain
+primary-key sorting. This method is separate from the required Adapter API.
 
 SQL reflection and SQLAlchemy/SQLModel also accept `query_timeout=2.0` in the adapter
 constructor. The positive number of seconds limits reads on SQLite, PostgreSQL and MySQL;

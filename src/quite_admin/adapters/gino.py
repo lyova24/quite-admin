@@ -36,6 +36,7 @@ class GinoAdapter(CheckedWrites, GinoRelations):
     """
 
     supports_related_filters = True
+    supports_window_sorting = True
     supports_key_search = True
     supported_filter_operators = FILTER_OPERATORS
 

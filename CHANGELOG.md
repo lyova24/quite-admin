@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.3 — 2026-11-05
+
+- Enable scalar column sorting, including dates, in built-in cursor pagination.
+  Carry the sort value and complete primary key through signed cursors, keep
+  deterministic ties and NULL-last ordering, and reset traversal on sort changes.
+  Preserve count-free reads and the primary-key contract of existing custom adapters.
+
 ## 0.7.2 — 2026-11-05
 
 - Render foreign-key list cells as permission-aware links to related records,

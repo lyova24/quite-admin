@@ -38,9 +38,16 @@ class ListingViews:
         order = request.query_params.get("sort")
         if order is not None and order not in visible:
             raise HTTPException(400, "Invalid sort field.")
-        if cursor_mode and (page != 1 or order not in {None, resource.schema.primary_keys[0].name}):
+        cursor_sortable = {resource.schema.primary_keys[0].name}
+        if getattr(resource.adapter, "supports_window_sorting", False):
+            cursor_sortable = {
+                item.name
+                for item in fields
+                if item.kind not in {"json", "binary", "unsupported", "password"}
+            }
+        if cursor_mode and (page != 1 or order is not None and order not in cursor_sortable):
             raise HTTPException(
-                400, "Cursor pagination requires primary-key ordering and no page number."
+                400, "Cursor pagination requires a supported sort field and no page number."
             )
         search = request.query_params.get("q", "")[:500]
         search_fields = resource.options.search_fields
@@ -105,7 +112,9 @@ class ListingViews:
             descending=request.query_params.get("direction") == "desc",
             filters=filters,
             related=tuple(related),
-            columns=resource._projection(item.name for item in columns),
+            columns=resource._projection(
+                [item.name for item in columns] + ([order] if cursor_mode and order else [])
+            ),
         )
         if "export" in request.query_params:
             if filter_errors:
@@ -200,7 +209,7 @@ class ListingViews:
             columns=columns,
             result=result,
             cursor_mode=cursor_mode,
-            cursor_sortable={resource.schema.primary_keys[0].name},
+            cursor_sortable=cursor_sortable,
             cursor_next_url=query_url(
                 after=self._window_token(request, resource, window.next_key), before=None, page=None
             )
@@ -230,12 +239,20 @@ class ListingViews:
         )
 
     def _window_token(self, request, resource, key):
+        order = request.query_params.get("sort")
         return self._cursor_signer.dumps(
             {
                 "collection": resource.slug,
                 "subject": request.state.identity.subject,
                 "shape": self._window_shape(request),
                 "key": resource.schema.record_key(dict(key)),
+                "sort": {
+                    order: None
+                    if key[order] is None
+                    else resource.schema.by_name[order].format(key[order])
+                }
+                if order and order not in {item.name for item in resource.schema.primary_keys}
+                else {},
             }
         )
 
@@ -258,7 +275,17 @@ class ListingViews:
                     or data["shape"] != self._window_shape(request)
                 ):
                     raise ValueError
-                result.append(resource.schema.parse_key(data["key"]))
+                boundary = resource.schema.parse_key(data["key"])
+                order = request.query_params.get("sort")
+                if order and order not in boundary:
+                    field = resource.schema.by_name[order]
+                    value = data["sort"][order]
+                    boundary[order] = (
+                        value
+                        if value is None or (value == "" and field.kind == "string")
+                        else field.parse(value)
+                    )
+                result.append(boundary)
             except (BadData, KeyError, TypeError, ValueError, NotFound) as exc:
                 raise HTTPException(400, "Invalid pagination cursor.") from exc
         if all(boundary is not None for boundary in result):

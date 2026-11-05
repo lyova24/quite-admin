@@ -1,7 +1,6 @@
 # Releases and compatibility policy
 
-The current release is **0.7.0**, finalized on **2026-11-04**. Release history and
-migration instructions live in the repository [CHANGELOG](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md). A version update alone does not create a tag or release.
+Release history and migration instructions live in the repository [CHANGELOG](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md). A version update alone does not create a tag or release.
 
 ## Version rules
 
@@ -66,7 +65,7 @@ The PyPI workflow is top-level rather than reusable, so the publisher always mat
 `pypi.yml`. It accepts only successful release runs from this repository and verifies
 the tag still points to the validated source commit and the GitHub release is published.
 For a retry, run **publish to PyPI** manually from `master`, entering the existing tag,
-for example `v0.7.0`. Manual runs also require a successful full `ci.yml` run for the
+`v<project.version>`. Manual runs also require a successful full `ci.yml` run for the
 same source commit. Existing package files are skipped on retry; PyPI versions cannot
 be overwritten. Never move a published tag to change an uploaded package.
 
@@ -75,8 +74,6 @@ be overwritten. Never move a published tag to change an uploaded package.
 ```bash
 pip install 'quite-admin[sqlalchemy,fastapi]'
 uv add 'quite-admin[sqlalchemy,litestar]'
-# Reproduce a particular release:
-pip install 'quite-admin[sqlalchemy,fastapi]==0.7.0'
 ```
 
 The core also installs as `pip install quite-admin` without ORM dependencies.

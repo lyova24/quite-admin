@@ -157,6 +157,20 @@ for mount, theme in (
     )
     admin.mount_fastapi(app, mount)
 
+cursor_admin = Admin(
+    auth=PasswordAuth.single_user("admin", "browser-test-password"),
+    secret_key="browser-cursor-fixture-" * 3,
+    secure_cookies=False,
+    session_cookie="cursor_session",
+    storage=f"{_storage.name}/cursor-state.sqlite3",
+    adapters=[SQLAdapter(engine, include_tables=("entries", "customers"))],
+)
+cursor_admin.configure(
+    "entries",
+    options=ModelOptions(pagination="cursor", list_fields=("name", "moment", "count")),
+)
+cursor_admin.mount_fastapi(app, "/cursor")
+
 values_admin = Admin(
     auth=PasswordAuth.single_user("admin", "browser-test-password"),
     secret_key="browser-values-fixture-" * 3,

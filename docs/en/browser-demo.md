@@ -13,7 +13,7 @@ Follow the [interface tour](interface-tour.md) for screenshots and a complete wa
 | Schedules | DATE, DATETIME with microseconds, nullable TIME, three-state boolean, multiline TEXT and highlighted JSON |
 | Activity history | Sample events for two fictional users plus your own local actions, before/after comparisons, Journal/Table, common filters and a UTC day/range picker |
 | List filters | Text fragments, repeated conditions, numeric/date ranges, sets, SQL NULL, empty text and related records; edit active chips |
-| Orders | Cursor-style Next/Previous navigation and primary-key ordering, without an exact-total badge |
+| Orders | Cursor-style Next/Previous navigation and column sorting, without an exact-total badge |
 | Export data | Select scalar columns and download CSV for all matching records, including other pages |
 | Customers / Customer Profiles / Orders | Searchable 1:1 and 1:N relationship editors with atomic local saves |
 | Products / Tags | Searchable M:N editors; concurrent form changes produce a stale-edit conflict |

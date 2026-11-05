@@ -164,3 +164,21 @@ test('foreign-key labels link to the related record above the row target', async
   await expect(page).toHaveURL(/\/admin\/models\/customers\/[^/]+$/);
   await expect(page.locator('input[name=caption]')).toHaveValue('Alex Johnson');
 });
+
+
+test('cursor column headers sort timestamps, traverse pages and reset boundaries', async ({page})=>{
+  await login(page,'/cursor');
+  await page.goto('/cursor/models/entries/?limit=1');
+  const header=page.getByRole('columnheader').filter({hasText:'Moment'});
+  await header.getByRole('link').click();
+  await expect(header).toHaveAttribute('aria-sort','ascending');
+  await header.getByRole('link').click();
+  await expect(header).toHaveAttribute('aria-sort','descending');
+  await expect(page.locator('td[data-list-field=name] [data-cell-value]')).toHaveText('Other Person');
+  await page.getByRole('link',{name:'Next →',exact:true}).click();
+  await expect(page).toHaveURL(/after=/);
+  await expect(page.locator('td[data-list-field=name] [data-cell-value]')).toHaveText('Alex Smith');
+  await page.getByRole('columnheader').filter({hasText:'Count'}).getByRole('link').click();
+  expect(new URL(page.url()).searchParams.has('after')).toBe(false);
+  await expect(page.getByRole('columnheader').filter({hasText:'Count'})).toHaveAttribute('aria-sort','ascending');
+});

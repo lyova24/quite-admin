@@ -58,3 +58,16 @@ test('history renders both languages/views, escapes values, and retains filters 
     assert.ok(html.includes(view==='table'?'class="history-table"':'class="activity-journal"'));
   }
 });
+
+
+test('cursor collections sort non-key columns before paginating',()=>{
+  const store=new Store(seed);
+  const query=new URLSearchParams({sort:'total',direction:'desc'});
+  const rows=matchingRows(store,'orders',query);
+  const values=rows.map(row=>Number(row.values.total));
+  assert.deepEqual(values,[...values].sort((a,b)=>b-a));
+  const first=listWindow(rows,query,true);
+  query.set('after',first.rows.at(-1).key);
+  const second=listWindow(rows,query,true);
+  assert.deepEqual([...first.rows,...second.rows],rows);
+});

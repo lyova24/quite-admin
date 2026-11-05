@@ -87,7 +87,10 @@ def paginate(statement, query, schema, column, *, after=None, before=None, windo
         expressions = window_ordering(schema, query, before is not None, column)
     else:
         expressions = ordering(query, schema, column)
-    return statement.order_by(*expressions).offset(query.offset).limit(query.limit + int(window))
+    statement = statement.order_by(*expressions)
+    if not window:
+        statement = statement.offset(query.offset)
+    return statement.limit(query.limit + int(window))
 
 
 def tortoise_filters(statement, query):

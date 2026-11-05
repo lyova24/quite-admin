@@ -138,7 +138,7 @@ function listing(slug, query) {
   ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
   <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
     const field = c.fields.find((field) => field.name === name), active = sort.name === name;
-    return `<th scope="col" class="${["integer", "number"].includes(field.kind) ? "numeric" : ""}" ${active ? `aria-sort="${descending ? "descending" : "ascending"}"` : ""}>${cursor&&!field.primaryKey?"":`<a href="${e(queryUrl({ sort: name, direction: active && !descending ? "desc" : "asc", page: 1,after:null,before:null }))}">`}${e(field.label)}${cursor&&!field.primaryKey?"":`<span class="sort-icon" aria-hidden="true">${active ? descending ? "↓" : "↑" : "↕"}</span></a>`}</th>`;
+    return `<th scope="col" class="${["integer", "number"].includes(field.kind) ? "numeric" : ""}" ${active ? `aria-sort="${descending ? "descending" : "ascending"}"` : ""}><a href="${e(queryUrl({ sort: name, direction: active && !descending ? "desc" : "asc", page: 1,after:null,before:null }))}">${e(field.label)}<span class="sort-icon" aria-hidden="true">${active ? descending ? "↓" : "↑" : "↕"}</span></a></th>`;
   }).join("")}<th scope="col" class="delete-col"><span class="sr-only">${e(t("Delete"))}</span></th></tr></thead><tbody>${rows.map((row) => `<tr class="record-row record-row-clickable">${c.columns.map((name, index) => {
     const field = c.fields.find((field) => field.name === name), value = row.values[name];
     const content = listCell({slug,row,field,editable:c.inline.includes(name),t,e});

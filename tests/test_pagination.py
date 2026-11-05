@@ -45,7 +45,11 @@ async def test_keyset_pages_match_filtered_order_and_support_previous_pages(back
         previous = await adapter.list_window(model, query, before=pages[index].previous_key)
         assert previous.records == pages[index - 1].records
         assert previous.has_previous == (index > 1)
-    for invalid in (Query(offset=1), Query(order_by="name"), Query(columns=("name",))):
+    for invalid in (
+        Query(offset=1),
+        Query(order_by="name", columns=("id",)),
+        Query(columns=("name",)),
+    ):
         with pytest.raises(ValueError):
             await adapter.list_window(model, invalid)
     with pytest.raises(ValueError):
@@ -84,7 +88,7 @@ async def test_cursor_navigation_is_signed_filter_bound_and_permission_checked(
         assert (await client.get(next_url.replace("Visible", "Hidden"))).status_code == 400
         assert (
             await client.get("/admin/models/items/", params={"sort": "name"})
-        ).status_code == 400
+        ).status_code == 200
         assert (await client.get("/admin/models/items/", params={"page": "2"})).status_code == 400
         admin.auth = PasswordAuth({**auth.users, "another": auth.users["admin"]})
         login_form = await client.get("/admin/login")
@@ -177,3 +181,176 @@ async def test_composite_keyset_order_is_stable_in_both_directions(
             assert page.records == expected_page.records
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("order", ["count", "note"])
+@pytest.mark.parametrize("descending", [False, True])
+async def test_sorted_keysets_cover_ties_nulls_empty_values_and_backwards(
+    backend, order, descending
+):
+    from functools import cmp_to_key
+
+    adapter, model = backend
+    records = [
+        await adapter.create(model, {"name": str(index), "count": index % 3, "note": note})
+        for index, note in enumerate(["z", None, "a", "", None, "z", "a"])
+    ]
+
+    def compare(left, right):
+        a, b = left[order], right[order]
+        if (a is None) != (b is None):
+            return 1 if a is None else -1
+        result = 0 if a is None else (a > b) - (a < b)
+        return (-result if descending else result) or (left["id"] > right["id"]) - (
+            left["id"] < right["id"]
+        )
+
+    expected = [
+        {"id": row["id"], order: row[order]} for row in sorted(records, key=cmp_to_key(compare))
+    ]
+    query = Query(limit=2, order_by=order, descending=descending, columns=("id", order))
+    pages = [await adapter.list_window(model, query)]
+    while pages[-1].has_next:
+        assert len(pages) < 10
+        pages.append(await adapter.list_window(model, query, after=pages[-1].next_key))
+    assert [row for page in pages for row in page.records] == expected
+    for index in range(len(pages) - 1, 0, -1):
+        previous = await adapter.list_window(model, query, before=pages[index].previous_key)
+        assert previous.records == pages[index - 1].records
+    with pytest.raises(ValueError):
+        await adapter.list_window(model, query, after={"id": records[0]["id"]})
+
+
+@pytest.mark.parametrize("descending", [False, True])
+async def test_sorted_cursor_http_keeps_empty_and_null_boundaries_and_resets_on_sort(
+    web_admin, web_backend, descending
+):
+    adapter, model = web_backend
+    for index, note in enumerate(["", "a", None, "a", "z"]):
+        await adapter.create(model, {"name": f"Cursor {index}", "note": note})
+    web_admin.configure("items", options=ModelOptions(pagination="cursor", list_fields=("name",)))
+    app = FastAPI()
+    web_admin.mount_fastapi(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await login(client)
+        url = "/admin/models/items/?sort=note&limit=1&direction=" + (
+            "desc" if descending else "asc"
+        )
+        names = []
+        for _ in range(6):
+            page = await client.get(url)
+            assert page.status_code == 200
+            names.append(re.search(r'data-cell-value[^>]*title="[^"]*">(Cursor \d+)', page.text)[1])
+            reset = re.search(r'<th[^>]*><a href="([^"]*sort=name[^"]*)"', page.text)
+            assert reset and "after=" not in reset[1] and "before=" not in reset[1]
+            next_link = re.search(r'href="([^"]+)">Next', page.text)
+            if not next_link:
+                break
+            url = html.unescape(next_link[1])
+        assert names == (
+            ["Cursor 4", "Cursor 1", "Cursor 3", "Cursor 0", "Cursor 2"]
+            if descending
+            else ["Cursor 0", "Cursor 1", "Cursor 3", "Cursor 4", "Cursor 2"]
+        )
+        assert (await client.get(url.replace("sort=note", "sort=name"))).status_code == 400
+
+
+@pytest.mark.parametrize("descending", [False, True])
+async def test_timestamp_sort_with_uuid_identity_and_http_cursor_round_trip(
+    tmp_path, auth, descending
+):
+    from datetime import datetime, timedelta
+    from uuid import UUID
+
+    from sqlalchemy import DateTime, Uuid
+    from sqlalchemy.orm import DeclarativeBase, mapped_column, sessionmaker
+
+    from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
+
+    class Base(DeclarativeBase):
+        pass
+
+    class Link(Base):
+        __tablename__ = "links"
+        id = mapped_column(Uuid(as_uuid=True), primary_key=True)
+        name = mapped_column(String)
+        created_at = mapped_column(DateTime, nullable=False)
+
+    engine = create_engine(f"sqlite:///{tmp_path}/dated-links.db")
+    Base.metadata.create_all(engine)
+    adapter = SQLAlchemyAdapter(sessionmaker(engine), base=Base)
+    moments = [2, 0, 1, 1, 2]
+    for index, day in enumerate(moments):
+        await adapter.create(
+            Link,
+            {
+                "id": UUID(int=index + 1),
+                "name": f"Link {index}",
+                "created_at": datetime(2026, 11, 1) + timedelta(days=day),
+            },
+        )
+    statements = []
+
+    def capture(connection, cursor, statement, parameters, context, executemany):
+        if "FROM links" in statement:
+            statements.append(statement)
+
+    admin = Admin(auth=auth, secret_key="s" * 32, adapters=[adapter], secure_cookies=False)
+    admin.register(
+        Link, options=ModelOptions(pagination="cursor", list_fields=("name", "created_at"))
+    )
+    app = FastAPI()
+    admin.mount_fastapi(app)
+    try:
+        event.listen(engine, "before_cursor_execute", capture)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await login(client)
+            url = "/admin/models/links/?sort=created_at&limit=2&direction=" + (
+                "desc" if descending else "asc"
+            )
+            pages = []
+            for _ in range(4):
+                page = await client.get(url)
+                assert page.status_code == 200
+                pages.append(re.findall(r'data-cell-value[^>]*title="[^"]*">(Link \d+)', page.text))
+                next_link = re.search(r'href="([^"]+)">Next', page.text)
+                if next_link is None:
+                    break
+                url = html.unescape(next_link[1])
+            assert [name for names in pages for name in names] == (
+                ["Link 0", "Link 4", "Link 2", "Link 3", "Link 1"]
+                if descending
+                else ["Link 1", "Link 2", "Link 3", "Link 0", "Link 4"]
+            )
+            previous = re.search(r'href="([^"]+)">← Previous', page.text)
+            back = await client.get(html.unescape(previous[1]))
+            assert (
+                re.findall(r'data-cell-value[^>]*title="[^"]*">(Link \d+)', back.text) == pages[-2]
+            )
+        assert len(statements) == 4  # One source query per page, including Previous.
+        assert all("count(" not in statement.lower() for statement in statements)
+    finally:
+        event.remove(engine, "before_cursor_execute", capture)
+        engine.dispose()
+
+
+async def test_existing_custom_window_adapters_keep_primary_key_contract(web_backend, auth):
+    from quite_admin import DelegatingAdapter
+
+    native, model = web_backend
+    await native.create(model, {"name": "Legacy window"})
+
+    class PrimaryKeyWindows(DelegatingAdapter):
+        supports_window_sorting = False
+
+    adapter = PrimaryKeyWindows(native)
+    admin = Admin(auth=auth, secret_key="s" * 32, adapters=[adapter], secure_cookies=False)
+    admin.configure("items", options=ModelOptions(pagination="cursor"))
+    app = FastAPI()
+    admin.mount_fastapi(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await login(client)
+        page = await client.get("/admin/models/items/")
+        assert page.status_code == 200
+        assert "sort=id" in page.text and "sort=name" not in page.text
+        assert (await client.get("/admin/models/items/?sort=name")).status_code == 400

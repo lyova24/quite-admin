@@ -5,14 +5,14 @@ from typing import Any
 
 from tortoise import Tortoise
 from tortoise.exceptions import IntegrityError, ValidationError
-from tortoise.expressions import Q
+from tortoise.expressions import Case, Q, When
 from tortoise.fields import JSONField, TextField
 from tortoise.transactions import in_transaction
 
 from quite_admin.concurrency import CheckedWrites, check_record
 from quite_admin.errors import Conflict, NotFound
 from quite_admin.errors import ValidationError as AdminValidationError
-from quite_admin.pagination import WindowReads, finish_window, validate_window
+from quite_admin.pagination import WindowReads, finish_window, validate_window, window_fields
 from quite_admin.schema import FILTER_OPERATORS, Field, ModelSchema, Query, RecordPage
 
 from ._queries import tortoise_filters, validate_query
@@ -108,17 +108,53 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations, WindowReads):
         pk = model._meta.pk_attr
         order = query.order_by or pk
         reverse = window and before is not None
+        ordering = []
         if window:
+            fields = window_fields(schema, query)
             boundary = after if after is not None else before
             if boundary is not None:
-                suffix = "__lt" if query.descending != reverse else "__gt"
-                statement = statement.filter(**{pk + suffix: boundary[pk]})
-        ordering = [("-" if query.descending != reverse else "") + order]
-        if order != pk:
-            ordering.append(pk)
-        statement = (
-            statement.order_by(*ordering).offset(query.offset).limit(query.limit + int(window))
-        )
+                condition = prefix = None
+                for index, field in enumerate(fields):
+                    value = boundary[field.name]
+                    descending = (query.descending if index == 0 else False) != reverse
+                    part = (
+                        Q(**{field.name + "__isnull": False}) if value is None and reverse else None
+                    )
+                    if value is not None:
+                        suffix = "__lt" if descending else "__gt"
+                        part = Q(**{field.name + suffix: value})
+                        if field.nullable and not reverse:
+                            part |= Q(**{field.name + "__isnull": True})
+                    if part is not None:
+                        part = prefix & part if prefix is not None else part
+                        condition = part if condition is None else condition | part
+                    equal = (
+                        Q(**{field.name + "__isnull": True})
+                        if value is None
+                        else Q(**{field.name: value})
+                    )
+                    prefix = equal if prefix is None else prefix & equal
+                statement = statement.filter(condition)
+            for index, field in enumerate(fields):
+                descending = (query.descending if index == 0 else False) != reverse
+                if field.nullable:
+                    annotation = "qa_window_null_" + str(index)
+                    statement = statement.annotate(
+                        **{
+                            annotation: Case(
+                                When(**{field.name + "__isnull": True}, then=1), default=0
+                            )
+                        }
+                    )
+                    ordering.append(("-" if reverse else "") + annotation)
+                ordering.append(("-" if descending else "") + field.name)
+        else:
+            ordering = [("-" if query.descending else "") + order]
+            if order != pk:
+                ordering.append(pk)
+        statement = statement.order_by(*ordering).limit(query.limit + int(window))
+        if not window:
+            statement = statement.offset(query.offset)
         if query.columns:
             records = await statement.values(*query.columns)
         else:

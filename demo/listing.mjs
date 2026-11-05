@@ -20,10 +20,11 @@ export function csv(collection, rows, columns) {
 }
 export function matchingRows(store, slug, query) {
   const c = store.collection(slug), search = (query.get('q') || '').toLowerCase();
-  const sort = c.fields.find(field=>field.name===query.get('sort') && (c.pagination!=='cursor'||field.primaryKey)) || c.fields[0];
+  const sort = c.fields.find(field=>field.name===query.get('sort')) || c.fields[0];
   const direction = query.get('direction')==='desc' ? -1 : 1;
   return store.filter(slug, query).filter(row=>c.fields.some(field=>field.kind==='string'&&String(row.values[field.name]??'').toLowerCase().includes(search))).sort((a,b)=>{
     const av=a.values[sort.name],bv=b.values[sort.name];
+    if((av==null)!==(bv==null))return av==null?1:-1;
     return direction * (['integer','number'].includes(sort.kind)?Number(av)-Number(bv):String(av??'').localeCompare(String(bv??''))) || Number(a.values.id)-Number(b.values.id);
   });
 }

@@ -34,6 +34,12 @@ class DelegatingAdapter:
         return await self.delegate.list_window(model, query, after=after, before=before)
 
     @property
+    def supports_window_sorting(self):
+        return getattr(self.list, "__func__", None) is DelegatingAdapter.list and getattr(
+            self.delegate, "supports_window_sorting", False
+        )
+
+    @property
     def supported_filter_operators(self):
         return getattr(self.delegate, "supported_filter_operators", LEGACY_FILTER_OPERATORS)
 
