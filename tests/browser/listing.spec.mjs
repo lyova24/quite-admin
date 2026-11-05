@@ -155,3 +155,12 @@ test('search and filtering still work without JavaScript', async ({browser})=>{
   await page.locator('[name="f.name.icontains"]').fill('Alex');await page.getByRole('button',{name:'Apply filters',exact:true}).click();
   await count(page,3);await context.close();
 });
+
+
+test('foreign-key labels link to the related record above the row target', async ({page})=>{
+  const link=page.locator('td[data-list-field=customer_id] .relation-value').first();
+  await expect(link).toHaveText('Alex Johnson');
+  await link.click();
+  await expect(page).toHaveURL(/\/admin\/models\/customers\/[^/]+$/);
+  await expect(page.locator('input[name=caption]')).toHaveValue('Alex Johnson');
+});

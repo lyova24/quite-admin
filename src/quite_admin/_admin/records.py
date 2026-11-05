@@ -95,6 +95,9 @@ class RecordViews:
                 )
         visible = resource.options.visible_fields(resource.schema)
         listed = resource.options.list_fields or tuple(item.name for item in visible[:6])
+        related = await self._foreign_key_cells(
+            request, resource, [item for item in visible if item.name in listed], [record]
+        )
         return JSONResponse(
             {
                 "name": name,
@@ -119,6 +122,15 @@ class RecordViews:
                         "null": record.get(item.name) is None,
                         "kind": item.kind,
                         "boolean": record.get(item.name) is True,
+                        **(
+                            {
+                                "related": related.get(resource.schema.record_key(record), {}).get(
+                                    item.name
+                                )
+                            }
+                            if item.foreign_key
+                            else {}
+                        ),
                         **(
                             {"display": display_value(resource, item, record.get(item.name))}
                             if display_kind(resource.options.fields.get(item.name, FieldOptions()))

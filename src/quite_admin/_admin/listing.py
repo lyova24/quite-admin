@@ -162,6 +162,9 @@ class ListingViews:
             "quite_admin/list.html",
             listing_page=True,
             inline_fields=inline_fields,
+            foreign_key_cells=await self._foreign_key_cells(
+                request, resource, columns, result.records
+            ),
             bulk_actions=bulk_actions,
             inline_endpoint=lambda record, name: self._url(
                 request,

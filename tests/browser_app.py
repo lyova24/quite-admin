@@ -143,9 +143,12 @@ for mount, theme in (
         options=ModelOptions(
             group="Data",
             filter_fields=("name", "active", "status", "count", "note", "day", "moment", "clock"),
-            list_fields=("id", "name", "status", "active", "count", "day"),
+            list_fields=("id", "name", "status", "active", "count", "day", "customer_id"),
             list_editable=("note", "active", "day"),
-            fields={"name": FieldOptions(label="Name")},
+            fields={
+                "name": FieldOptions(label="Name"),
+                "customer_id": FieldOptions(relation_label="caption"),
+            },
             actions=(RecordAction("reset", "Reset counters", reset_counter, bulk=True),),
         ),
     )

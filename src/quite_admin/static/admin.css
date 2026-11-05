@@ -761,3 +761,5 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .value-details[open] .value-pre { padding-top:.5rem; }
 .field-display .value-copy { flex:none; padding:.15rem .4rem; }
 .field-url-preview { margin-top:.5rem; }
+
+.relation-value { position: relative; z-index: 2; }

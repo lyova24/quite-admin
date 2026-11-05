@@ -23,6 +23,12 @@
   function updateRow(row,result){
       for(const td of row.querySelectorAll('[data-list-field]')){
         const cell=result.cells[td.dataset.listField]; if(!cell)continue;
+        const foreign=td.querySelector('[data-fk-value]');
+        if(foreign){
+          if(cell.related){const link=document.createElement('a');link.className='relation-value';link.href=cell.related.href;link.title=cell.related.text;link.textContent=cell.related.text.length>90?cell.related.text.slice(0,87)+'…':cell.related.text;foreign.replaceChildren(link);}
+          else foreign.textContent=cell.text;
+          continue;
+        }
         if(cell.display){window.quiteAdminUpdateValue?.(td.querySelector('[data-field-display]'),cell.display);continue;}
         const group=td.querySelector('[data-list-toggle-control]');
         if(group){

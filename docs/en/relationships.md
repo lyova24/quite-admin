@@ -35,6 +35,28 @@ Required foreign keys and delete-orphan relationships cannot be detached by the 
 it never deletes target records. Move a required child by choosing another parent on its own form.
 Invalid keys, unavailable targets and failed constraints reject the entire save.
 
+
+## Foreign keys in lists
+
+A foreign key to a registered collection appears as a link to that record, showing the
+stored ID by default. Choose a visible target field with `relation_label`:
+
+```python
+admin.register(Link, options=ModelOptions(fields={
+    "user_id": FieldOptions(relation_label="username"),
+    "organization_id": FieldOptions(relation_label="name"),
+}))
+```
+
+Import `FieldOptions` from `quite_admin`. This works with native adapters, including
+GINO, without a formatter or adapter subclass and even with `relations=()`.
+The target must allow listing and viewing or editing. Hidden label fields fall back
+to the ID; inaccessible, missing or unregistered targets remain plain values. NULL
+remains empty. Related labels are fetched in one bounded adapter list per FK column,
+not per row, using the admin's read deadlines. This display never replaces stored
+values: editing, filtering, scalar exports and history continue to use raw IDs.
+
+
 ## Search and selection
 
 Use **Choose records** to open a picker. Search uses the target collection's visible

@@ -26,6 +26,7 @@ from starlette.types import Receive, Scope, Send
 
 from ._admin.bulk import BulkViews
 from ._admin.exporting import ExportViews
+from ._admin.foreign_keys import ForeignKeyViews
 from ._admin.history import HistoryViews
 from ._admin.listing import ListingViews
 from ._admin.records import RecordViews
@@ -125,7 +126,14 @@ class Source:
 
 
 class Admin(
-    BulkViews, HistoryViews, ListingViews, RecordViews, RelationViews, Rendering, ExportViews
+    BulkViews,
+    HistoryViews,
+    ListingViews,
+    RecordViews,
+    RelationViews,
+    ForeignKeyViews,
+    Rendering,
+    ExportViews,
 ):
     """Standalone ASGI admin. Business engines remain application-owned."""
 

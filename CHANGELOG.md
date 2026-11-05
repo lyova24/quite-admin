@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2 — 2026-11-05
+
+- Render foreign-key list cells as permission-aware links to related records,
+  using raw IDs by default or a visible target field from `FieldOptions(relation_label=...)`.
+  Fetch labels in bounded batches without mutating stored, exported or history values.
+
 ## 0.7.1 — 2026-11-05
 
 - Open inline field editors only from the pencil button. Keep cell values on the

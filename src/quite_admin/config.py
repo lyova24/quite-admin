@@ -99,6 +99,7 @@ class FieldOptions:
     template: str | None = None
     display: Literal["text", "url", "json", "multiline"] | None = None
     url_template: str | None = None
+    relation_label: str | None = None
 
 
 _DEFAULT_FIELD_OPTIONS = FieldOptions()
@@ -171,6 +172,14 @@ class ModelOptions:
         if self.group is not None and (not isinstance(self.group, str) or not self.group.strip()):
             raise ValueError("group must be a nonempty label or None.")
         fields = schema.by_name
+        for name, options in self.fields.items():
+            if options.relation_label is not None and (
+                not isinstance(options.relation_label, str)
+                or not options.relation_label.strip()
+                or name not in fields
+                or not fields[name].foreign_key
+            ):
+                raise ValueError("relation_label requires a foreign-key field and a field name.")
         names = set(fields)
         inputs = {item.name: item for item in self.input_fields}
         if len(inputs) != len(self.input_fields) or inputs.keys() & names:
