@@ -185,6 +185,9 @@ async def test_relationship_reads_and_batches_share_the_read_deadline(related_ba
         )
         assert exported.status_code == 504
         adapter.related_batch = native_batch
+        # Recovery verifies slot release, so allow real reads time under CI load
+        # while retaining the same semaphore and an active deadline.
+        admin._read_limits.timeout = 2
         assert (await client.get(path)).status_code == 200
 
 
