@@ -5,7 +5,7 @@ from typing import Any
 
 from tortoise import Tortoise
 from tortoise.exceptions import IntegrityError, ValidationError
-from tortoise.expressions import Case, Q, When
+from tortoise.expressions import Case, Q, RawSQL, When
 from tortoise.fields import JSONField, TextField
 from tortoise.transactions import in_transaction
 
@@ -139,10 +139,13 @@ class TortoiseAdapter(CheckedWrites, TortoiseRelations, WindowReads):
                 descending = (query.descending if index == 0 else False) != reverse
                 if field.nullable:
                     annotation = "qa_window_null_" + str(index)
+                    # PostgreSQL infers untyped CASE parameters as text. Fixed numeric
+                    # literals keep this rank numeric without binding integer values.
                     statement = statement.annotate(
                         **{
                             annotation: Case(
-                                When(**{field.name + "__isnull": True}, then=1), default=0
+                                When(**{field.name + "__isnull": True}, then=RawSQL("1")),
+                                default=RawSQL("0"),
                             )
                         }
                     )

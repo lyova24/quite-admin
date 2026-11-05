@@ -5,6 +5,8 @@
 - Apply `relation_label` to existing form relationship pickers, including selected
   records and labels restored after validation errors. Search the configured visible
   label alongside the target search fields and exact ID without extra search settings.
+- Correct PostgreSQL/Tortoise NULL ordering in cursor pages and isolate browser
+  pagination checks from records created by other tests.
 
 ## 0.7.3 — 2026-11-05
 

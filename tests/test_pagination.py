@@ -185,8 +185,9 @@ async def test_composite_keyset_order_is_stable_in_both_directions(
 
 @pytest.mark.parametrize("order", ["count", "note"])
 @pytest.mark.parametrize("descending", [False, True])
+@pytest.mark.parametrize("projection", [False, True])
 async def test_sorted_keysets_cover_ties_nulls_empty_values_and_backwards(
-    backend, order, descending
+    backend, order, descending, projection
 ):
     from functools import cmp_to_key
 
@@ -205,10 +206,15 @@ async def test_sorted_keysets_cover_ties_nulls_empty_values_and_backwards(
             left["id"] < right["id"]
         )
 
-    expected = [
-        {"id": row["id"], order: row[order]} for row in sorted(records, key=cmp_to_key(compare))
-    ]
-    query = Query(limit=2, order_by=order, descending=descending, columns=("id", order))
+    expected = sorted(records, key=cmp_to_key(compare))
+    if projection:
+        expected = [{"id": row["id"], order: row[order]} for row in expected]
+    query = Query(
+        limit=2,
+        order_by=order,
+        descending=descending,
+        columns=("id", order) if projection else None,
+    )
     pages = [await adapter.list_window(model, query)]
     while pages[-1].has_next:
         assert len(pages) < 10

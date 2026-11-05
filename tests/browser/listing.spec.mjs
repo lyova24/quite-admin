@@ -168,19 +168,55 @@ test('foreign-key labels link to the related record above the row target', async
 
 test('cursor column headers sort timestamps, traverse pages and reset boundaries', async ({page})=>{
   await login(page,'/cursor');
-  await page.goto('/cursor/models/entries/?limit=1');
+  const prefix='cursor-'+crypto.randomUUID();
+  const records=[
+    {suffix:'earliest',moment:'2031-04-10T08:00:00',count:'40'},
+    {suffix:'latest',moment:'2031-04-12T08:00:00',count:'30'},
+    {suffix:'tie-first',moment:'2031-04-11T08:00:00',count:'20'},
+    {suffix:'tie-second',moment:'2031-04-11T08:00:00',count:'10'},
+  ];
+  const create=await page.request.get('/cursor/models/entries/new');
+  const token=(await create.text()).match(/name="__csrf" value="([^"]+)"/)[1];
+  for(const {suffix,moment,count} of records) {
+    const saved=await page.request.post('/cursor/models/entries/new',{
+      form:{__csrf:token,name:prefix+'-'+suffix,moment,count,note:'cursor fixture'},
+    });
+    expect(saved.ok()).toBeTruthy();
+  }
+  await page.goto('/cursor/models/entries/?limit=1&q='+prefix);
+  const name=page.locator('td[data-list-field=name] [data-cell-value]');
   const header=page.getByRole('columnheader').filter({hasText:'Moment'});
   await header.getByRole('link').click();
   await expect(header).toHaveAttribute('aria-sort','ascending');
+  await expect(name).toHaveText(prefix+'-earliest');
   await header.getByRole('link').click();
   await expect(header).toHaveAttribute('aria-sort','descending');
-  await expect(page.locator('td[data-list-field=name] [data-cell-value]')).toHaveText('Other Person');
+  await expect(name).toHaveText(prefix+'-latest');
+  for(const suffix of ['tie-first','tie-second','earliest']) {
+    await page.getByRole('link',{name:'Next →',exact:true}).click();
+    await expect(page).toHaveURL(/after=/);
+    await expect(name).toHaveText(prefix+'-'+suffix);
+  }
+  await expect(page.getByRole('link',{name:'Next →',exact:true})).toHaveCount(0);
+  for(const suffix of ['tie-second','tie-first']) {
+    await page.getByRole('link',{name:'← Previous',exact:true}).click();
+    await expect(page).toHaveURL(/before=/);
+    await expect(name).toHaveText(prefix+'-'+suffix);
+  }
+  await page.getByRole('columnheader').filter({hasText:'Count'}).getByRole('link').click();
+  expect(new URL(page.url()).searchParams.has('before')).toBe(false);
+  expect(new URL(page.url()).searchParams.has('after')).toBe(false);
+  expect(new URL(page.url()).searchParams.get('q')).toBe(prefix);
+  await expect(page.getByRole('columnheader').filter({hasText:'Count'})).toHaveAttribute('aria-sort','ascending');
+  await expect(name).toHaveText(prefix+'-tie-second');
   await page.getByRole('link',{name:'Next →',exact:true}).click();
   await expect(page).toHaveURL(/after=/);
-  await expect(page.locator('td[data-list-field=name] [data-cell-value]')).toHaveText('Alex Smith');
-  await page.getByRole('columnheader').filter({hasText:'Count'}).getByRole('link').click();
+  await expect(name).toHaveText(prefix+'-tie-first');
+  await header.getByRole('link').click();
   expect(new URL(page.url()).searchParams.has('after')).toBe(false);
-  await expect(page.getByRole('columnheader').filter({hasText:'Count'})).toHaveAttribute('aria-sort','ascending');
+  expect(new URL(page.url()).searchParams.has('before')).toBe(false);
+  await expect(header).toHaveAttribute('aria-sort','ascending');
+  await expect(name).toHaveText(prefix+'-earliest');
 });
 
 
