@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.1 — 2026-11-05
+
+- Keep list text neutral when hovering a row; highlight only its background.
+  Apply the accent color to links to related records only while the link is hovered.
+
+- Scale typography, spacing, controls, icons and layout widths together with `rem`.
+  Keep the compact layout through 1600 CSS pixels at the default browser font size,
+  then increase smoothly to 150% at 2880 pixels. Preserve browser font preferences,
+  horizontal table scrolling, mobile layouts and the schema's independent SVG zoom.
+- Add `--ui-font-size`, `--sidebar-width`, `--content-max-width` and
+  `--form-max-width` CSS tokens for application overrides.
+- Keep inline-edit pencils to the right of cell values at every scale, including
+  truncated text and empty values.
+- Migration: the root now uses a 16px browser-default base instead of 12px; built-in
+  dimensions retain their previous size up to 1600px. Multiply existing custom `rem`
+  values by 0.75 to retain their size. Set `--ui-font-size: 100%` to disable automatic
+  growth, and use `rem` instead of `px` in custom sizing tokens to follow the UI scale.
+- Переход: корневая база теперь соответствует браузерным 16px вместо 12px; встроенные
+  размеры сохранены до ширины 1600px. Умножьте свои значения в `rem` на 0.75 для
+  прежнего размера. `--ui-font-size: 100%` отключает автоматический рост; размеры
+  в пользовательских токенах задавайте в `rem`, чтобы они росли вместе с интерфейсом.
+
 ## 0.7.4 — 2026-11-05
 
 - Apply `relation_label` to existing form relationship pickers, including selected

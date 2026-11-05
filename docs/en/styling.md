@@ -81,10 +81,10 @@ A custom page can simply extend the packaged base and add its own `head` block.
 ```css
 /* admin-style/custom.css */
 :root {
-  --table-row-height: 40px; /* default 36px */
-  --control-height: 36px;  /* default 31px */
-  --text-title: 26px;      /* default 23px */
-  --radius-control: 4px;   /* default 6px */
+  --table-row-height: 2.5rem;  /* default 2.25rem */
+  --control-height: 2.25rem;   /* default 1.9375rem */
+  --text-title: 1.625rem;      /* default 1.4375rem */
+  --radius-control: .25rem;   /* default .375rem */
 }
 
 /* Keep application-specific components in the same visual system. */
@@ -99,9 +99,9 @@ A custom page can simply extend the packaged base and add its own `head` block.
 
 | Tokens | Role |
 |---|---|
-| `--text-xs`, `--text-sm`, `--text-base`, `--text-section`, `--text-title` | 11 / 12 / 12 / 14 / 23 px typography |
-| `--space-1` … `--space-6`, `--space-8`, `--space-10` | 3 / 6 / 10 / 13 / 16 / 19 / 26 / 32 px spacing |
-| `--radius-sm`, `--radius-control`, `--radius` | 4 / 6 / 8 px corners |
+| `--text-xs`, `--text-sm`, `--text-base`, `--text-section`, `--text-title` | .6875 / .75 / .75 / .875 / 1.4375 rem typography |
+| `--space-1` … `--space-6`, `--space-8`, `--space-10` | .1875 / .375 / .625 / .8125 / 1 / 1.1875 / 1.625 / 2 rem spacing |
+| `--radius-sm`, `--radius-control`, `--radius` | .25 / .375 / .5 rem corners |
 | `--bg`, `--paper`, `--subtle`, `--hover` | Page, main surface, inset and hover surface |
 | `--text`, `--muted`, `--line`, `--border` | Text, secondary text and separators |
 | `--accent`, `--accent-soft`, `--accent-border`, `--on-accent` | Actions and selection |
@@ -133,11 +133,6 @@ After changing the theme, check a list with active filters, a long edit form, va
 and stale-edit errors, a read-only record, the database schema and a narrow viewport.
 Verify text contrast,
 keyboard focus and that the sticky form footer leaves the final fields reachable.
-
-The default density is compact. Typography, spacing, sidebar and controls use shared
-sizing tokens without CSS zoom; browser
-zoom remains available for accessibility. Touch controls retain a larger minimum target.
-Override the documented CSS tokens to tune density for your application.
 
 Date and datetime forms provide an in-page calendar using the admin palette, including
 month/year navigation. JSON tokens, controls, focus and selected states derive from Theme.

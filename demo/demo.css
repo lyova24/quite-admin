@@ -11,20 +11,20 @@
 }
 .demo-notice select {
   width: auto;
-  min-height: 30px;
+  min-height: 1.875rem;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
 }
 .demo-error { color: var(--danger); font-size: var(--text-sm); }
 .demo-error:empty { display: none; }
-.shell-login .content { min-height: calc(100vh - 54px); }
-.delete-panel { max-width: 620px; padding: var(--space-8); }
+.shell-login .content { min-height: calc(100vh - 3.375rem); }
+.delete-panel { max-width: 38.75rem; padding: var(--space-8); }
 .delete-panel > p { margin-bottom: var(--space-6); }
 .demo-tour { padding: var(--space-5); margin-bottom: var(--space-6); border: var(--border); border-radius: var(--radius); background: var(--paper); }
 .demo-tour h2 { margin-bottom: var(--space-4); }
 .demo-tour .button-group { flex-wrap: wrap; }
 .demo-notice { flex-shrink: 0; }
-@media (max-width: 600px) {
+@media (max-width: 37.5em) {
   .demo-notice { flex-wrap: wrap; padding: var(--space-2) var(--space-4); gap: var(--space-2); }
   .demo-notice > span { flex-basis: 100%; }
 }

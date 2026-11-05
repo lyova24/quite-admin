@@ -160,6 +160,23 @@ test('search and filtering still work without JavaScript', async ({browser})=>{
 test('foreign-key labels link to the related record above the row target', async ({page})=>{
   const link=page.locator('td[data-list-field=customer_id] .relation-value').first();
   await expect(link).toHaveText('Alex Johnson');
+  const row=link.locator('xpath=ancestor::tr');
+  const primary=row.locator('.cell-primary [data-cell-value]');
+  const colors=await page.evaluate(()=>{
+    const root=getComputedStyle(document.documentElement);
+    return {text:root.getPropertyValue('--text').trim(),accent:root.getPropertyValue('--accent').trim(),hover:root.getPropertyValue('--hover').trim()};
+  });
+  const rgb=hex=>`rgb(${hex.slice(1).match(/../g).map(value=>parseInt(value,16)).join(', ')})`;
+  await expect(link).toHaveCSS('color',rgb(colors.text));
+  await primary.hover({force:true});
+  await expect(row).toHaveCSS('background-color',rgb(colors.hover));
+  await expect(primary).toHaveCSS('color',rgb(colors.text));
+  await expect(link).toHaveCSS('color',rgb(colors.text));
+  await link.hover();
+  await expect(link).toHaveCSS('color',rgb(colors.accent));
+  await expect(primary).toHaveCSS('color',rgb(colors.text));
+  await page.getByRole('heading',{name:'Entries',exact:true}).hover();
+  await expect(link).toHaveCSS('color',rgb(colors.text));
   await link.click();
   await expect(page).toHaveURL(/\/admin\/models\/customers\/[^/]+$/);
   await expect(page.locator('input[name=caption]')).toHaveValue('Alex Johnson');
