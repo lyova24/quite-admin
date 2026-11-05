@@ -182,3 +182,20 @@ test('cursor column headers sort timestamps, traverse pages and reset boundaries
   expect(new URL(page.url()).searchParams.has('after')).toBe(false);
   await expect(page.getByRole('columnheader').filter({hasText:'Count'})).toHaveAttribute('aria-sort','ascending');
 });
+
+
+test('form relation picker displays relation_label and searches label or exact ID', async ({page})=>{
+  await page.goto(listing+'new');
+  const picker=page.locator('[data-relation-picker]').filter({has:page.locator('[name="__relation__to_customers_by_customer_id"]')});
+  const search=picker.getByRole('searchbox');
+  await picker.locator('summary').click();
+  await search.fill('Johnson');
+  await expect(picker.locator('.picker-results .picker-option')).toHaveCount(1);
+  await expect(picker.locator('.picker-results')).toContainText('Alex Johnson');
+  await search.fill('52');
+  await expect(picker.locator('.picker-results')).toContainText('Maria Jones');
+  await expect(picker.locator('.picker-results .picker-option')).toHaveCount(1);
+  await picker.locator('.picker-results input').check();
+  await expect(picker.locator('.picker-selection')).toContainText('Maria Jones');
+  await expect(picker.locator('select')).toHaveValue('WyI1MiJd');
+});

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.4 — 2026-11-05
+
+- Apply `relation_label` to existing form relationship pickers, including selected
+  records and labels restored after validation errors. Search the configured visible
+  label alongside the target search fields and exact ID without extra search settings.
+
 ## 0.7.3 — 2026-11-05
 
 - Enable scalar column sorting, including dates, in built-in cursor pagination.

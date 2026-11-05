@@ -8,12 +8,45 @@ import json
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
+from ..config import FieldOptions
 from ..errors import NotFound, ValidationError
 from ..relations import RelationAdapter
 from ..schema import Query
 
 
 class RelationViews:
+    def _relation_label_options(self, resource, relation, target):
+        labels = {
+            resource.options.fields.get(name, FieldOptions()).relation_label
+            for name in relation.source_fields
+        } - {None}
+        visible = {item.name: item for item in target.options.visible_fields(target.schema)}
+        return {
+            "label_configured": bool(labels),
+            "label_field": visible.get(next(iter(labels))) if len(labels) == 1 else None,
+        }
+
+    def _related_label(self, editor, record):
+        target = editor["target"]
+        if not editor["label_configured"]:
+            return target.record_label(record)
+        field = editor["label_field"]
+        if field is not None and record.get(field.name) is not None:
+            return field.format(record[field.name])[:200]
+        visible = {item.name for item in target.options.visible_fields(target.schema)}
+        return (
+            " · ".join(
+                item.format(record.get(item.name))
+                for item in target.schema.primary_keys
+                if item.name in visible
+            )[:200]
+            or target.label
+        )
+
+    def _picker_projection(self, editor, names=()):
+        field = editor["label_field"]
+        return editor["target"]._projection((*names, *((field.name,) if field else ())))
+
     async def _list_relation_filters(self, request, resource):
         if not getattr(resource.adapter, "supports_related_filters", False):
             return []
@@ -26,6 +59,8 @@ class RelationViews:
                     "selected": [],
                     "choices": [],
                     "multiple": False,
+                    "label_configured": False,
+                    "label_field": None,
                     "endpoint": self._url(
                         request,
                         f"/models/{resource.slug}/relationships/{editor['relation'].name}/options",
@@ -91,6 +126,7 @@ class RelationViews:
                     "target": target,
                     "editable": editable,
                     "multiple": relation.kind in {"one_to_many", "many_to_many"},
+                    **self._relation_label_options(resource, relation, target),
                 }
             )
         return editors
@@ -109,7 +145,7 @@ class RelationViews:
                     resource.model,
                     relation.name,
                     resource.schema.parse_key(resource.schema.record_key(record)),
-                    Query(limit=1001, columns=target._projection()),
+                    Query(limit=1001, columns=self._picker_projection(editor)),
                 )
             )
             selected = [] if linked is None else linked.records[:1000]
@@ -117,7 +153,9 @@ class RelationViews:
             editable = editable and not truncated
             candidates = (
                 await self._read(
-                    target.adapter.list, target.model, Query(limit=25, columns=target._projection())
+                    target.adapter.list,
+                    target.model,
+                    Query(limit=25, columns=self._picker_projection(editor)),
                 )
                 if editable
                 else None
@@ -131,7 +169,9 @@ class RelationViews:
                 {
                     "editable": editable,
                     "selected": [target.schema.record_key(item) for item in selected],
-                    "choices": [(key, target.record_label(item)) for key, item in records.items()],
+                    "choices": [
+                        (key, self._related_label(editor, item)) for key, item in records.items()
+                    ],
                     "truncated": truncated,
                     "endpoint": self._url(
                         request, f"/models/{resource.slug}/relationships/{relation.name}/options"
@@ -183,6 +223,9 @@ class RelationViews:
         searchable = target.options.search_fields
         if searchable is None:
             searchable = tuple(name for name, item in visible.items() if item.kind == "string")
+        label_field = editor["label_field"]
+        if label_field is not None and label_field.kind == "string":
+            searchable = tuple(dict.fromkeys((*searchable, label_field.name)))
         key_search = None
         if (
             search
@@ -204,7 +247,10 @@ class RelationViews:
             search=search,
             search_key=key_search,
             search_fields=tuple(name for name in searchable if name in visible),
-            columns=target._projection(name for name in searchable if name in visible),
+            columns=self._picker_projection(
+                editor,
+                tuple(name for name in searchable if name in visible),
+            ),
         )
         result = await self._read(target.adapter.list, target.model, query)
         return JSONResponse(
@@ -212,7 +258,7 @@ class RelationViews:
                 "items": [
                     {
                         "key": target.schema.record_key(row),
-                        "label": target.record_label(row),
+                        "label": self._related_label(editor, row),
                         "identity": " · ".join(
                             item.format(row[item.name])
                             for item in target.schema.primary_keys
@@ -240,7 +286,7 @@ class RelationViews:
                     continue
                 try:
                     record = await self._record(editor["target"], token)
-                    known[token] = editor["target"].record_label(record)
+                    known[token] = self._related_label(editor, record)
                 except NotFound:
                     known[token] = self.gettext("Unavailable record")
             editor["choices"] = list(known.items())

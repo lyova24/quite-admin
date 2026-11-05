@@ -20,10 +20,13 @@ admin.register(Product, options=ModelOptions(
 ))
 ```
 
-`relations=None` discovers relationships automatically; `relations=()` hides them.
+`relations=None` discovers relationships automatically; `relations=()` hides relationship editors
+in create and edit forms.
 `readonly_relations` displays selected records without allowing changes.
 Set `record_label` on the target model to choose its selector label. Otherwise common names
-such as `name` and `title` are used, falling back to primary keys. Excluded fields are never labels.
+such as `name` and `title` are used, falling back to primary keys. A source field's
+`relation_label` overrides this label for its picker only. Without that option, relationship
+editors keep the target model's usual label. Excluded fields are never labels.
 
 Both ends must be registered with the same adapter. A target must allow listing and viewing.
 Changing a reverse foreign key also requires edit permission and writable foreign-key fields
@@ -36,10 +39,12 @@ it never deletes target records. Move a required child by choosing another paren
 Invalid keys, unavailable targets and failed constraints reject the entire save.
 
 
-## Foreign keys in lists
+## Foreign-key labels
 
 A foreign key to a registered collection appears as a link to that record, showing the
-stored ID by default. Choose a visible target field with `relation_label`:
+stored ID by default. Choose a visible target field with `relation_label` to use it
+in list links. When the relationship editor is enabled, the same option sets the
+label for selected records and picker results in create and edit forms:
 
 ```python
 admin.register(Link, options=ModelOptions(fields={
@@ -49,21 +54,28 @@ admin.register(Link, options=ModelOptions(fields={
 ```
 
 Import `FieldOptions` from `quite_admin`. This works with native adapters, including
-GINO, without a formatter or adapter subclass and even with `relations=()`.
-The target must allow listing and viewing or editing. Hidden label fields fall back
-to the ID; inaccessible, missing or unregistered targets remain plain values. NULL
-remains empty. Related labels are fetched in one bounded adapter list per FK column,
-not per row, using the admin's read deadlines. This display never replaces stored
-values: editing, filtering, scalar exports and history continue to use raw IDs.
+GINO, without a formatter or adapter subclass. List links also use this label with
+`relations=()`; that setting disables relationship editors in forms.
+
+The target must allow listing and viewing or editing for a list link; form pickers
+require listing and viewing. Hidden or unavailable label fields fall back to the ID
+and are never exposed or searched. Inaccessible, missing or unregistered targets
+remain plain values in lists. NULL remains empty. Related list labels are fetched
+in one bounded adapter list per FK column, not per row, using the admin's read
+deadlines. Labels never replace stored values: saves, filtering, scalar exports
+and history continue to use raw IDs.
 
 
 ## Search and selection
 
 Use **Choose records** to open a picker. Search uses the target collection's visible
-`search_fields` (visible strings by default); results load 25 at a time in stable
-primary-key order. Previous/Next reaches the complete candidate set. Built-in adapters also search an exact numeric or
-UUID primary key, combined with text matches before pagination. Enter a complete JSON
-object for a composite key. Hidden keys do not enable this shortcut. The options endpoint
+`search_fields` (visible strings by default). If the source field sets `relation_label`
+to a permitted string field, the picker also searches that field, even when it is
+absent from the target's `search_fields` or that setting is empty. An exact ID search
+is available independently of `search_fields`; text and ID matches are combined
+before pagination. Results load 25 at a time in stable
+primary-key order. Previous/Next reaches the complete candidate set. Enter a
+complete JSON object for a composite key. Hidden keys do not enable the ID shortcut. The options endpoint
 returns keys, permitted labels, visible identity and searchable-field descriptions;
 [list filters](filters.md#related-records) display the additional context.
 Selected chips stay selected across search queries and pages; × removes a selection.
