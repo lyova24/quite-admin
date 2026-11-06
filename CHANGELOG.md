@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.2 — 2026-11-06
+
+- Reuse successful master CI for version-tag releases instead of rerunning the test
+  matrix. Require the exact tagged commit and a successful latest validation gate;
+  deploy its existing documentation artifact to Pages after the GitHub release
+  workflow succeeds, and enforce the same CI check for automatic and manual PyPI uploads.
+
 ## 0.8.1 — 2026-11-06
 
 - Wrap long relationship-picker labels within the form at enlarged font sizes.

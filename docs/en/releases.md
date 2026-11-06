@@ -23,18 +23,30 @@ the documented tested matrix; dependency ranges are not proof of every combinati
 ## Release flow
 
 1. Finalize the version, changelog date and migration notes.
-2. Run tests, lint, the API compatibility guard, documentation and dependency audits.
+2. Push the commit to `master` and wait for `ci.yml` to finish successfully. It runs
+   tests, lint, the API compatibility guard, documentation and dependency audits.
 3. Run `python scripts/check_release.py --tag v<project.version>`.
-4. Push the version tag when authorized. `release.yml` runs the complete validation gate,
-   publishes the GitHub release with the matching changelog and marks it Latest.
-5. After that workflow succeeds, `pypi.yml` builds **one universal wheel and one sdist**
-   on Python 3.12. It checks both with Twine and installs each into a clean environment.
+4. Push the version tag when authorized. `release.yml` requires successful master CI
+   and its documentation artifact for that exact commit, then publishes the GitHub
+   release with the matching changelog and marks it Latest.
+5. After that workflow succeeds, `pages.yml` deploys the existing CI documentation
+   artifact. In parallel, `pypi.yml` builds **one universal wheel and one sdist** on
+   Python 3.12, checks both with Twine and installs each into a clean environment.
 6. A separate job uploads the verified files to PyPI through Trusted Publishing; a final
    job installs the exact version from the public index and checks packaged resources.
 
-Creating a release in GitHub's interface also runs the complete validation workflow
-before PyPI publication. The package workflow checks out the validated commit by SHA
-and verifies that the published version tag still points to that exact commit.
+Releases never rerun the test matrix. Missing, unfinished, failed, cancelled or skipped
+CI blocks publication immediately; finish or rerun the master CI, then rerun the release.
+The latest master-push run for the tagged SHA must succeed, including **CI ready**;
+an older green run cannot hide a newer unsuccessful run. PR and manual CI runs do not
+authorize releases. Missing or expired documentation artifacts also block the release;
+rerun the master CI to rebuild them. Pages publishes the tagged version even if `master`
+has advanced, without rebuilding the docs or repeating demo tests.
+
+Creating a release in GitHub's interface uses the same existing-CI gate before Pages
+and PyPI publication. The package workflow checks out the validated commit by SHA,
+checks master CI again for automatic and manual uploads, and verifies that the published
+version tag still points to that exact commit.
 
 GitHub release downloads remain the automatic source-code ZIP/tar.gz archives.
 Wheel/sdist files go to PyPI, not GitHub release assets. Python test matrix jobs do not
@@ -65,8 +77,9 @@ The PyPI workflow is top-level rather than reusable, so the publisher always mat
 `pypi.yml`. It accepts only successful release runs from this repository and verifies
 the tag still points to the validated source commit and the GitHub release is published.
 For a retry, run **publish to PyPI** manually from `master`, entering the existing tag,
-`v<project.version>`. Manual runs also require a successful full `ci.yml` run for the
-same source commit. Existing package files are skipped on retry; PyPI versions cannot
+`v<project.version>`. Manual runs use the same latest-master-CI gate for the source
+commit. They do not need the documentation artifact again. Existing package files are
+skipped on retry; PyPI versions cannot
 be overwritten. Never move a published tag to change an uploaded package.
 
 ## Install with a package manager
@@ -83,7 +96,7 @@ Installation from an unpacked source archive remains available.
 
 ## Dependency security
 
-`security.yml` runs Python `pip-audit` and documentation `npm audit` on pushes, PRs,
+`security.yml` runs Python `pip-audit` and documentation `npm audit` on master pushes, PRs,
 manual runs and weekly. Python checks cover all locked extras/dev groups; npm reports
 all severities and fails on high/critical findings. Public PRs also use
 [GitHub Dependency Review](https://github.com/actions/dependency-review-action).
@@ -99,9 +112,10 @@ Strict EN/RU builds and fresh security audits validate that environment.
 `ci.yml` calls the reusable tests, database, dependency-compatibility and security
 workflows. The **CI ready** job fails when any group fails, is cancelled or is skipped.
 Configure this check as required on `master`; branch protection is a repository setting.
-The release workflow invokes the same complete gate for the tagged commit before
-publishing a source-only GitHub release. Ordinary version checks allow Unreleased;
-release tags require a finalized changelog date.
+CI runs on pushes to `master`, PRs and manual requests; a version-tag push only runs
+the publication workflow. The release checks the existing CI result for the tagged SHA
+before publishing a source-only GitHub release and triggering Pages/PyPI. Version checks allow
+Unreleased; release tags require a finalized changelog date.
 
 CI exercises Chromium, Firefox and WebKit against a disposable fictional database.
 It checks filters and related-ID lookup, debounced search, CSV/XLSX downloads,

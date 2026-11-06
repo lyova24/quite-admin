@@ -6,7 +6,7 @@
 
 ![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/.github/social-preview.png)
 
-**Version: 0.8.1** · [Changelog](CHANGELOG.md)
+**Version: 0.8.2** · [Changelog](CHANGELOG.md)
 
 An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
 Supports **CPython 3.11–3.15**. MIT licensed.
@@ -113,10 +113,12 @@ uv run ruff check src tests examples scripts
 uv run ruff format --check src tests examples scripts
 ```
 
-GitHub releases provide source-code ZIP/tar.gz archives. A version tag publishes the
-validated GitHub release with its changelog. The separate PyPI workflow builds one
-wheel/sdist pair and publishes it through Trusted Publishing; Python test matrix jobs
-do not build distributions.
+GitHub releases provide source-code ZIP/tar.gz archives. A version tag requires successful
+master CI for its exact commit and publishes the GitHub release with its changelog.
+After it succeeds, Pages deploys that CI run's documentation artifact and the separate
+PyPI workflow builds one wheel/sdist pair and publishes it through Trusted Publishing.
+Tests run in CI and are not repeated for a release; Python test matrix jobs do not
+build distributions.
 
 CI tests CPython 3.11, 3.12, 3.13, 3.14 and 3.15 with the pinned dependencies.
 The full test suite uses SQLite; PostgreSQL 17 and MySQL 8.4 have dedicated contract jobs.

@@ -100,8 +100,12 @@ Run `npm run demo:test` after changing the browser demo or shared scripts; it re
 the fictional seed and checks relationship writes, stale edits, filter conditions,
 schema layout, junction expansion and form control precision.
 
-The separate `pages` workflow publishes the generated `build/docs` directory from `master`
-using GitHub Pages Actions. In repository Settings → Pages, select **GitHub Actions** as the source.
+After a successful release, the separate `pages` workflow publishes the `quite-admin-docs`
+artifact from successful master CI for the exact tagged commit. It does not rebuild
+documentation or rerun demo tests; ordinary master pushes only build and validate the site.
+The `workflow_run` trigger keeps deployment on the default branch, compatible with the
+`github-pages` environment's `master` restriction, while the artifact comes from the release SHA.
+In repository Settings → Pages, select **GitHub Actions** as the source.
 Do not select the repository root or source `docs` folder for a Jekyll build: Liquid treats Jinja
 examples such as `{% extends %}` as its own tags. The generated artifact contains `.nojekyll`
 and retains Diplodoc's `_bundle` assets.

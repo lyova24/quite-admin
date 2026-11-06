@@ -53,6 +53,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: node --test tests/ci.test.cjs
       - run: npm run docs:build
       - run: npm run demo:test
       - uses: actions/upload-artifact@v4
@@ -60,6 +61,7 @@ jobs:
           name: quite-admin-docs
           path: build/docs
           if-no-files-found: error
+          include-hidden-files: true
 
   browser:
     runs-on: ${{ matrix.os }}
