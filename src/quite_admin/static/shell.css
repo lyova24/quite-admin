@@ -1,0 +1,29 @@
+/* A fixed icon rail, independent of old sidebar width and collapse preferences. */
+.shell[data-admin-shell] { --sidebar-rail-width: 3.5rem; display: grid; grid-template-columns: var(--sidebar-rail-width) minmax(0, 1fr); }
+.shell[data-admin-shell] > .sidebar { display: flex; flex-direction: column; position: sticky; top: 0; width: var(--sidebar-rail-width); height: 100vh; height: 100dvh; max-height: none; padding: 0; overflow: visible; z-index: 30; border-right: 0; border-bottom: 0; background: transparent; }
+.sidebar-rail { display: flex; flex-direction: column; flex: 1 1 auto; width: 100%; min-height: 0; background: var(--sidebar-rail-background, color-mix(in srgb, var(--paper) 94%, var(--text) 6%)); border-right: var(--border); }
+.shell-nav-icon { display: block; flex: 0 0 auto; width: 1.125rem; height: 1.125rem; }
+.sidebar .sidebar-rail-navigation { display: block; flex: 1 1 auto; min-height: 0; min-width: 0; padding: .5rem; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.shell-nav-link { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; min-height: 2.25rem; margin: .125rem 0; padding: .5rem; border: 0; border-radius: var(--radius-control); color: var(--muted); background: transparent; text-decoration: none; }
+.shell-nav-link:hover { background: var(--hover); color: var(--text); }
+.shell-nav-link.active { color: var(--accent); background: var(--accent-soft); }
+.sidebar-pages { margin-top: .5rem; padding-top: .5rem; border-top: var(--border); }
+.sidebar-footer { position: relative; flex: none; padding: .625rem .75rem; }
+.sidebar-profile { position: relative; width: fit-content; }
+.profile-trigger { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; list-style: none; cursor: pointer; border-radius: 50%; }
+.profile-trigger::-webkit-details-marker { display: none; }
+.profile-trigger .avatar, .profile-identity .avatar { width: 2rem; height: 2rem; flex: 0 0 2rem; background: var(--paper); font-size: var(--text-xs); }
+.profile-popover { position: absolute; inset-inline-start: calc(100% + .75rem); bottom: 0; width: min(17rem, calc(100vw - var(--sidebar-rail-width) - .5rem)); max-height: calc(100vh - 1rem); max-height: calc(100dvh - 1rem); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: .5rem; border: var(--border); border-radius: var(--radius); color: var(--text); background: var(--paper); box-shadow: 0 .5rem 1.75rem #0009; z-index: 80; }
+.sidebar-profile:not([open]) > .profile-popover { display: none; }
+.profile-identity { display: flex; align-items: center; gap: .625rem; padding: .5rem; }
+.profile-identity strong { min-width: 0; font-size: var(--text-sm); font-weight: 600; overflow-wrap: anywhere; }
+.profile-version { padding: 0 .5rem .375rem; color: var(--muted); font-size: var(--text-xs); }
+.profile-signout { display: flex; align-items: center; gap: .625rem; width: 100%; margin-top: .25rem; padding: .625rem .5rem; border: 0; border-top: var(--border); background: transparent; color: var(--text); border-radius: var(--radius-control); font-size: var(--text-sm); text-align: start; }
+.profile-signout:hover { background: var(--hover); }
+
+/* Service identity is visible on inner pages; breadcrumbs keep their text labels. */
+.topbar-start { min-width: 0; }
+.service-brand { display: flex; align-items: center; gap: .5rem; min-width: 0; margin-inline-start: auto; color: var(--text); font-size: var(--text-sm); font-weight: 600; }
+.service-brand > span:last-child { max-width: 36ch; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.service-brand .brand-mark, .service-brand .brand-logo { width: 1.375rem; height: 1.375rem; flex: 0 0 1.375rem; }
+@media (max-width: 43.75em) { .topbar { gap: .5rem; padding-inline: 1rem; } .service-brand > span:last-child { max-width: 15ch; } }

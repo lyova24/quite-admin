@@ -26,7 +26,7 @@ admin.add_page(Page(
 
 Страница доступна по `/admin/pages/reports`, защищена авторизацией и появляется
 в меню. Поддерживаются sync/async context callbacks; синхронные выполняются в worker thread.
-Свои страницы пока поддерживают только GET. Ключи `template_api_version`, `resource_groups`, `request`, `identity`, `csrf`,
+Свои страницы пока поддерживают только GET. Ключи `template_api_version`, `resource_groups`, `table_catalog`, `table_group_count`, `request`, `identity`, `csrf`,
 `url`, `admin`, `resources`, `pages`, `scripts`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` и `tn`
 зарезервированы общим контекстом. Базовый шаблон наследует настройки
 [языка и оформления](customization.md).

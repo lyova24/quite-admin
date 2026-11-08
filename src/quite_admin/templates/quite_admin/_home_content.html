@@ -1,0 +1,28 @@
+{% from "quite_admin/_icons.html" import shell_icon %}
+{% from "quite_admin/_ui.html" import brand_mark with context %}
+<div class="home" data-dashboard data-messages="{{ {'unpin': t('Unpin table: {name}'), 'removeRecent': t('Remove from recently opened: {name}')}|tojson|forceescape }}">
+  <div class="page-heading home-heading"><div class="home-identity">{{ brand_mark(true) }}<div><h1>{{ title }}</h1>{% if description %}<p class="subtitle">{{ description }}</p>{% endif %}</div></div></div>
+  <section class="home-launcher" aria-label="{{ t('Quick access') }}">
+    <button class="home-search" type="button" data-table-search hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>{{ t('Find a table') }}</span><kbd>Ctrl / ⌘ K</kbd></button>
+    <p class="home-catalog-count">{{ t('Available tables: {count}').format(count=resources|length) }} <span aria-hidden="true">·</span> {{ t('Groups: {count}').format(count=table_group_count) }}</p>
+  </section>
+  {% include "quite_admin/_table_catalog.html" %}
+  <section class="home-section" aria-labelledby="home-pinned-title" data-home-pinned-section hidden>
+    <div class="section-heading"><h2 id="home-pinned-title">{{ t('Pinned tables') }}</h2><button class="link-button" type="button" data-table-search hidden>{{ t('Manage tables') }}</button></div>
+    <div class="home-table-grid" data-home-pinned></div>
+    <div class="home-empty" data-home-pinned-empty><span class="home-empty-symbol" aria-hidden="true">☆</span><div><h3>{{ t('Keep your go-to tables close') }}</h3><p>{{ t('Find a table and pin it with the star. Your shortcuts will appear here.') }}</p></div></div>
+  </section>
+  <section class="home-section" aria-labelledby="home-recent-title" data-home-recent-section hidden>
+    <div class="section-heading"><h2 id="home-recent-title">{{ t('Recently opened') }}</h2><span class="home-section-note">{{ t('On this browser') }}</span></div>
+    <div class="home-table-grid" data-home-recent></div>
+    <p class="home-empty home-recent-empty" data-home-recent-empty>{{ t('Tables you open will appear here, so you can pick up where you left off.') }}</p>
+  </section>
+  <section class="home-section" aria-labelledby="home-workspace-title">
+    <div class="section-heading"><h2 id="home-workspace-title">{{ t('Workspace') }}</h2></div>
+    <div class="home-tools">
+      <a class="home-tool" href="{{ url('/schema') }}"><span class="home-tool-icon" aria-hidden="true">{{ shell_icon("schema") }}</span><div><h3>{{ t('Database schema') }}</h3><p>{{ t('Explore tables, groups and their relationships.') }}</p></div><span aria-hidden="true">↗</span></a>
+      {% if history_allowed %}<a class="home-tool" href="{{ url('/history') }}"><span class="home-tool-icon" aria-hidden="true">{{ shell_icon("history") }}</span><div><h3>{{ t('Activity history') }}</h3><p>{{ t('Review actions and changes in your workspace.') }}</p></div><span aria-hidden="true">↗</span></a>{% endif %}
+    </div>
+  </section>
+  {% if pages %}<section class="home-section" aria-labelledby="home-pages-title"><div class="section-heading"><h2 id="home-pages-title">{{ t('Your pages') }}</h2></div><div class="page-grid">{% for item in pages %}<a class="custom-page-card" href="{{ url('/pages/' ~ item.slug) }}">{{ item.title }} <span aria-hidden="true">→</span></a>{% endfor %}</div></section>{% endif %}
+</div>

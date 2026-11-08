@@ -35,7 +35,7 @@ test('laptop dimensions are preserved and the whole interface grows smoothly on 
     });
     expect(sizes.root).toBeCloseTo(root, 1);
     expect(sizes.text).toBeCloseTo(root * .75, 1);
-    expect(Math.abs(sizes.sidebar - root * 11.5)).toBeLessThan(.25);
+    expect(Math.abs(sizes.sidebar - root * 3.5)).toBeLessThan(.25);
     expect(sizes.control).toBeCloseTo(root * 1.9375, 1);
     expect(sizes.icon).toBeCloseTo(root * 1.125, 1);
     expect(Math.abs(sizes.content - root * 100)).toBeLessThan(1);
@@ -114,7 +114,7 @@ test('an application can retain compact sizing or enlarge the rem base without c
   scale = '200%';
   await page.reload();
   await expect(page.locator('td').first()).toHaveCSS('font-size', '24px');
-  await expect(page.locator('.sidebar')).toHaveCSS('width', '368px');
+  await expect(page.locator('.sidebar')).toHaveCSS('width', '112px');
   await fitsViewport(page, page.locator('.list-table-scroll'));
   await page.setViewportSize({width:390, height:844});
   await fitsViewport(page, page.locator('.list-table-scroll'));

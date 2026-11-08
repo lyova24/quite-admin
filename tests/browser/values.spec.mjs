@@ -50,7 +50,9 @@ test('unsafe URL and HTML payloads remain escaped text', async ({page}) => {
 });
 
 test('readable values and expanding remain usable without JavaScript', async ({page}) => {
-  const context = await page.context().browser().newContext({javaScriptEnabled:false, storageState:await page.context().storageState()});
+  // Only authentication is needed; restoring localStorage executes JS in Firefox.
+  const {cookies} = await page.context().storageState();
+  const context = await page.context().browser().newContext({javaScriptEnabled:false, storageState:{cookies, origins:[]}});
   const plain = await context.newPage();
   await plain.goto(new URL('/values/models/previews/', page.url()).href);
   await expect(plain.locator('[data-copy-value]:visible')).toHaveCount(0);

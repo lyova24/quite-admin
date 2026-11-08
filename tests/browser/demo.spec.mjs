@@ -19,7 +19,7 @@ test('demo shares inline controls and records persisted before/after values',asy
   await expect(row).toContainText('19.50');
   await row.getByRole('switch',{name:'Active',exact:true}).click();
   await expect(row.getByRole('switch')).not.toBeChecked();
-  await page.getByRole('link',{name:'Activity history',exact:true}).click();
+  await page.locator('.sidebar').getByRole('link',{name:'Activity history',exact:true}).click();
   await page.getByRole('button',{name:'Expand all changes',exact:true}).click();
   await expect(page.locator('.activity-journal')).toContainText('19.50');
   await expect(page.locator('.activity-journal')).toContainText('18.00');
@@ -57,7 +57,7 @@ test('demo forms preserve microseconds and show JSON, TEXT and nullable boolean'
 });
 
 test('demo history reuses user filters and inclusive period controls in both views',async ({page})=>{
-  await page.getByRole('link',{name:'Activity history',exact:true}).click();
+  await page.locator('.sidebar').getByRole('link',{name:'Activity history',exact:true}).click();
   await page.getByRole('button',{name:'+ Add filter',exact:true}).click();
   await page.getByRole('button',{name:'Demo Admin ID: admin',exact:true}).click();
   await page.getByRole('button',{name:'Apply filter',exact:true}).click();
@@ -77,8 +77,9 @@ test('demo history reuses user filters and inclusive period controls in both vie
 });
 
 test('demo exports more than the visible page and restores initial data on reset',async ({page})=>{
-  await page.locator('[data-demo-group="Catalog"] > summary').click();
-  await page.getByRole('link',{name:'Products',exact:true}).click();
+  await page.locator('[data-home-catalog] > summary').click();
+  await page.locator('[data-group="Catalog"] > summary').click();
+  await page.locator('[data-home-catalog] [data-table-link="products"]').click();
   await page.locator('.export-panel > summary').click();
   const download=page.waitForEvent('download');
   await page.getByRole('button',{name:'CSV download',exact:true}).click();
@@ -93,17 +94,13 @@ test('demo exports more than the visible page and restores initial data on reset
   await expect(page.getByRole('heading',{name:'Catalog launch',exact:true})).toBeVisible();
 });
 
-test('demo sidebar uses the shared toggle across routes, reloads and language changes', async ({page}) => {
-  const toggle = page.locator('[data-sidebar-toggle]'), sidebar = page.locator('#admin-sidebar');
-  await toggle.click();
-  await expect(sidebar).toBeHidden();
+test('demo uses the fixed icon rail across routes, reloads and language changes', async ({page}) => {
+  const sidebar = page.locator('#admin-sidebar');
+  await expect(sidebar).toHaveCSS('width', '56px');
+  await expect(page.locator('[data-sidebar-toggle], [data-sidebar-resizer], .rail-search')).toHaveCount(0);
   await page.getByRole('link', {name: 'Edit a list cell', exact: true}).click();
-  await expect(sidebar).toBeHidden();
   await page.reload();
-  await expect(sidebar).toBeHidden();
   await page.getByLabel('Language', {exact: true}).selectOption('ru');
-  await expect(toggle).toHaveAccessibleName('Показать боковую панель');
-  await toggle.press('Enter');
-  await expect(sidebar).toBeVisible();
-  await expect(toggle).toHaveAccessibleName('Скрыть боковую панель');
+  await expect(sidebar).toHaveCSS('width', '56px');
+  await expect(sidebar.getByRole('link', {name:'Главная',exact:true})).toBeVisible();
 });

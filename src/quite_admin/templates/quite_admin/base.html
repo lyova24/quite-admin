@@ -1,4 +1,5 @@
-{% from "quite_admin/_ui.html" import csrf_input, brand_mark, nav_link with context %}
+{% from "quite_admin/_ui.html" import csrf_input, brand_mark with context %}
+{% from "quite_admin/_icons.html" import shell_icon %}
 <!doctype html>
 <html lang="{{ language }}">
 <head>
@@ -9,42 +10,38 @@
   <link rel="icon" href="{{ logo_url or url('/assets/logo.svg') }}">
   <link rel="stylesheet" href="{{ url('/assets/admin.css') }}">
   <link rel="stylesheet" href="{{ url('/theme.css') }}">
+  <link rel="stylesheet" href="{{ url('/assets/shell.css') }}">
+  <link rel="stylesheet" href="{{ url('/assets/table-navigation.css') }}">
   {% block head %}{% endblock %}
 </head>
-<body{% if listing_page %} class="listing-page"{% endif %}>
-  <div class="shell {% if not identity %}shell-login{% endif %}"{% if identity %} data-admin-shell data-storage-key="{{ url('/') }}"{% endif %}>
+<body{% if schema_page %} class="schema-page"{% elif listing_page %} class="listing-page"{% endif %}>
+  <div class="shell {% if not identity %}shell-login{% endif %}"{% if identity %} data-admin-shell data-storage-key="{{ url('/') }}" data-user-key="{{ identity.subject }}" data-current-table="{{ resource.slug if resource else '' }}"{% endif %}>
   {% if identity %}
     <aside class="sidebar" id="admin-sidebar">
-      <a class="brand" href="{{ url('/') }}">{{ brand_mark() }}{{ title }}</a>
-      {{ nav_link(url('/'), t('Overview'), not resource and not page and not schema_page and not history_page) }}
-      {{ nav_link(url('/schema'), t('Database schema'), schema_page) }}
-      {% if history_allowed %}{{ nav_link(url('/history'), t('Activity history'), history_page) }}{% endif %}
-      <p class="nav-label">{{ t('COLLECTIONS') }} <span>{{ resources|length }}</span></p>
-      <nav aria-label="{{ t('Collections') }}" data-collection-navigation data-storage-key="{{ url('/') }}">
-      {% if resource_groups %}
-        {% for label, items in resource_groups.items() %}
-        <details class="nav-group" data-group="{{ label }}"{% if resource and resource.slug in items|map(attribute='slug')|list %} open data-current-group{% endif %}>
-          <summary>{{ label }} <span>{{ items|length }}</span></summary>
-          {% for item in items %}{{ nav_link(url('/models/' ~ item.slug ~ '/'), item.label, resource and resource.slug == item.slug) }}{% endfor %}
-        </details>
-        {% endfor %}
-      {% else %}
-        {% for item in resources %}{{ nav_link(url('/models/' ~ item.slug ~ '/'), item.label, resource and resource.slug == item.slug) }}{% else %}<p class="nav-empty">{{ t('No collections available.') }}</p>{% endfor %}
-      {% endif %}
-      </nav>
-      {% if pages %}
-      <p class="nav-label">{{ t('PAGES') }}</p>
-      <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}{{ nav_link(url('/pages/' ~ item.slug), item.title, page and page.slug == item.slug) }}{% endfor %}</nav>
-      {% endif %}
-      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.11</span></div>
-      <div class="sidebar-resizer" data-sidebar-resizer role="separator" aria-orientation="vertical" aria-controls="admin-sidebar" aria-label="{{ t('Resize sidebar') }}" tabindex="0" title="{{ t('Drag or use arrow keys to resize; double-click to reset.') }}" hidden></div>
+      <div class="sidebar-rail">
+        <nav class="sidebar-rail-navigation" aria-label="{{ t('Workspace') }}">
+          <a class="shell-nav-link sidebar-home {% if not resource and not page and not schema_page and not history_page %}active{% endif %}" href="{{ url('/') }}" aria-label="{{ t('Home') }}" title="{{ t('Home') }}"{% if not resource and not page and not schema_page and not history_page %} aria-current="page"{% endif %}>{{ shell_icon('home') }}</a>
+          <a class="shell-nav-link {% if schema_page %}active{% endif %}" href="{{ url('/schema') }}" aria-label="{{ t('Database schema') }}" title="{{ t('Database schema') }}"{% if schema_page %} aria-current="page"{% endif %}>{{ shell_icon('schema') }}</a>
+          {% if history_allowed %}<a class="shell-nav-link {% if history_page %}active{% endif %}" href="{{ url('/history') }}" aria-label="{{ t('Activity history') }}" title="{{ t('Activity history') }}"{% if history_page %} aria-current="page"{% endif %}>{{ shell_icon('history') }}</a>{% endif %}
+          {% if pages %}<div class="sidebar-pages">{% for item in pages %}<a class="shell-nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}" aria-label="{{ item.title }}" title="{{ item.title }}"{% if page and page.slug == item.slug %} aria-current="page"{% endif %}>{{ shell_icon('page') }}</a>{% endfor %}</div>{% endif %}
+        </nav>
+        <footer class="sidebar-footer">
+          <details class="sidebar-profile" data-sidebar-profile>
+            <summary class="profile-trigger" data-profile-toggle aria-label="{{ t('Profile') }}" title="{{ t('Profile') }}" aria-controls="admin-profile-menu"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span></summary>
+            <div class="profile-popover" id="admin-profile-menu" data-profile-popover>
+              <div class="profile-identity"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><strong>{{ identity.display_name or identity.subject }}</strong></div><p class="profile-version">Quite Admin <span>v0.8.12</span></p>
+              <form method="post" action="{{ url('/logout') }}">{{ csrf_input() }}<button class="profile-signout" type="submit">{{ shell_icon('logout') }}{{ t('Sign out') }}</button></form>
+            </div>
+          </details>
+        </footer>
+      </div>
     </aside>
+    {% include "quite_admin/_table_navigation.html" %}
   {% endif %}
     <main class="main">
     {% if identity %}
-      <header class="topbar"><div class="topbar-start"><button class="sidebar-toggle" type="button" data-sidebar-toggle data-show-label="{{ t('Show sidebar') }}" data-hide-label="{{ t('Hide sidebar') }}" aria-label="{{ t('Hide sidebar') }}" aria-controls="admin-sidebar" aria-expanded="true" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M7.5 3v14"/></svg></button><nav class="breadcrumbs" aria-label="{{ t('Breadcrumbs') }}"><ol>{% for crumb in breadcrumbs %}<li>{% if not loop.first %}<span class="breadcrumb-divider" aria-hidden="true">/</span>{% endif %}{% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span aria-current="page">{{ crumb.label }}</span>{% endif %}</li>{% endfor %}</ol></nav></div>
-        <div class="account"><span class="avatar">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><span>{{ identity.display_name or identity.subject }}</span>
-        <form method="post" action="{{ url('/logout') }}">{{ csrf_input() }}<button class="link-button" type="submit">{{ t('Sign out') }}</button></form></div>
+      <header class="topbar"{% block topbar_visibility %}{% endblock %}><div class="topbar-start"><nav class="breadcrumbs" aria-label="{{ t('Breadcrumbs') }}"><ol>{% for crumb in breadcrumbs %}<li>{% if not loop.first %}<span class="breadcrumb-divider" aria-hidden="true">/</span>{% endif %}{% if crumb.url %}<a href="{{ crumb.url }}"{% if loop.first %} aria-label="{{ crumb.label }}"{% endif %}>{{ crumb.label }}</a>{% else %}<span aria-current="page">{{ crumb.label }}</span>{% endif %}</li>{% endfor %}</ol></nav></div>
+        <a class="service-brand" href="{{ url('/') }}">{{ brand_mark() }}<span>{{ title }}</span></a>
       </header>
     {% endif %}
       <div class="content">{% block content %}{% endblock %}</div>

@@ -89,9 +89,9 @@ function tableGroups() {
   return groups;
 }
 function dashboard() {
-  const groups = [...tableGroups()].map(([label, items]) => `<details class="dashboard-group" data-dashboard-group><summary><span>${e(t(label))}</span><span class="badge">${items.length}</span></summary><div class="collection-grid">${items.map(([slug, c]) => `<a class="collection-card" href="${href(slug)}"><h2>${e(c.label)}</h2><div class="card-footer">${e(t("Open collection"))}<span aria-hidden="true">→</span></div></a>`).join("")}</div></details>`).join("");
-  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div><div class="section-heading"><h2>${e(t("Collections"))}</h2></div>${groups}`;
+  return seed.homePages[language] + `<div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div>`;
 }
+
 function demoFilters(slug, query, queryUrl) {
   const c = store.collection(slug);
   const fields = c.fields.filter((field) => field.nullable || !["json", "binary", "unsupported"].includes(field.kind)).map((field) => ({...field, id: "f." + field.name}));
@@ -142,8 +142,8 @@ function listing(slug, query) {
   const page = Math.max(1, Number(query.get("page")) || 1), limit = 5;
   const total = allRows.length;
   const {rows,hasPrevious,hasNext} = listWindow(allRows,query,cursor,limit);
-  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><span class="record-count">${e(cursor?t("{count} on this page",{count:rows.length}):records(total))}</span></div></div>
-  ${inlineDialog(t,e)}<section class="record-list"><div class="list-tools"><form id="demo-search" class="list-query-form" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"></div>${filters.add}</div>${filters.panel}</form><details class="export-panel"><summary class="button secondary" aria-label="${e(t('Export data'))}">↓ CSV</summary><form id="demo-export" class="export-form"><p class="field-help">${e(t('Exports all matching records using the current search, filters and sorting. Apply filters before exporting.'))}</p><fieldset><legend>${e(t('Columns'))}</legend><div class="export-columns">${c.fields.map(field=>`<label class="checkbox-label"><input type="checkbox" name="columns" value="${e(field.name)}" ${c.columns.includes(field.name)?'checked':''}> ${e(field.label)}</label>`).join('')}</div></fieldset><button class="button secondary" type="submit">${e(t('CSV download'))}</button></form></details>${button(href(slug, "new"), "+ " + t("Create record"), "primary list-create")}</div>${filters.active}
+  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><button class="table-pin table-list-pin" type="button" data-table-pin="${e(slug)}" aria-pressed="false" hidden></button><span class="table-pin-notice" data-table-pin-notice role="status" aria-live="polite" hidden></span><span class="record-count">${e(cursor?t("{count} on this page",{count:rows.length}):records(total))}</span></div></div>
+  ${inlineDialog(t,e)}<section class="record-list"><div class="list-tools"><form id="demo-search" class="list-query-form" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"></div>${filters.add}</div>${filters.panel}</form><div class="list-actions"><details class="export-panel"><summary class="button secondary" aria-label="${e(t('Export data'))}">↓ CSV</summary><form id="demo-export" class="export-form"><p class="field-help">${e(t('Exports all matching records using the current search, filters and sorting. Apply filters before exporting.'))}</p><fieldset><legend>${e(t('Columns'))}</legend><div class="export-columns">${c.fields.map(field=>`<label class="checkbox-label"><input type="checkbox" name="columns" value="${e(field.name)}" ${c.columns.includes(field.name)?'checked':''}> ${e(field.label)}</label>`).join('')}</div></fieldset><button class="button secondary" type="submit">${e(t('CSV download'))}</button></form></details>${button(href(slug, "new"), "+ " + t("Create record"), "primary list-create")}</div></div>${filters.active}
   ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
   <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
     const field = c.fields.find((field) => field.name === name), active = sort.name === name;
@@ -183,14 +183,39 @@ function deletion(slug, key) {
   return `<div class="page-heading"><h1>${e(t("Delete this record?"))}</h1></div><div class="panel delete-panel"><p>${e(store.label(slug, row))}</p><div class="alert" id="form-error" role="alert" hidden></div><form id="demo-delete"><div class="button-group">${button(href(slug, key), "Keep record")}<button class="button danger">${e(t("Delete permanently"))}</button></div></form></div>`;
 }
 function shell(content, slug, key) {
+  // Export the real templates so the standalone demo shares navigation and accessibility.
+  const doc = new DOMParser().parseFromString(seed.shellPages[language], "text/html");
+  const shell = doc.querySelector('[data-admin-shell]');
+  shell.dataset.storageKey = 'quite-admin-browser-demo';
+  shell.dataset.currentTable = slug || '';
+  shell.querySelector('.content').innerHTML = content;
+  shell.querySelector('.main').insertAdjacentHTML('afterbegin', notice());
+  const section = location.hash.split('?')[0] || '#/';
+  for (const link of shell.querySelectorAll('a[aria-current]')) link.removeAttribute('aria-current');
+  for (const link of shell.querySelectorAll('.active')) link.classList.remove('active');
+  const activePath = slug ? href(slug) : section;
+  for (const link of shell.querySelectorAll('.sidebar a')) {
+    if (link.getAttribute('href') === activePath) {
+      link.classList.add('active'); link.setAttribute('aria-current','page');
+      const group = link.closest('[data-group]');
+      if (group) { group.open = true; group.setAttribute('data-current-group',''); }
+    }
+  }
+  shell.querySelector('.topbar').hidden = section === '#/';
   const c = slug ? store.collection(slug) : null;
-  const section = location.hash.split("?")[0];
-  const navLink = (path,label,active) => `<a class="nav-link ${active?'active':''}" href="${path}" ${active?'aria-current="page"':''}>${e(t(label))}</a>`;
-  const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${section==="#/schema"?` / ${e(t("Database schema"))}`:section==="#/history"?` / ${e(t("Activity history"))}`:""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
-  const groups = tableGroups();
-  const navigation = [...groups].map(([group,items])=>`<details class="nav-group" data-demo-group="${e(group)}" data-group="${e(group)}" ${items.some(([name])=>name===slug)?'open data-current-group':''}><summary>${e(t(group))}<span>${items.length}</span></summary>${items.map(([name,collection])=>navLink(href(name),collection.label,name===slug)).join('')}</details>`).join('');
-  return `<div class="shell" data-admin-shell data-storage-key="demo"><aside class="sidebar" id="admin-sidebar"><a class="brand" href="#/"><span class="brand-mark" aria-hidden="true"></span>${e(seed.title)}</a>${navLink('#/','Overview',section==='#/'||!location.hash)}${navLink('#/schema','Database schema',section==='#/schema')}${navLink('#/history','Activity history',section==='#/history')}<p class="nav-label">${e(t("COLLECTIONS"))} <span>${Object.keys(store.state).length}</span></p><nav aria-label="${e(t('Collections'))}" data-collection-navigation data-storage-key="quite-admin-browser-demo">${navigation}</nav><p class="nav-label">${e(t("PAGES"))}</p>${navLink('#/report','Store report',section==='#/report')}<div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div><div class="sidebar-resizer" data-sidebar-resizer role="separator" aria-orientation="vertical" aria-controls="admin-sidebar" aria-label="${e(t("Resize sidebar"))}" title="${e(t("Drag or use arrow keys to resize; double-click to reset."))}" tabindex="0" hidden></div></aside><main class="main">${notice()}<header class="topbar"><div class="topbar-start"><button class="sidebar-toggle" type="button" data-sidebar-toggle data-show-label="${e(t("Show sidebar"))}" data-hide-label="${e(t("Hide sidebar"))}" aria-label="${e(t("Hide sidebar"))}" aria-controls="admin-sidebar" aria-expanded="true" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M7.5 3v14"/></svg></button><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav></div><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
+  const crumbs = [{label:t('Home'),url:c || section !== '#/' ? '#/' : null}];
+  if (c) crumbs.push({label:c.label,url:key ? href(slug) : null});
+  if (key) crumbs.push({label:key==='new'?t('Create record'):store.label(slug,store.record(slug,key)),url:null});
+  if (section === '#/schema') crumbs.push({label:t('Database schema'),url:null});
+  if (section === '#/history') crumbs.push({label:t('Activity history'),url:null});
+  shell.querySelector('.breadcrumbs ol').innerHTML = crumbs.map((crumb,index)=>`<li>${index?'<span class="breadcrumb-divider" aria-hidden="true">/</span>':''}${crumb.url?`<a href="${e(crumb.url)}"${index===0?` aria-label="${e(crumb.label)}"`:""}>${e(crumb.label)}</a>`:`<span aria-current="page">${e(crumb.label)}</span>`}</li>`).join('');
+  const logout = shell.querySelector('[data-profile-popover] form');
+  logout.querySelector('button').id = 'demo-logout';
+  logout.removeAttribute('action');
+  shell.querySelector('a[href="#/pages/report"]').setAttribute('href','#/report');
+  return shell.outerHTML;
 }
+
 function restoreLatest() {
   const saved = read("localStorage", storageKey);
   if (saved) store = new Store(seed, JSON.parse(saved));
@@ -268,6 +293,7 @@ function render() {
       }),
     query = new URLSearchParams(route[1] || "");
   document.body.classList.toggle("listing-page",loggedIn&&parts[0]==="models"&&!parts[2]);
+  document.body.classList.toggle("schema-page",loggedIn&&parts[0]==="schema");
   let slug, key, content;
   try {
     if (!loggedIn) content = login();
@@ -291,12 +317,18 @@ function render() {
       );
     else content = shell(dashboard());
   } catch (error) {
-    content = shell(`<h1>${e(t("Not Found"))}</h1>${button("#/", "Overview")}`);
+    content = shell(`<h1>${e(t("Not Found"))}</h1>${button("#/", "Home")}`);
   }
   document.querySelectorAll("[data-schema-workspace]").forEach((root) => root.schemaCleanup?.());
   cleanupInline?.(); cleanupHistory?.(); cleanupListing?.(); cleanupFields?.();
+  const previousShell = document.querySelector('[data-admin-shell]');
+  previousShell?.quiteAdminNavigationCleanup?.();
+  previousShell?.quiteAdminTablesCleanup?.();
+  document.querySelector('[data-dashboard]')?.quiteAdminDashboardCleanup?.();
   document.querySelector("#app").innerHTML = content;
-  window.quiteAdminResizeSidebar(document);
+  window.quiteAdminInitTables(document);
+  window.quiteAdminNavigation(document);
+  window.quiteAdminDashboard(document);
   const formMessages = document.createElement("div"); formMessages.hidden = true;
   formMessages.setAttribute("data-form-messages", ""); formMessages.dataset.messages = JSON.stringify(seed.formMessages[language]);
   document.querySelector("#app").prepend(formMessages);
@@ -304,7 +336,6 @@ function render() {
   window.QuiteAdmin.initSchemas();
   cleanupInline = window.quiteAdminEnhanceInline(document, inlineRequest);
   initActivity(query);
-  window.quiteAdminNavigation(document);
   document.querySelector("#demo-language").onchange = (event) => {
     language = event.target.value;
     write("localStorage", "quite-admin-demo-language", language);

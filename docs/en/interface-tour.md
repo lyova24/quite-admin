@@ -14,16 +14,32 @@ Custom logos use the same alignment.
 
 [![Sign-in card with the logo beside the title](../assets/screenshots/login.png)](../assets/screenshots/login.png)
 
-Overview shows the grouped tables and custom pages. Table lists share its
-content padding and maximum width, as do Database schema and Activity history.
+**Home** shows the configured admin logo, title and description. It also brings together
+pinned and recently opened tables, plus shortcuts to the schema, activity history and
+custom pages. Opening Home uses authorized metadata without scanning table records.
 
-Use **Hide sidebar** beside the breadcrumbs to give the current page more room.
-The button stays in the top bar as **Show sidebar**, including on narrow screens.
-Both actions work with Enter or Space. The browser remembers your choice for this
-admin mount; when storage is unavailable it applies only to the current page.
-Without JavaScript the sidebar remains visible and its links still work.
+Choose **Find a table** or press **Ctrl/⌘ K** on any authenticated page. The search
+opens with its input focused and matches table labels, technical names and groups.
+Use arrows and Enter to open a result; Escape closes search and returns focus.
+The SVG star beside each search result or beside a table's record-list heading
+adds it to the pinned tables on Home. Its filled state stays synchronized between
+search, the record list and Home; select it again to unpin. Up to 12 pinned and 8 recent table identifiers are
+stored per user and admin mount in this browser; permissions are checked again
+on every page. Search terms and record data are not stored.
 
-[![Overview with grouped table navigation](../assets/screenshots/overview.png)](../assets/screenshots/overview.png)
+Use the × button on a recently opened table to remove it from that list. This
+leaves its pinned state unchanged. Opening the table again adds it back to recent tables.
+
+If you cannot remember a name, expand **All tables** on Home and browse the full
+catalog by group. Each link shows its label and technical name. This catalog also
+works with native keyboard navigation and without JavaScript.
+
+The left navigation is a permanent **3.5 rem icon rail** for Home, Database schema,
+Activity history and custom pages. It has no expandable table panel or resize handle.
+The avatar stays at the bottom: click it to open your name and **Sign out** to its right.
+On authenticated pages other than Home, the header shows the admin logo and title
+on the right. Breadcrumbs use the plain text **Home** link and the current table
+or record for context. Home keeps its branding in the main content.
 
 ## Edit without leaving the list
 
@@ -84,8 +100,8 @@ directory; SQLite/PostgreSQL/MySQL storage is configurable.
 
 ## Navigate and export
 
-Collapse a sidebar group and navigate elsewhere: its state is remembered. The current
-table's group opens automatically. **Orders** illustrates cursor-style paging; its
+On Home, expand **All tables**, then a group to browse its tables. Explicit group
+choices are remembered for your user and admin mount in this browser. **Orders** illustrates cursor-style paging; its
 real ASGI counterpart uses database keysets and signed cursors without exact counts.
 
 In **Products**, apply a filter, open **Export data**, select columns and download CSV.
@@ -98,3 +114,8 @@ releases the fixed positions. Both the [relationship editor](relationships.md) a
 [schema](database-schema.md) show the same registered tables and relationships.
 
 [![Database schema with the expanded product_tags junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)
+
+The schema fills the available height below the header. Its wider table picker
+keeps long names readable and scrolls on short screens. Schemas with more than
+100 permitted tables still start with manual selection; the layout does not enable
+all tables automatically. See [schema selection](database-schema.md#initial-selection-for-large-databases).

@@ -23,7 +23,7 @@
 {% endmacro %}
 {% from "quite_admin/_ui.html" import empty_state with context %}
 {% block content %}
-<div class="page-heading history-heading"><div><p class="eyebrow">{{ t('Activity journal') }}</p><h1>{{ t('Activity history') }}</h1><p class="subtitle">{{ t('Who changed what, with field values before and after.') }}</p></div><span class="history-timezone">{{ t('Time (UTC)') }}</span></div>
+<h1 class="sr-only">{{ t('Activity history') }}</h1>
 <section class="record-list history-workspace">
 <form method="get" action="{{ url('/history') }}" class="history-filters" data-filter-builder data-history-filter-builder data-fields='{{ history_filter_descriptors|tojson }}' data-conditions='{{ active_filters|tojson }}' data-messages='{{ filter_messages|tojson }}' data-errors='{}'>
   <input type="hidden" name="view" value="{{ history_view }}">

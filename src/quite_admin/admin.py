@@ -603,7 +603,9 @@ class Admin(
 
     async def _dashboard(self, request: Request) -> Response:
         await self._identity(request)
-        return await self._render(request, "quite_admin/dashboard.html")
+        return await self._render(
+            request, "quite_admin/dashboard.html", trusted_scripts=("dashboard.js",)
+        )
 
     async def _schema(self, request):
         await self._identity(request)

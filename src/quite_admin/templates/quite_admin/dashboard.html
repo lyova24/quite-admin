@@ -1,20 +1,6 @@
 {% extends "quite_admin/base.html" %}
-{% from "quite_admin/_ui.html" import empty_state with context %}
+{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url('/assets/dashboard.css') }}">{% endblock %}
+{% block topbar_visibility %} hidden{% endblock %}
 {% block content %}
-<div class="page-heading"><div><h1>{{ title }}</h1>{% if description %}<p class="subtitle">{{ description }}</p>{% endif %}</div><span class="badge">{{ resources|length }} {{ tn('collection', 'collections', resources|length) }}</span></div>
-<div class="section-heading"><h2>{{ t('Collections') }}</h2></div>
-{% if resources %}
-{% set dashboard_groups = resource_groups or {t('Other collections'): resources} %}
-{% for label, items in dashboard_groups.items() %}
-<details class="dashboard-group" data-dashboard-group>
-  <summary><span>{{ label }}</span><span class="badge">{{ items|length }}</span></summary>
-  <div class="collection-grid">
-  {% for item in items %}
-    <a class="collection-card" href="{{ url('/models/' ~ item.slug ~ '/') }}"><h2>{{ item.label }}</h2><div class="card-footer">{{ t('Open collection') }} <span>→</span></div></a>
-  {% endfor %}
-  </div>
-</details>
-{% endfor %}
-{% else %}{{ empty_state('No collections yet') }}{% endif %}
-{% if pages %}<div class="section-heading"><h2>{{ t('Your pages') }}</h2></div><div class="page-grid">{% for item in pages %}<a class="custom-page-card" href="{{ url('/pages/' ~ item.slug) }}">{{ item.title }} <span aria-hidden="true">→</span></a>{% endfor %}</div>{% endif %}
+{% include "quite_admin/_home_content.html" %}
 {% endblock %}

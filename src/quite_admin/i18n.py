@@ -51,6 +51,46 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Remove from recently opened: {name}": "Убрать из недавно открытых: {name}",
+    "Home": "Главная",
+    "Profile": "Профиль",
+    "Expand sidebar": "Развернуть боковую панель",
+    "Collapse sidebar": "Свернуть боковую панель",
+    "Choose a table to start working.": "Выберите таблицу, чтобы начать работу.",
+    "Quick access": "Быстрый доступ",
+    "Find a table": "Найти таблицу",
+    "Available tables: {count}": "Доступно таблиц: {count}",
+    "Groups: {count}": "Групп: {count}",
+    "Choose a table from the sidebar.": "Выберите таблицу в боковой панели.",
+    "Pinned tables": "Закреплённые таблицы",
+    "Manage tables": "Выбрать таблицы",
+    "Keep your go-to tables close": "Самые нужные таблицы — рядом",
+    "Find a table and pin it with the star. Your shortcuts will appear here.": (
+        "Найдите таблицу и закрепите её звёздочкой. Здесь появятся ваши быстрые переходы."
+    ),
+    "Recently opened": "Недавно открытые",
+    "On this browser": "В этом браузере",
+    "Tables you open will appear here, so you can pick up where you left off.": (
+        "Здесь появятся открытые вами таблицы, чтобы было удобно продолжить работу."
+    ),
+    "Workspace": "Рабочее пространство",
+    "Explore tables, groups and their relationships.": (
+        "Изучайте таблицы, группы и связи между ними."
+    ),
+    "Review actions and changes in your workspace.": (
+        "Просматривайте действия и изменения в админке."
+    ),
+    "Matching tables: {count}": "Найдено таблиц: {count}",
+    "Showing first {count} matches. Refine your search.": (
+        "Показаны первые {count} совпадений. Уточните поиск."
+    ),
+    "Pin table: {name}": "Закрепить таблицу: {name}",
+    "Unpin table: {name}": "Открепить таблицу: {name}",
+    "Pin up to {count} tables.": "Можно закрепить до {count} таблиц.",
+    "Search tables (Ctrl/Cmd+K)": "Поиск таблиц (Ctrl/⌘ K)",
+    "Use ↑ and ↓ to navigate, Enter to open, Escape to close.": (
+        "↑ и ↓ — выбор, Enter — открыть, Escape — закрыть."
+    ),
     "Resize sidebar": "Изменить ширину боковой панели",
     "Drag or use arrow keys to resize; double-click to reset.": (
         "Перетащите или используйте стрелки для изменения ширины; двойной щелчок сбрасывает её."
@@ -381,7 +421,6 @@ RUSSIAN = {
         "Связано более 1000 записей. Редактирование отключено, чтобы сохранить полный состав связи."
     ),
     "WORKSPACE": "РАБОЧЕЕ ПРОСТРАНСТВО",
-    "Workspace": "Рабочее пространство",
     "Overview": "Обзор",
     "COLLECTIONS": "ТАБЛИЦЫ",
     "Collections": "Таблицы",

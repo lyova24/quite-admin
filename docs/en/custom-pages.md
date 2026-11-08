@@ -30,11 +30,11 @@ The authenticated page is available at `/admin/pages/reports` and appears in the
 Context callbacks may be synchronous or asynchronous; synchronous callbacks run in a worker thread.
 Custom pages currently support GET requests only.
 
-The shared context reserves `template_api_version`, `resource_groups`, `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
+The shared context reserves `template_api_version`, `resource_groups`, `table_catalog`, `table_group_count`, `request`, `identity`, `csrf`, `url`, `admin`, `resources`,
 `pages`, `scripts`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` and `tn`.
 Use `url("/models/orders/")` to generate a link with the correct mount prefix.
 The base template inherits your [language and appearance](customization.md) settings.
-Breadcrumbs link to the overview, table and parent record, preserving mount/proxy prefixes.
+Breadcrumbs link to Home, table and parent record, preserving mount/proxy prefixes.
 The current page is marked with `aria-current="page"`.
 
 Callback values named `request`, `template`, `page`, `status` or `trusted_scripts` are

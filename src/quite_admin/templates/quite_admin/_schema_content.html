@@ -1,4 +1,4 @@
-<div class="page-heading schema-heading"><div><h1>{{ t('Database schema') }}</h1><p class="muted">{{ graph.nodes|length }} {{ tn('table', 'tables', graph.nodes|length) }} · {{ graph.edges|length }} {{ tn('relationship', 'relationships', graph.edges|length) }}</p></div></div>
+<h1 class="sr-only">{{ t('Database schema') }}</h1>
 {% if graph.nodes %}
 <section class="schema-workspace" data-schema-workspace data-initial-selection="{{ 'none' if schema_manual_selection else 'all' }}" data-graph='{{ graph|tojson }}' data-messages='{{ schema_messages|tojson }}' aria-label="{{ t('Interactive database schema') }}">
   <div class="schema-toolbar">

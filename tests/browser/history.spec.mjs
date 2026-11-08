@@ -174,7 +174,7 @@ test('period popover cancels drafts, supports keyboard navigation and applies qu
   await page.locator('#filter-editor').getByRole('button', {name: 'Cancel', exact: true}).click();
   await openPeriod(page, 'Specific day');
   await period.getByRole('group', {name: 'Choose date: Date (UTC)', exact: true}).locator('[data-iso="' + today + '"]').press('ArrowRight');
-  await page.getByRole('heading', {name: 'Activity history', exact: true}).click();
+  await page.locator('.history-workspace').click({position:{x:5,y:5}});
   await expect(period).toBeHidden();
   await expect(page.locator('[name=date]')).toHaveValue(today);
 });

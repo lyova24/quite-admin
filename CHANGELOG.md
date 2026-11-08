@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.12 — 2026-11-08
+
+- Add Home with the configured logo, title and description, pinned and recent tables, and a complete grouped table catalog that works without JavaScript and reads only authorized metadata.
+- Keep navigation as a permanent icon rail with the profile menu beside its avatar. Show the admin logo and title on the right of other authenticated page headers, with a plain-text Home breadcrumb; remove the expandable table sidebar and its resize and search controls.
+- Add global table search with Ctrl/⌘ K, keyboard navigation and bounded results. Synchronize SVG favorite stars in search and record-list headings with Home, retaining user/mount-scoped storage and the twelve-pin limit. Share real templates with the browser demo without new dependencies.
+- Remove individual recent-table shortcuts with × without changing pinned tables; reopening a table adds it back to recent tables.
+- Fill the available height below the header with the database schema, widen its table picker and allow scrolling on short screens. Preserve manual initial selection above 100 permitted tables.
+
 ## 0.8.11 — 2026-11-08
 
 - Hide and restore the left sidebar with an accessible icon button that stays available in the top bar. Remember visibility per admin mount, support keyboard and mobile screens, and share the behavior with the browser demo without relaxing CSP.

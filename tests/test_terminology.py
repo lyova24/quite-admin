@@ -30,7 +30,7 @@ async def test_table_wording_preserves_model_routes_and_history_filter_keys(
         await login(client, "")
         home = await client.get("/")
         assert f'aria-label="{tables}"' in home.text
-        assert open_table in home.text
+        assert admin.gettext("Find a table") in home.text
         assert 'href="/models/items/"' in home.text
         listing = await client.get("/models/items/")
         assert empty_table in listing.text

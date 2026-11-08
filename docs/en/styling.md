@@ -112,6 +112,7 @@ A custom page can simply extend the packaged base and add its own `head` block.
 | `--radius-sm`, `--radius-control`, `--radius` | .25 / .375 / .5 rem corners |
 | `--bg`, `--paper`, `--subtle`, `--hover` | Page, main surface, inset and hover surface |
 | `--text`, `--muted`, `--line`, `--border` | Text, secondary text and separators |
+| `--popup-shadow` | Dark shadow for floating controls |
 | `--accent`, `--accent-soft`, `--accent-border`, `--on-accent` | Actions and selection |
 | `--danger`, `--danger-soft`, `--danger-border`, `--on-danger` | Destructive actions and errors |
 
@@ -150,7 +151,7 @@ The native date input remains available without JavaScript.
 The listing toolbar aligns search, filters, export and Create record in one row,
 with creation on the right. Controls wrap on narrow screens.
 
-Listings use the same content padding, responsive gutters and maximum width as Overview,
+Listings use the same content padding, responsive gutters and maximum width as Home,
 Database schema and Activity history. Table edge cells, heading, toolbar, active conditions
 and pagination align together; record forms retain their own reading-width limit.
 

@@ -48,9 +48,9 @@ Use `ModelOptions(label=...)` and `FieldOptions(label=..., help_text=...)` to na
 Only known library messages are translated; unknown error messages are displayed as supplied.
 Submitted boolean values remain `true` / `false`, and stored data, URLs and log event names do not change.
 
-The interface calls registered models **tables** in both languages: navigation, overview,
-history filters and schema links use the same wording. For example, choose a table under
-**Tables** in the sidebar to browse its records. Existing custom templates can continue
+The interface calls registered models **tables** in both languages: navigation, Home,
+history filters and schema links use the same wording. To browse records, expand
+**All tables** on Home or use **Find a table**. Existing custom templates can continue
 using message IDs such as `t('Collections')`, `t('Open collection')` and
 `tn('collection', 'collections', count)`; they render the current table wording.
 Python identifiers such as `Admin.configure(collection, ...)`, history fields and filter
@@ -58,17 +58,19 @@ parameters named `collection`, and `/models/<slug>/` URLs remain compatible.
 
 ## Name and description
 
-`title` is the admin name in the browser title, sidebar and the main heading on the sign-in
-and overview pages. The footer retains the Quite Admin library name.
+`title` is the admin name in the browser title and the main heading on Home and
+the sign-in page. On other authenticated pages, the admin logo and title appear
+on the right of the header; the breadcrumbs begin with the text **Home**.
+The profile menu shows the library version.
 
-`description` is plain text shown below the name on the sign-in and overview pages.
-It is also used in the HTML description metadata. If empty, those pages omit the introduction
-and the description meta tag. Built-in screens contain no marketing slogans.
-Both settings are escaped as text; they do not accept HTML.
+`description` is plain text below the sign-in title and the Home heading. It is also
+used in the HTML description metadata. An empty description omits that meta tag
+and the description below the Home title. Both settings are escaped as text.
 
 Set `logo` to an existing local SVG, PNG, JPEG, WebP or GIF file. Relative paths are resolved
 against the application's working directory. It is served from the admin's `/logo` route,
-including mount/proxy prefixes, and appears in the sidebar and sign-in page.
+including mount/proxy prefixes, and appears beside the Home title, on the sign-in page,
+and beside the admin title on the right of other authenticated page headers.
 It defaults to the bundled blue q mark, also used as the favicon. Missing files and unsupported extensions raise `ValueError`.
 Custom templates receive `logo_url`; no external image hosts or CSP changes are required.
 
@@ -119,11 +121,15 @@ No inline styles, external CDN or JavaScript are required; the existing `style-s
 Built-in screens share the same compact typography, spacing tokens and components.
 The system font stack is retained; no font download is required. Corners use 4 px badges,
 6 px controls and 8 px panels. Surfaces sit close to the page background, separated by
-1 px borders without decorative shadows or gradients.
+1 px borders. Popovers use a dark shadow to separate them from the page.
 
 List row height follows the density tokens, with right-aligned numeric columns and tabular numerals. The current sort
 has a directional arrow and `aria-sort`; a newly selected column sorts ascending first.
 The toolbar sits above the table frame, and the record count sits beside the page title.
+The SVG star beside the table title and the stars in global table search share
+the pinned state shown on Home. The × control in recent tables removes only that
+recent entry; opening the table again restores it. See the [interface tour](interface-tour.md)
+for browser-local limits and navigation.
 An active search is shown below the toolbar. Clearing it resets the page and preserves
 sorting and page size. Rows retain keyboard-accessible record links and a separate delete
 confirmation link. Hover and keyboard focus identify the current row. Page-local selection
@@ -136,7 +142,7 @@ into sections within one surface. The footer keeps save/cancel actions visible w
 Built-in controls link their hints and validation errors with `aria-describedby` and mark invalid
 fields with `aria-invalid`. Custom field templates should follow the same pattern. Custom record
 actions appear in a separate Actions section. On small screens, forms use a single column,
-navigation scrolls horizontally and tables retain horizontal scrolling for comparison.
+the icon rail stays narrow and tables retain horizontal scrolling for comparison.
 
 Use the tokens in your own same-origin stylesheet when extending the interface:
 

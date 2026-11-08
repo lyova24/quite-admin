@@ -53,8 +53,22 @@ class Rendering:
             for item in resources:
                 label = item.options.group or self.gettext("Other collections")
                 groups.setdefault(label, []).append(item)
+        table_catalog = [
+            {
+                "id": item.slug,
+                "name": item.schema.name,
+                "label": item.label,
+                "group": item.options.group or self.gettext("Other collections"),
+                "url": self._url(request, f"/models/{item.slug}/"),
+            }
+            for item in resources
+        ]
         if identity is not None:
-            trusted_scripts += ("navigation.js",)
+            trusted_scripts += ("table-navigation.js", "navigation.js")
+            if "dashboard.js" in trusted_scripts:
+                trusted_scripts = tuple(
+                    name for name in trusted_scripts if name != "dashboard.js"
+                ) + ("dashboard.js",)
         dependencies = []
         for name in trusted_scripts:
             if name in {"forms.js", "history.js"}:
@@ -69,6 +83,8 @@ class Rendering:
                 "forms.js",
                 "datetime.js",
                 "navigation.js",
+                "table-navigation.js",
+                "dashboard.js",
                 "listing.js",
                 "inline.js",
                 "history.js",
@@ -97,6 +113,8 @@ class Rendering:
             "identity": identity,
             "resources": resources,
             "resource_groups": groups,
+            "table_catalog": table_catalog,
+            "table_group_count": len({item["group"] for item in table_catalog}),
             "pages": pages,
             "history_allowed": identity is not None and await self._history_allowed(request),
             "csrf": self._csrf(request),
@@ -110,7 +128,7 @@ class Rendering:
         )
 
     def _breadcrumbs(self, request, template, context):
-        items = [{"label": self.gettext("Overview"), "url": self._url(request, "/")}]
+        items = [{"label": self.gettext("Home"), "url": self._url(request, "/")}]
         resource = context.get("resource")
         if resource is not None:
             items.append(

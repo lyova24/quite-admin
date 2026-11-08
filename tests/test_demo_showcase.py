@@ -31,7 +31,9 @@ async def test_example_showcases_temporal_text_json_inline_and_real_history(
             listing = await client.get("/admin/models/schedules/")
             assert "data-inline-endpoint=" in listing.text
             assert "data-list-null" in listing.text
-            assert 'data-group="Workspace"' in listing.text
+            home = await client.get("/admin/")
+            assert 'data-group="Workspace"' in home.text
+            assert "data-home-catalog" not in listing.text
             resources = await admin.resources()
             with sessions() as session:
                 row = session.get(Schedule, 1)

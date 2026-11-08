@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import re
 from pathlib import Path
 
 import pytest
@@ -13,14 +12,14 @@ from .helpers import login
 
 
 @pytest.mark.parametrize(
-    ("language", "show", "hide"),
+    ("language", "home", "profile"),
     [
-        ("en", "Show sidebar", "Hide sidebar"),
-        ("ru", "Показать боковую панель", "Скрыть боковую панель"),
+        ("en", "Home", "Profile"),
+        ("ru", "Главная", "Профиль"),
     ],
 )
-async def test_sidebar_toggle_is_localized_mount_scoped_and_hash_trusted(
-    auth, tmp_path, language, show, hide
+async def test_fixed_rail_is_localized_mount_scoped_and_hash_trusted(
+    auth, tmp_path, language, home, profile
 ):
     templates = tmp_path / "templates"
     templates.mkdir()
@@ -49,11 +48,23 @@ async def test_sidebar_toggle_is_localized_mount_scoped_and_hash_trusted(
             assert response.status_code == 200
             assert 'data-admin-shell data-storage-key="/tools/admin/"' in response.text
             assert '<aside class="sidebar" id="admin-sidebar">' in response.text
-            button = re.search(r"<button[^>]*data-sidebar-toggle[^>]*>", response.text)[0]
-            assert f'data-show-label="{show}"' in button
-            assert f'aria-label="{hide}"' in button
-            assert 'aria-controls="admin-sidebar"' in button and 'aria-expanded="true"' in button
-            assert " hidden" in button
+            aside = response.text.split('<aside class="sidebar" id="admin-sidebar">')[1].split(
+                "</aside>"
+            )[0]
+            assert f'aria-label="{home}"' in aside
+            assert f'aria-label="{profile}"' in aside
+            assert 'href="/tools/admin/"' in aside
+            assert 'action="/tools/admin/logout"' in aside
+            assert 'name="__csrf"' in aside
+            assert "data-table-directory" not in aside
+            assert "data-table-search" not in aside
+            for removed in (
+                "data-sidebar-toggle",
+                "data-sidebar-resizer",
+                "data-sidebar-dismiss",
+            ):
+                assert removed not in response.text
+            assert response.text.index("data-table-directory") > response.text.index("</aside>")
             assert f'integrity="{digest}"' in response.text
             policy = response.headers["content-security-policy"]
             assert f"'{digest}'" in policy

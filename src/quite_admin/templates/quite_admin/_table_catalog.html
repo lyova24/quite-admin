@@ -1,0 +1,11 @@
+<details class="home-catalog" data-home-catalog>
+  <summary><span>{{ t('All tables') }}</span><span class="badge">{{ table_catalog|length }}</span></summary>
+  <nav class="table-catalog-groups" aria-label="{{ t('All tables') }}" data-collection-navigation data-storage-key="{{ url('/') }}">
+  {% for label, items in table_catalog|groupby('group') %}
+    <details class="nav-group home-catalog-group" data-group="{{ label }}">
+      <summary><span>{{ label }}</span><span class="badge">{{ items|length }}</span></summary>
+      <div class="table-catalog-links">{% for item in items %}<a class="table-catalog-link" href="{{ item.url }}" data-table-link="{{ item.id }}"><span>{{ item.label }}</span>{% if item.name != item.label %}<code>{{ item.name }}</code>{% endif %}</a>{% endfor %}</div>
+    </details>
+  {% else %}<p class="muted">{{ t('No collections available.') }}</p>{% endfor %}
+  </nav>
+</details>

@@ -38,7 +38,7 @@ async def test_nested_mount_and_reverse_proxy_prefix(auth, framework, web_backen
         key = adapter.describe(model).record_key(record)
         page = await client.get(f"/proxy/internal/control/models/items/{key}")
         assert '<nav class="breadcrumbs" aria-label="Breadcrumbs">' in page.text
-        assert '<a href="/proxy/internal/control/">Overview</a>' in page.text
+        assert '<a href="/proxy/internal/control/" aria-label="Home">' in page.text
         assert '<a href="/proxy/internal/control/models/items/">Items</a>' in page.text
         assert '<span aria-current="page">A nested record</span>' in page.text
         confirmation = await client.get(f"/proxy/internal/control/models/items/{key}/delete")

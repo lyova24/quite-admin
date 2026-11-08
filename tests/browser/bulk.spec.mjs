@@ -6,6 +6,7 @@ test('page selection, confirmation, custom action and deletion', async ({page}, 
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password', {exact:true}).fill('browser-test-password');
   await page.getByRole('button', {name:'Sign in', exact:true}).click();
+  await expect(page).toHaveURL(/\/admin\/$/);
   const name = 'Bulk ' + randomUUID();
   await page.goto('/admin/models/entries/new');
   const token = await page.locator('input[name=__csrf]').first().inputValue();
@@ -42,7 +43,8 @@ test('page selection, confirmation, custom action and deletion', async ({page}, 
     const filterBox = await page.locator('[data-filter-add]').boundingBox();
     expect(iconBox.width).toBeCloseTo(filterBox.width, 0);
     expect(iconBox.height).toBeCloseTo(filterBox.height, 0);
-    expect(iconBox.x).toBeGreaterThan(filterBox.x);
+    if (Math.abs(iconBox.y - filterBox.y) < 2) expect(iconBox.x).toBeGreaterThan(filterBox.x);
+    else expect(iconBox.y).toBeGreaterThan(filterBox.y);
     await toggle.click();
     const menu = await toolbar.boundingBox();
     expect(menu.x).toBeGreaterThanOrEqual(0);
@@ -92,6 +94,7 @@ test('bulk deletion works without JavaScript', async ({browser, baseURL}) => {
     await page.getByLabel('Username').fill('admin');
     await page.getByLabel('Password', {exact:true}).fill('browser-test-password');
     await page.getByRole('button', {name:'Sign in', exact:true}).click();
+  await expect(page).toHaveURL(/\/admin\/$/);
     await page.goto('/admin/models/entries/new');
     const token = await page.locator('input[name=__csrf]').first().inputValue();
     const name = 'No script bulk ' + randomUUID();

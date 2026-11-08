@@ -7,42 +7,44 @@ async function login(page) {
   await page.getByRole('button', {name:'Sign in', exact:true}).click();
 }
 
-test('sidebar groups start collapsed, remember explicit choices and reveal the current table', async ({page}) => {
+test('Home catalog groups remember choices while table pages keep a compact rail', async ({page}) => {
   await login(page);
+  await page.locator('[data-home-catalog] > summary').click();
   const group = page.locator('.nav-group[data-group="Data"]');
   await expect(group).not.toHaveAttribute('open', '');
   await group.locator('summary').click();
   await expect(group).toHaveAttribute('open', '');
   await page.reload();
+  await page.locator('[data-home-catalog] > summary').click();
   await expect(group).toHaveAttribute('open', '');
   await group.locator('summary').click();
   await page.goto('/admin/models/entries/');
-  await expect(group).toHaveAttribute('open', '');
+  await expect(page.locator('[data-home-catalog]')).toHaveCount(0);
   await page.goto('/admin/');
+  await page.locator('[data-home-catalog] > summary').click();
   await expect(group).not.toHaveAttribute('open', '');
 });
 
-test('sidebar groups remain usable when browser storage is unavailable', async ({page}) => {
+test('Home catalog groups remain usable when browser storage is unavailable', async ({page}) => {
   await page.addInitScript(() => Object.defineProperty(window, 'localStorage', {get() {throw new Error('Storage disabled');}}));
   await login(page);
+  await page.locator('[data-home-catalog] > summary').click();
   const group = page.locator('.nav-group[data-group="Data"]');
   await expect(group).not.toHaveAttribute('open', '');
   await group.locator('summary').press('Enter');
   await expect(group).toHaveAttribute('open', '');
   await page.reload();
+  await page.locator('[data-home-catalog] > summary').click();
   await expect(group).not.toHaveAttribute('open', '');
 });
 
-test('overview groups start collapsed and open tables with the keyboard', async ({page}) => {
+test('Home offers search and shortcuts while the directory keeps native table navigation', async ({page}) => {
   await login(page);
-  const group = page.locator('main [data-dashboard-group]').filter({has:page.locator('a[href="/admin/models/entries/"]')});
-  const card = group.locator('.collection-card');
-  await expect(card).toBeHidden();
+  await expect(page.locator('[data-dashboard] h1')).toHaveText('Quite Admin');
+  await expect(page.locator('main [data-dashboard-table]')).toHaveCount(0);
+  await page.locator('[data-home-catalog] > summary').click();
+  const group = page.locator('.nav-group[data-group="Data"]');
   await group.locator('summary').press('Enter');
-  await expect(card).toBeVisible();
-  await expect(card.locator('.muted')).toHaveCount(0);
-  await card.click();
+  await group.locator('[data-table-link="entries"]').click();
   await expect(page).toHaveURL(/\/admin\/models\/entries\/$/);
-  await page.goto('/admin/');
-  await expect(group).not.toHaveAttribute('open', '');
 });

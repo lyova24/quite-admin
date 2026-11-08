@@ -1,3 +1,5 @@
+import html
+import json
 import re
 
 import pytest
@@ -9,7 +11,9 @@ from quite_admin import ModelOptions
 from .helpers import login
 
 
-async def test_sidebar_groups_are_permission_filtered_and_current_group_is_marked(web_admin):
+async def test_home_catalog_groups_are_permission_filtered_and_table_pages_keep_only_metadata(
+    web_admin,
+):
     web_admin.configure("items", options=ModelOptions(group="Sales <team>"))
     app = FastAPI()
     web_admin.mount_fastapi(app)
@@ -19,9 +23,9 @@ async def test_sidebar_groups_are_permission_filtered_and_current_group_is_marke
         group = re.search(r'<details[^>]*data-group="Sales &lt;team&gt;"[^>]*>', dashboard.text)[0]
         assert " open" not in group
         page = await client.get("/admin/models/items/")
-        assert "data-current-group" in page.text and "Sales &lt;team&gt;" in page.text
-        group = re.search(r'<details[^>]*data-group="Sales &lt;team&gt;"[^>]*>', page.text)[0]
-        assert " open" in group
+        assert "data-home-catalog" not in page.text
+        metadata = re.search(r"data-catalog='([^']*)'", page.text)[1]
+        assert json.loads(html.unescape(metadata))[0]["group"] == "Sales <team>"
         assert "navigation.js" in page.text
         web_admin.configure(
             "items", options=ModelOptions(group="Hidden", permission=lambda r, i, a: False)

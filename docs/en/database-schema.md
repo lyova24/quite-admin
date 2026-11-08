@@ -4,18 +4,24 @@ Open **Database schema** in the navigation (`/admin/schema`, or your mount prefi
 The diagram includes every registered table you can list and view. All these tables
 are selected by default, including tables without relationships, when no more than 100
 are available. Larger schemas start with no tables selected; choose the tables you need
-in the sidebar, or select **Show all**. It uses adapter metadata;
+in the table picker, or select **Show all**. It uses adapter metadata;
 opening or rearranging the diagram does not read or modify record values.
 
-[![Database schema with the table sidebar and expanded M:N junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)
+[![Database schema with the table picker and expanded M:N junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)
+
+The schema uses the available page height below the header. The wider table picker
+provides more room for labels and group controls; on short screens its contents
+scroll while the diagram remains usable. The picker belongs to the schema workspace;
+the complete table catalog for opening record lists is under **All tables** on Home.
+This layout preserves the initial manual-selection guard for more than 100 permitted tables.
 
 ## Explore the diagram
 
-- **Tables** opens the sidebar. Search by table label, table name or configured group, use checkboxes
+- **Tables** opens the table picker. Search by table label, table name or configured group, use checkboxes
   to choose visible tables, or select **Show all** / **Hide all**. Search narrows the
-  sidebar choices without changing the diagram. Clicking a table name centers it.
+  picker choices without changing the diagram. Clicking a table name centers it.
 - A group checkbox selects or clears all its tables at once. Groups follow
-  `ModelOptions(group="Sales")`, just like the navigation. A mixed checkbox means only
+  `ModelOptions(group="Sales")`, as in Home's **All tables** catalog. A mixed checkbox means only
   some tables in the group are selected; its count always covers the whole group.
   Searching hides nonmatching choices, but a group checkbox still changes every table
   in that group, including those hidden by search. Searching for a group name shows
@@ -27,13 +33,13 @@ opening or rearranging the diagram does not read or modify record values.
 - Click an **N:M** label to reveal the junction table and its two **1:N** links. Click
   either link's collapse control to return to the logical M:N relationship. If the
   junction is already registered, its existing card is reused. Otherwise its metadata
-  card becomes available in the sidebar when revealed.
+  card becomes available in the table picker when revealed.
 - Drag a card to move it; drag empty canvas to pan. The wheel pans; Ctrl/⌘ + wheel or
   the +/− buttons zoom. **Fit schema** fits visible tables; **Auto layout** also resets
   manual positions. Moving any table fixes the positions of every visible table until
   **Auto layout** is used. Automatic layout accounts for expanded cards and disconnected groups.
 - **Expand view** gives the diagram the available window area; Escape exits it. On narrow
-  screens the table sidebar starts collapsed, except when manual selection is required. **Open table** opens the selected
+  screens the table picker starts collapsed, except when manual selection is required. **Open table** opens the selected
   registered table's record list.
 
 Keyboard users can move a focused table with arrow keys (Shift moves farther), expand
@@ -43,10 +49,10 @@ while this page is open; reloading applies the initial selection policy again.
 
 ## Initial selection for large databases
 
-For a database with many registered tables, open **Database schema**, search the sidebar,
+For a database with many registered tables, open **Database schema**, search the table picker,
 and select only the tables you want to explore. Above the default threshold of 100
 available tables, the diagram opens empty with a message explaining this step. The
-sidebar stays open even on narrow screens. Relationships appear as their tables are selected.
+picker stays open even on narrow screens. Relationships appear as their tables are selected.
 
 Configure this behavior when creating your existing authenticated admin:
 
@@ -76,7 +82,7 @@ existing diagram. Long foreign-key chains do not depend on the browser's recursi
 
 In dense selections, a link can cross an unrelated card when a clear detour would be
 expensive to find. Select its source or target to highlight the relationship, or hide
-unrelated tables in the sidebar for a clearer diagram. Smaller selections retain full
+unrelated tables in the picker for a clearer diagram. Smaller selections retain full
 obstacle-avoiding routing.
 
 The SQL reflection adapter reuses relationship metadata within its current reflected

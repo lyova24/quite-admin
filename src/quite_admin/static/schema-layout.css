@@ -1,0 +1,15 @@
+/* Use the space beneath the page header; short viewports may scroll instead of clipping controls. */
+.schema-page .main { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 100vh; min-height: 100dvh; }
+.schema-page .main > .topbar { flex: none; }
+.schema-page .content { display: flex; flex-direction: column; flex: 1 0 auto; min-height: 0; width: 100%; max-width: none; margin: 0; padding: var(--space-5); }
+.schema-page .schema-workspace { display: flex; flex-direction: column; flex: 1 0 auto; min-width: 0; min-height: 0; }
+.schema-page .schema-toolbar, .schema-page .schema-help, .schema-page .schema-legend { flex: none; }
+.schema-page .schema-find, .schema-page .schema-controls { min-width: 0; max-width: 100%; }
+.schema-page .schema-toolbar .button { max-width: 100%; white-space: normal; line-height: 1.4; text-align: center; }
+.schema-page .schema-help, .schema-page .schema-legend { overflow-wrap: anywhere; }
+.schema-page .schema-body { flex: 1 1 0; min-height: min(20rem, 40dvh); grid-template-columns: min(16rem, 45%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.schema-page .schema-sidebar { min-height: 0; height: auto; max-height: none; overflow: auto; }
+.schema-page .schema-canvas { min-width: 0; min-height: 0; height: 100%; }
+.schema-page .schema-workspace.is-sidebar-hidden .schema-body { grid-template-columns: minmax(0, 1fr); }
+.schema-page .schema-workspace.is-expanded { min-height: 0; overflow: auto; }
+.schema-page .schema-workspace.is-expanded .schema-body { min-height: min(20rem, 40dvh); }

@@ -94,10 +94,10 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, web_backend, fr
         assert "Неверное имя пользователя или пароль." in bad.text
         await login(client, prefix)
         dashboard = await client.get(prefix + "/")
-        assert "1 таблица" in dashboard.text
+        assert "Доступно таблиц: 1" in dashboard.text
         assert "Управление магазином" in dashboard.text
         assert "Товары и заказы в одном месте." in dashboard.text
-        assert "Открыть таблицу" in dashboard.text
+        assert "Найти таблицу" in dashboard.text
 
         form = await client.get(prefix + "/models/items/new")
         assert "Создать запись" in form.text
@@ -284,7 +284,7 @@ async def test_default_branding_assets_and_palette_under_a_proxy_prefix(auth, fr
         assert "#3395fd" in logo.text
         await login(client, prefix)
         home = await client.get(prefix + "/")
-        assert 'class="brand-mark"' in home.text
+        assert 'class="brand-mark large"' in home.text
         assert "social-preview.png" not in home.text
 
 

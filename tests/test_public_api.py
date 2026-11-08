@@ -265,8 +265,8 @@ async def test_documented_template_context_and_field_include(
         assert page.status_code == 200
         assert '<meta name="contract" content="1">' in page.text
         assert "contract|admin|GET|Contract admin|Contract description|en|#3395fd|" in page.text
-        assert "items|Items|contract|items|Overview|Search|records|Contract admin|" in page.text
-        assert prefix + "/models/items/|1|True|True|Application context" in page.text
+        assert "items|Items|contract|items|Home|Search|records|Contract admin|" in page.text
+        assert prefix + "/models/items/|2|True|True|Application context" in page.text
         listing = await client.get(prefix + "/models/items/")
         assert listing.status_code == 200
         form = await client.get(prefix + "/models/items/new")

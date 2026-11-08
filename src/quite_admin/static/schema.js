@@ -485,7 +485,7 @@
         expandView.setAttribute("aria-pressed", String(active)); expandView.textContent = messages[active ? "exitView" : "expandView"];
         autoFit = true; requestAnimationFrame(draw);
       }
-      expandView.addEventListener("click", () => toggleView());
+      expandView.addEventListener("click", () => { toggleView(); expandView.focus({ preventScroll: true }); });
       root.querySelector("[data-schema-open]").addEventListener("click", () => { if (root.classList.contains("is-expanded")) toggleView(false); });
       root.addEventListener("keydown", (event) => {
         if (!root.classList.contains("is-expanded")) return;

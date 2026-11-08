@@ -1,0 +1,10 @@
+<div id="admin-table-directory" data-table-directory data-catalog='{{ table_catalog|tojson }}' data-messages='{{ {"search": t("Search tables"), "close": t("Close"), "tables": t("Tables"), "empty": t("No matching tables."), "count": t("Matching tables: {count}", count="{count}"), "more": t("Showing first {count} matches. Refine your search.", count="{count}"), "pin": t("Pin table: {name}", name="{name}"), "unpin": t("Unpin table: {name}", name="{name}"), "pinLimit": t("Pin up to {count} tables.", count="{count}")}|tojson }}' hidden></div>
+<dialog class="table-search-dialog" id="admin-table-search" data-table-search-dialog aria-labelledby="table-search-title">
+  <div class="table-search-heading"><h2 id="table-search-title">{{ t('Search tables') }}</h2><button class="table-search-button" type="button" data-table-search-close aria-label="{{ t('Close') }}" title="{{ t('Close') }}"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></div>
+  <div class="table-search-query"><label class="sr-only" for="table-search-input">{{ t('Search tables') }}</label><input type="search" id="table-search-input" data-table-search-input autocomplete="off" placeholder="{{ t('Search tables') }}" aria-describedby="table-search-help"></div>
+  <p class="table-search-help" id="table-search-help">{{ t('Use ↑ and ↓ to navigate, Enter to open, Escape to close.') }}</p>
+  <p class="table-search-count" role="status" aria-live="polite" data-table-search-count></p>
+  <p class="table-search-notice" role="status" data-table-search-notice hidden></p>
+  <ul class="table-search-results" data-table-search-results aria-label="{{ t('Tables') }}"></ul>
+  <p class="table-search-more" data-table-search-more hidden></p>
+</dialog>

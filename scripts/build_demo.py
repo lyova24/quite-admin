@@ -9,6 +9,7 @@ import shutil
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -138,8 +139,43 @@ async def build(output):
                 node["url"] = None
             schema_pages = {}
             history_periods = {}
+            shell_pages = {}
+            home_pages = {}
             for language in ("en", "ru"):
                 translations = Translator(language)
+                catalog = [
+                    {
+                        "id": slug,
+                        "name": resource.schema.name,
+                        "label": resource.label,
+                        "group": resource.options.group or translations.gettext("Other tables"),
+                        "url": "#/models/" + slug + "/",
+                    }
+                    for slug, resource in resources.items()
+                ]
+                demo_context = dict(
+                    title=admin.title,
+                    description=admin.description,
+                    language=language,
+                    t=translations.gettext,
+                    tn=translations.ngettext,
+                    identity=SimpleNamespace(subject="admin", display_name="admin"),
+                    resources=list(resources.values()),
+                    resource=None,
+                    table_catalog=catalog,
+                    table_group_count=len({item["group"] for item in catalog}),
+                    pages=[SimpleNamespace(slug="report", title="Store report")],
+                    history_allowed=True,
+                    csrf="browser-demo",
+                    url=lambda path="/": "#" + path,
+                    breadcrumbs=[{"label": translations.gettext("Home"), "url": None}],
+                )
+                shell_pages[language] = admin.templates.env.get_template(
+                    "quite_admin/base.html"
+                ).render(**demo_context)
+                home_pages[language] = admin.templates.env.get_template(
+                    "quite_admin/_home_content.html"
+                ).render(**demo_context)
                 schema_pages[language] = admin.templates.env.get_template(
                     "quite_admin/_schema_content.html"
                 ).render(
@@ -186,6 +222,12 @@ async def build(output):
                 "inline.js",
                 "listing.js",
                 "navigation.js",
+                "dashboard.js",
+                "table-navigation.js",
+                "shell.css",
+                "table-navigation.css",
+                "dashboard.css",
+                "schema-layout.css",
             ):
                 shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
             (output / "theme.css").write_text(admin.theme.stylesheet())
@@ -209,6 +251,8 @@ async def build(output):
                         },
                         "collections": collections,
                         "schemaPages": schema_pages,
+                        "shellPages": shell_pages,
+                        "homePages": home_pages,
                         "historyPeriods": history_periods,
                     },
                     ensure_ascii=False,
