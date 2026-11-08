@@ -23,6 +23,8 @@ GINO checks run separately with `--profile gino`. Version updates do not publish
 
 The supported range is **CPython 3.11–3.15**.
 CI runs the complete SQLite test suite for each version, without `continue-on-error`.
+Automatic CI selects checks affected by changed files; manual CI always runs the full
+suite. See [CI selection and release gates](releases.md#required-checks-and-artifacts).
 Python 3.14.7 and 3.15.2 have also been verified locally.
 Free-threaded builds and alternative Python implementations do not have a separate test matrix.
 

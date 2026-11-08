@@ -23,10 +23,12 @@ the documented tested matrix; dependency ranges are not proof of every combinati
 ## Release flow
 
 1. Finalize the version, changelog date and migration notes.
-2. Push the commit to `master` and wait for `ci.yml` to finish successfully. It runs
-   tests, lint, the API compatibility guard, documentation and dependency audits.
+2. Push the commit to `master` and wait for `ci.yml`. Automatic runs select checks
+   affected by the changed files. Before tagging, require **Release ready**: if it was
+   skipped, run **Actions → ci → Run workflow → master** (or
+   `gh workflow run ci.yml --ref master`) and wait for the full run on this exact commit.
 3. Run `python scripts/check_release.py --tag v<project.version>`.
-4. Push the version tag when authorized. `release.yml` requires successful master CI
+4. Push the version tag when authorized. `release.yml` requires successful full master CI
    and its documentation artifact for that exact commit, then publishes the GitHub
    release with the matching changelog and marks it Latest.
 5. After that workflow succeeds, `pages.yml` deploys the existing CI documentation
@@ -35,13 +37,19 @@ the documented tested matrix; dependency ranges are not proof of every combinati
 6. A separate job uploads the verified files to PyPI through Trusted Publishing; a final
    job installs the exact version from the public index and checks packaged resources.
 
-Releases never rerun the test matrix. Missing, unfinished, failed, cancelled or skipped
-CI blocks publication immediately; finish or rerun the master CI, then rerun the release.
-The latest master-push run for the tagged SHA must succeed, including **CI ready**;
-an older green run cannot hide a newer unsuccessful run. PR and manual CI runs do not
-authorize releases. Missing or expired documentation artifacts also block the release;
-rerun the master CI to rebuild them. Pages publishes the tagged version even if `master`
-has advanced, without rebuilding the docs or repeating demo tests.
+Releases never rerun the test matrix. The latest `ci.yml` run for the tagged SHA from
+a push to `master` or a manual run on `master` must finish successfully, including
+**CI ready** and **Release ready**. A selective green run allows a merge but does not
+authorize publication. An older green run cannot hide a newer failed, cancelled,
+unfinished or selective run. PR runs and runs from other branches cannot authorize
+releases. Do the full run before tagging, while `master` still points to the release
+commit; any subsequent commit needs its own validation.
+
+Missing or expired documentation artifacts also block the release; rerun the full CI
+to rebuild them. Pages publishes the tagged version even if `master` has advanced,
+using the documentation artifact from the same full run without rebuilding it or
+repeating demo tests. PyPI checks the same full-validation gate on automatic and manual
+uploads, without requiring the documentation artifact again.
 
 Creating a release in GitHub's interface uses the same existing-CI gate before Pages
 and PyPI publication. The package workflow checks out the validated commit by SHA,
@@ -109,13 +117,36 @@ Strict EN/RU builds and fresh security audits validate that environment.
 
 ## Required checks and artifacts
 
-`ci.yml` calls the reusable tests, database, dependency-compatibility and security
-workflows. The **CI ready** job fails when any group fails, is cancelled or is skipped.
-Configure this check as required on `master`; branch protection is a repository setting.
-CI runs on pushes to `master`, PRs and manual requests; a version-tag push only runs
-the publication workflow. The release checks the existing CI result for the tagged SHA
-before publishing a source-only GitHub release and triggering Pages/PyPI. Version checks allow
-Unreleased; release tags require a finalized changelog date.
+`ci.yml` first selects checks from the Git diff, then calls the reusable Python,
+documentation, JavaScript, browser, database, dependency-compatibility and security
+workflows. Every run checks release metadata without installing dependencies. Selection
+is reported in the run summary.
+
+| Changed files | Selected checks |
+| --- | --- |
+| Documentation, README, changelog or documentation build scripts | Strict EN/RU documentation and demo build |
+| Python sources, examples or demo export script | Python/lint/API checks, databases, compatibility, JavaScript, browsers and docs/demo |
+| Shared UI templates or static assets | Python, compatibility, JavaScript, browsers and docs/demo |
+| Demo sources | JavaScript, browsers and docs/demo |
+| Python tests | Python, databases and compatibility; shared browser fixtures also select browsers |
+| Node tests / Playwright specs or config | JavaScript / browser checks respectively |
+| `pyproject.toml` or `uv.lock` | All Python consumers and the Python dependency audit |
+| `package.json` or `package-lock.json` | Documentation, JavaScript, browsers and the npm audit |
+| CI workflows, CI guard scripts/tests or unknown paths | Full validation |
+
+Mixed changes select the union of their checks. PRs compare the head to its merge base
+with the target branch; pushes compare the whole pushed range. Deleted files and both
+paths of a rename count. An unavailable comparison, including a missing force-push base,
+runs all checks. Manual `ci.yml` runs always run everything. Weekly security scans
+continue auditing both ecosystems even without dependency changes.
+
+**CI ready** always runs and requires every selected group to succeed. Only groups
+explicitly excluded by the selection plan may be skipped; failed selection, failed
+metadata, cancellation or an unexpected skip fails the gate. Configure **CI ready**
+as the required check on `master`; branch protection is a repository setting.
+**Release ready** succeeds only after complete validation; leave it optional for merges.
+A version-tag push only runs publication and checks these existing gates for the exact
+tagged SHA. Version checks allow Unreleased; release tags require a finalized changelog date.
 
 CI exercises Chromium, Firefox and WebKit against a disposable fictional database.
 It checks filters and related-ID lookup, debounced search, CSV/XLSX downloads,
@@ -129,6 +160,5 @@ inline despite a valid Content-Disposition header
 ([upstream issue](https://github.com/microsoft/playwright/issues/43763)); macOS lets the
 suite assert real CSV and XLSX download events without replacing response headers.
 
-Pages deploys after a successful `ci` push run for the current `master` SHA. Failed,
-stale and pull-request runs cannot trigger publication. A manual run also requires a successful complete CI run
-for the current `master` commit.
+Pages deploys after the `release` workflow succeeds and rechecks full CI for the
+released SHA. Ordinary pushes, PRs and manual CI runs alone do not deploy the site.

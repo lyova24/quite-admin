@@ -1,0 +1,23 @@
+name: JavaScript
+on: [workflow_call, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+          enable-cache: true
+      - run: uv sync --locked
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/ci.test.cjs
+      - run: npm run demo:test

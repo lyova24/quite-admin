@@ -28,7 +28,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-      - name: Require successful master CI for the released commit
+      - name: Require full master CI for the released commit
         id: ci
         uses: actions/github-script@v7
         env:

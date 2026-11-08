@@ -2,6 +2,10 @@
 
 ## 0.8.3 — 2026-11-08
 
+- Select CI jobs by changed inputs, separating documentation, Python, JavaScript,
+  browser, database, compatibility and dependency audits. Keep a required selective
+  `CI ready` gate; require full `Release ready` validation for the exact release SHA,
+  with manual full CI available before tagging and the same gate for Pages/PyPI.
 - Place bulk actions in a compact icon menu on the right of each table's toolbar,
   matching the filter button. Show the selection count on the icon; support keyboard
   dismissal, mobile layouts and confirmation without JavaScript. Bulk deletion remains

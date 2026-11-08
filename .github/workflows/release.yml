@@ -26,7 +26,7 @@ jobs:
       - name: Resolve the tagged commit
         id: commit
         run: printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Require successful master CI and its documentation artifact
+      - name: Require full master CI and its documentation artifact
         uses: actions/github-script@v7
         env:
           RELEASE_SHA: ${{ steps.commit.outputs.sha }}

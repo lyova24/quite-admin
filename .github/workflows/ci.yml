@@ -8,29 +8,84 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Select checks
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.select.outputs.plan }}
+      full: ${{ steps.select.outputs.full }}
+      tests: ${{ steps.select.outputs.tests }}
+      docs: ${{ steps.select.outputs.docs }}
+      javascript: ${{ steps.select.outputs.javascript }}
+      browser: ${{ steps.select.outputs.browser }}
+      databases: ${{ steps.select.outputs.databases }}
+      compatibility: ${{ steps.select.outputs.compatibility }}
+      security: ${{ steps.select.outputs.security }}
+      python-audit: ${{ steps.select.outputs.python-audit }}
+      node-audit: ${{ steps.select.outputs.node-audit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: select
+        run: node scripts/select-ci.cjs
+
+  metadata:
+    name: Release metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python scripts/check_release.py
+
   tests:
+    needs: changes
+    if: needs.changes.outputs.tests == 'true'
     uses: ./.github/workflows/tests.yml
+  docs:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    uses: ./.github/workflows/docs.yml
+  javascript:
+    needs: changes
+    if: needs.changes.outputs.javascript == 'true'
+    uses: ./.github/workflows/javascript.yml
+  browser:
+    needs: changes
+    if: needs.changes.outputs.browser == 'true'
+    uses: ./.github/workflows/browser.yml
   databases:
+    needs: changes
+    if: needs.changes.outputs.databases == 'true'
     uses: ./.github/workflows/databases.yml
   compatibility:
+    needs: changes
+    if: needs.changes.outputs.compatibility == 'true'
     uses: ./.github/workflows/compatibility.yml
   security:
+    needs: changes
+    if: needs.changes.outputs.security == 'true'
     uses: ./.github/workflows/security.yml
+    with:
+      python-audit: ${{ needs.changes.outputs.python-audit == 'true' }}
+      node-audit: ${{ needs.changes.outputs.node-audit == 'true' }}
+
   ready:
     name: CI ready
     if: always()
-    needs: [tests, databases, compatibility, security]
+    needs: [changes, metadata, tests, docs, javascript, browser, databases, compatibility, security]
     runs-on: ubuntu-latest
     steps:
-      - name: Require every validation group to succeed
+      - uses: actions/checkout@v4
+      - name: Require selected checks to succeed and unrelated checks to be skipped
         env:
           CI_RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          results = json.loads(os.environ['CI_RESULTS'])
-          failures = [name for name, job in results.items() if job['result'] != 'success']
-          if failures:
-              raise SystemExit('Required checks did not pass: ' + ', '.join(failures))
-          PY
+        run: node scripts/ci-ready.cjs
+
+  release-ready:
+    name: Release ready
+    needs: [changes, ready]
+    if: always() && needs.changes.outputs.full == 'true' && needs.ready.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'All validation groups passed for this commit; release documentation is built.'

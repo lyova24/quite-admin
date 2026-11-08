@@ -1,0 +1,29 @@
+name: documentation
+on: [workflow_call, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+          enable-cache: true
+      - run: uv sync --locked
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run docs:build
+      - run: npm run demo:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quite-admin-docs
+          path: build/docs
+          if-no-files-found: error
+          include-hidden-files: true

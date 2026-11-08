@@ -65,7 +65,7 @@ jobs:
             test "$commit" = "$SOURCE_SHA"
           fi
           printf 'RELEASE_SHA=%s\n' "$commit" >> "$GITHUB_ENV"
-      - name: Require successful master CI for automatic and manual publication
+      - name: Require full master CI for automatic and manual publication
         uses: actions/github-script@v7
         with:
           script: |

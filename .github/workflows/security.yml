@@ -2,6 +2,13 @@ name: dependency security
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      python-audit:
+        type: boolean
+        default: true
+      node-audit:
+        type: boolean
+        default: true
   schedule:
     - cron: '17 6 * * 1'
 permissions:
@@ -9,6 +16,7 @@ permissions:
 
 jobs:
   python-audit:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || inputs.python-audit
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -29,6 +37,7 @@ jobs:
       - run: uvx --from pip-audit==2.10.1 pip-audit -r requirements-audit.txt --require-hashes --disable-pip --strict
 
   documentation-audit:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || inputs.node-audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
