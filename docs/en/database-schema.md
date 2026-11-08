@@ -2,7 +2,9 @@
 
 Open **Database schema** in the navigation (`/admin/schema`, or your mount prefix).
 The diagram includes every registered table you can list and view. All these tables
-are selected by default, including tables without relationships. It uses adapter metadata;
+are selected by default, including tables without relationships, when no more than 100
+are available. Larger schemas start with no tables selected; choose the tables you need
+in the sidebar, or select **Show all**. It uses adapter metadata;
 opening or rearranging the diagram does not read or modify record values.
 
 [![Database schema with the table sidebar and expanded M:N junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)
@@ -25,13 +27,39 @@ opening or rearranging the diagram does not read or modify record values.
   manual positions. Moving any table fixes the positions of every visible table until
   **Auto layout** is used. Automatic layout accounts for expanded cards and disconnected groups.
 - **Expand view** gives the diagram the available window area; Escape exits it. On narrow
-  screens the table sidebar starts collapsed. **Open table** opens the selected
+  screens the table sidebar starts collapsed, except when manual selection is required. **Open table** opens the selected
   registered table's record list.
 
 Keyboard users can move a focused table with arrow keys (Shift moves farther), expand
 it with Enter/Space and activate junction labels with Enter/Space. Focus the canvas and
 use +/− to zoom or 0 to fit. Selection, expansion, visibility and positions last only
-while this page is open; reloading selects all authorized registered tables again.
+while this page is open; reloading applies the initial selection policy again.
+
+## Initial selection for large databases
+
+For a database with many registered tables, open **Database schema**, search the sidebar,
+and select only the tables you want to explore. Above the default threshold of 100
+available tables, the diagram opens empty with a message explaining this step. The
+sidebar stays open even on narrow screens. Relationships appear as their tables are selected.
+
+Configure this behavior when creating your existing authenticated admin:
+
+```python
+admin = Admin(
+    auth=auth_backend, secret_key=session_secret, adapters=[adapter],
+    schema_auto_limit=True,
+    schema_table_limit=100,
+)
+```
+
+`schema_auto_limit` defaults to `True`; `schema_table_limit` must be a positive integer.
+The threshold counts registered tables visible to the current user after permission checks.
+Exactly 100 tables still open selected by default. The setting changes initial selection
+only: every authorized table remains searchable and **Show all** has no selection limit.
+Set `schema_auto_limit=False` to select every available table immediately, or change
+`schema_table_limit` for your database. Neither setting changes registration, permissions
+or record operations. The full metadata catalog is still loaded; these settings do not
+limit reflection or metadata transferred to the browser.
 
 ## Permissions and field policy
 

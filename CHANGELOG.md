@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.7 — 2026-11-08
+
+- Start diagrams with more than 100 permitted tables unselected and explain manual selection. Add schema_auto_limit=True and a configurable schema_table_limit; preserve Show all and allow disabling the initial guard without changing table access.
+
 ## 0.8.6 — 2026-11-08
 
 - Use table/tables terminology throughout the English/Russian interface, history filters, schema links and browser demo. Preserve collection-named Python identifiers, URLs, history keys and legacy template translation IDs.

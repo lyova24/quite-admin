@@ -162,6 +162,8 @@ class Admin(
         max_concurrent_reads: int | None = None,
         history_level: HistoryLevel = "changes",
         history_retention_days: int | None = 90,
+        schema_auto_limit: bool = True,
+        schema_table_limit: int = 100,
     ) -> None:
         if len(secret_key.encode()) < 32:
             raise ValueError("secret_key must contain at least 32 bytes of random secret material.")
@@ -169,6 +171,10 @@ class Admin(
             raise ValueError("session_max_age must be positive.")
         if not isinstance(history_enabled, bool):
             raise ValueError("history_enabled must be a boolean.")
+        if not isinstance(schema_auto_limit, bool):
+            raise ValueError("schema_auto_limit must be a boolean.")
+        if type(schema_table_limit) is not int or schema_table_limit <= 0:
+            raise ValueError("schema_table_limit must be a positive integer.")
         if history_retention_days is not None and (
             type(history_retention_days) is not int or not 1 <= history_retention_days <= 365000
         ):
@@ -200,6 +206,8 @@ class Admin(
         self.history_enabled = history_enabled
         self.history_level = validate_history_level(history_level)
         self.history_retention_days = history_retention_days
+        self.schema_auto_limit = schema_auto_limit
+        self.schema_table_limit = schema_table_limit
         self._next_history_cleanup = 0.0
         self._lifespan_users = 0
         self._history_signer = URLSafeTimedSerializer(secret_key, salt="quite-admin-history")
@@ -616,6 +624,9 @@ class Admin(
             "quite_admin/schema.html",
             schema_page=True,
             graph=graph,
+            schema_manual_selection=(
+                self.schema_auto_limit and len(graph["nodes"]) > self.schema_table_limit
+            ),
             schema_messages=self._schema_messages(),
             trusted_scripts=("schema.js",) if graph["nodes"] else (),
         )

@@ -300,6 +300,13 @@ RUSSIAN = {
     "Show all": "Показать все",
     "Hide all": "Скрыть все",
     "Select tables to display": "Выберите таблицы для показа",
+    (
+        "There are too many tables to display automatically. "
+        "Select tables in the sidebar, or choose Show all."
+    ): (
+        "Таблиц слишком много для автоматического отображения. "
+        "Выберите таблицы в боковой панели или нажмите «Показать все»."
+    ),
     "No matching tables.": "Таблицы не найдены.",
     "Find table": "Найти таблицу",
     "Zoom in": "Приблизить",

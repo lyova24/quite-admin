@@ -24,6 +24,8 @@ All `Admin(...)` arguments are keyword-only. Configure the instance before servi
 | `history_permission` | `None`; optional sync/async callback restricting history and user lookup |
 | `query_timeout` | `None`; optional positive deadline in seconds for an admin read, including its queue and async pool wait |
 | `max_concurrent_reads` | `None`; optional positive integer limiting simultaneous reads across this admin in one process |
+| `schema_auto_limit` | `True`; start large database schemas with no tables selected; [initial selection](database-schema.md#initial-selection-for-large-databases) |
+| `schema_table_limit` | `100`; positive integer threshold of authorized registered tables for initial schema selection |
 
 Use `add_adapter(adapter, discover=True, namespace=None)` to attach a data source,
 `register(model, adapter=..., options=...)` to select/configure a model and

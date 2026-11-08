@@ -24,6 +24,8 @@
 | `history_permission` | `None`; необязательный sync/async callback доступа к истории и поиску пользователей |
 | `query_timeout` | `None`; положительный лимит секунд на чтение админки, включая очередь и ожидание async-пула |
 | `max_concurrent_reads` | `None`; положительное целое ограничение одновременных чтений этой админки в одном процессе |
+| `schema_auto_limit` | `True`; большие схемы БД открываются без выбранных таблиц; [начальный выбор](database-schema.md#nachalnyj-vybor-dlya-bolshih-baz-dannyh) |
+| `schema_table_limit` | `100`; положительный целочисленный порог доступных зарегистрированных таблиц для начального выбора схемы |
 
 `add_adapter(adapter, discover=True, namespace=None)` подключает источник данных,
 `register(model, adapter=..., options=...)` выбирает и настраивает модель,

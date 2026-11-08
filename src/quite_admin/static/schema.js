@@ -177,7 +177,8 @@
       const svg = root.querySelector("[data-schema-canvas]"), choices = root.querySelector("[data-schema-choices]");
       const catalog = new Map([...graph.nodes, ...(graph.junctions || [])].map((node) => [node.id, node]));
       const known = new Map(graph.nodes.map((node) => [node.id, node]));
-      const visible = new Set(known.keys()), expanded = new Set(), opened = new Set(), manual = new Map();
+      const manualSelection = root.dataset.initialSelection === "none";
+      const visible = new Set(manualSelection ? [] : known.keys()), expanded = new Set(), opened = new Set(), manual = new Map();
       let laidOut = [], selected = null, view = { x: 0, y: 0, width: 600, height: 360 }, zoom = 1, autoFit = true, drag = null, frame = null, suppressClick = false;
       const ns = "http://www.w3.org/2000/svg";
       const el = (tag, attributes = {}, text) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value); if (text != null) node.textContent = text; return node; };
@@ -356,7 +357,7 @@
           else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
       });
-      if (root.getBoundingClientRect().width < 700) { root.classList.add("is-sidebar-hidden"); root.querySelector("[data-schema-sidebar-toggle]").setAttribute("aria-expanded", "false"); }
+      if (!manualSelection && root.getBoundingClientRect().width < 700) { root.classList.add("is-sidebar-hidden"); root.querySelector("[data-schema-sidebar-toggle]").setAttribute("aria-expanded", "false"); }
       let lastWidth = 0, lastHeight = 0;
       const resize = new ResizeObserver(() => { if (!root.isConnected) { root.schemaCleanup(); return; } const size = dimensions(); if (size.width === lastWidth && size.height === lastHeight) return; lastWidth = size.width; lastHeight = size.height; if (autoFit) draw(); else { view.width = size.width / zoom; view.height = size.height / zoom; updateView(); } });
       root.schemaCleanup = () => { restoreBackground(); resize.disconnect(); if (frame) cancelAnimationFrame(frame); };
