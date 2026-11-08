@@ -92,3 +92,18 @@ test('demo exports more than the visible page and restores initial data on reset
   await page.getByRole('link',{name:'Dates, time and JSON',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Catalog launch',exact:true})).toBeVisible();
 });
+
+test('demo sidebar uses the shared toggle across routes, reloads and language changes', async ({page}) => {
+  const toggle = page.locator('[data-sidebar-toggle]'), sidebar = page.locator('#admin-sidebar');
+  await toggle.click();
+  await expect(sidebar).toBeHidden();
+  await page.getByRole('link', {name: 'Edit a list cell', exact: true}).click();
+  await expect(sidebar).toBeHidden();
+  await page.reload();
+  await expect(sidebar).toBeHidden();
+  await page.getByLabel('Language', {exact: true}).selectOption('ru');
+  await expect(toggle).toHaveAccessibleName('Показать боковую панель');
+  await toggle.press('Enter');
+  await expect(sidebar).toBeVisible();
+  await expect(toggle).toHaveAccessibleName('Скрыть боковую панель');
+});

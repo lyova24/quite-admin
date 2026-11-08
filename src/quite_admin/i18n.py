@@ -388,6 +388,8 @@ RUSSIAN = {
     "No collections available.": "Нет доступных таблиц.",
     "PAGES": "СТРАНИЦЫ",
     "Custom pages": "Свои страницы",
+    "Show sidebar": "Показать боковую панель",
+    "Hide sidebar": "Скрыть боковую панель",
     "Sign out": "Выйти",
     "YOUR WORKSPACE, AT A GLANCE": "ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО",
     "Browse your collections and keep things running.": (

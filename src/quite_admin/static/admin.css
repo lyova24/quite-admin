@@ -804,3 +804,10 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 
 .relation-value { position: relative; z-index: 2; }
 .relation-value:hover { color: var(--accent); }
+
+.topbar-start { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.sidebar-toggle { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0.375rem; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--muted); }
+.sidebar-toggle:hover { background: var(--hover); color: var(--text); }
+.sidebar-toggle svg { width: 1.125rem; height: 1.125rem; }
+.shell.is-sidebar-collapsed { grid-template-columns: minmax(0, 1fr); }
+.shell.is-sidebar-collapsed > .sidebar { display: none; }

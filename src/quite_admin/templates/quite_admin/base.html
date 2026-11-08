@@ -36,13 +36,13 @@
       <p class="nav-label">{{ t('PAGES') }}</p>
       <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}{{ nav_link(url('/pages/' ~ item.slug), item.title, page and page.slug == item.slug) }}{% endfor %}</nav>
       {% endif %}
-      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.10</span></div>
+      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.11</span></div>
       <div class="sidebar-resizer" data-sidebar-resizer role="separator" aria-orientation="vertical" aria-controls="admin-sidebar" aria-label="{{ t('Resize sidebar') }}" tabindex="0" title="{{ t('Drag or use arrow keys to resize; double-click to reset.') }}" hidden></div>
     </aside>
   {% endif %}
     <main class="main">
     {% if identity %}
-      <header class="topbar"><nav class="breadcrumbs" aria-label="{{ t('Breadcrumbs') }}"><ol>{% for crumb in breadcrumbs %}<li>{% if not loop.first %}<span class="breadcrumb-divider" aria-hidden="true">/</span>{% endif %}{% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span aria-current="page">{{ crumb.label }}</span>{% endif %}</li>{% endfor %}</ol></nav>
+      <header class="topbar"><div class="topbar-start"><button class="sidebar-toggle" type="button" data-sidebar-toggle data-show-label="{{ t('Show sidebar') }}" data-hide-label="{{ t('Hide sidebar') }}" aria-label="{{ t('Hide sidebar') }}" aria-controls="admin-sidebar" aria-expanded="true" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M7.5 3v14"/></svg></button><nav class="breadcrumbs" aria-label="{{ t('Breadcrumbs') }}"><ol>{% for crumb in breadcrumbs %}<li>{% if not loop.first %}<span class="breadcrumb-divider" aria-hidden="true">/</span>{% endif %}{% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span aria-current="page">{{ crumb.label }}</span>{% endif %}</li>{% endfor %}</ol></nav></div>
         <div class="account"><span class="avatar">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><span>{{ identity.display_name or identity.subject }}</span>
         <form method="post" action="{{ url('/logout') }}">{{ csrf_input() }}<button class="link-button" type="submit">{{ t('Sign out') }}</button></form></div>
       </header>

@@ -1,14 +1,44 @@
-/* Only collection-group state is persisted, scoped to this admin mount. */
+/* Navigation preferences are browser-local and scoped to this admin mount. */
 (function () {
-  for (const nav of document.querySelectorAll('[data-collection-navigation]')) {
-    for (const group of nav.querySelectorAll('[data-group]')) {
-      const key = 'quite-admin:group:' + nav.dataset.storageKey + ':' + group.dataset.group;
-      try { if (!group.hasAttribute('data-current-group')) group.open = localStorage.getItem(key) === 'open'; } catch (_) { /* Storage may be disabled. */ }
-      group.querySelector('summary').addEventListener('click', () => {
-        try { localStorage.setItem(key, group.open ? 'closed' : 'open'); } catch (_) { /* Native details still work. */ }
+  const initializedGroups = new WeakSet(), initializedShells = new WeakSet();
+  function init(root = document) {
+    for (const nav of root.querySelectorAll('[data-collection-navigation]')) {
+      for (const group of nav.querySelectorAll('[data-group]')) {
+        if (initializedGroups.has(group)) continue;
+        initializedGroups.add(group);
+        const key = 'quite-admin:group:' + nav.dataset.storageKey + ':' + group.dataset.group;
+        try { if (!group.hasAttribute('data-current-group')) group.open = localStorage.getItem(key) === 'open'; } catch (_) { /* Storage may be disabled. */ }
+        group.querySelector('summary').addEventListener('click', () => {
+          try { localStorage.setItem(key, group.open ? 'closed' : 'open'); } catch (_) { /* Native details still work. */ }
+        });
+      }
+    }
+    for (const shell of root.querySelectorAll('[data-admin-shell]')) {
+      const sidebar = shell.querySelector('#admin-sidebar'), button = shell.querySelector('[data-sidebar-toggle]');
+      if (!sidebar || !button || initializedShells.has(shell)) continue;
+      initializedShells.add(shell);
+      const key = 'quite-admin:sidebar:' + shell.dataset.storageKey;
+      const setCollapsed = (collapsed) => {
+        shell.classList.toggle('is-sidebar-collapsed', collapsed);
+        sidebar.hidden = collapsed;
+        button.setAttribute('aria-expanded', String(!collapsed));
+        const label = collapsed ? button.dataset.showLabel : button.dataset.hideLabel;
+        button.setAttribute('aria-label', label);
+        button.title = label;
+      };
+      let collapsed = false;
+      try { collapsed = localStorage.getItem(key) === 'collapsed'; } catch (_) { /* Default to the visible navigation. */ }
+      setCollapsed(collapsed);
+      button.hidden = false;
+      button.addEventListener('click', () => {
+        const collapsed = !shell.classList.contains('is-sidebar-collapsed');
+        setCollapsed(collapsed);
+        try { localStorage.setItem(key, collapsed ? 'collapsed' : 'expanded'); } catch (_) { /* Keep the current page usable without storage. */ }
       });
     }
   }
+  window.quiteAdminNavigation = init;
+  init();
 })();
 
 /* A presentation preference only; table names and data never enter browser storage. */

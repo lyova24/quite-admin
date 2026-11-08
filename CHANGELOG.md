@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.11 — 2026-11-08
+
+- Hide and restore the left sidebar with an accessible icon button that stays available in the top bar. Remember visibility per admin mount, support keyboard and mobile screens, and share the behavior with the browser demo without relaxing CSP.
+
 ## 0.8.10 — 2026-11-08
 
 - Resize the left navigation by dragging its edge or using the keyboard, remember widths per admin mount, and restore the theme default on double-click. Wrap long table and group names and keep mobile navigation free of horizontal scrolling.

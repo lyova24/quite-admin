@@ -17,6 +17,12 @@ Custom logos use the same alignment.
 Overview shows the grouped tables and custom pages. Table lists share its
 content padding and maximum width, as do Database schema and Activity history.
 
+Use **Hide sidebar** beside the breadcrumbs to give the current page more room.
+The button stays in the top bar as **Show sidebar**, including on narrow screens.
+Both actions work with Enter or Space. The browser remembers your choice for this
+admin mount; when storage is unavailable it applies only to the current page.
+Without JavaScript the sidebar remains visible and its links still work.
+
 [![Overview with grouped table navigation](../assets/screenshots/overview.png)](../assets/screenshots/overview.png)
 
 ## Edit without leaving the list
