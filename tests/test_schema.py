@@ -15,6 +15,26 @@ class Status(Enum):
     ACTIVE = "active"
 
 
+@pytest.mark.parametrize("collision", ["bulk", "record", "shared"])
+def test_bulk_action_slugs_are_unambiguous(collision):
+    action = RecordAction("reset", "Reset", lambda operation: None, bulk=collision == "shared")
+    options = (
+        ModelOptions(bulk_actions=(action, action))
+        if collision == "bulk"
+        else ModelOptions(actions=(action,), bulk_actions=(action,))
+    )
+    schema = ModelSchema("items", (Field("id", int, primary_key=True),))
+    with pytest.raises(ValueError, match="Duplicate .*action slugs"):
+        options.validate(schema)
+
+
+def test_bulk_actions_require_action_definitions():
+    with pytest.raises(TypeError, match="RecordAction"):
+        ModelOptions(bulk_actions=("delete",)).validate(
+            ModelSchema("items", (Field("id", int, primary_key=True),))
+        )
+
+
 def test_explicit_constructors_keep_defaults_validation_and_replacement():
     field = Field("display_name")
     assert field.label == "Display Name" and field.kind == "string"

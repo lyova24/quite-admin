@@ -85,6 +85,7 @@ test('service changes refresh URL, JSON and long text after another field is edi
   await body.locator('summary').click();
   await expect(body.locator('pre')).toContainText('Updated text\nLong value');
   await page.locator('[data-bulk-all]').check();
+  await page.locator('[data-bulk-panel] > summary').click();
   await page.getByRole('button', {name:'Continue',exact:true}).click();
   await page.getByRole('button', {name:'Confirm action',exact:true}).click();
   await expect(page.getByRole('status')).toContainText('Succeeded: 1');

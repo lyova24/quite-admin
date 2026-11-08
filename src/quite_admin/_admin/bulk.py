@@ -10,6 +10,12 @@ from ..operations import current_operation
 
 
 class BulkViews:
+    def _bulk_custom_actions(self, resource):
+        return (
+            *(action for action in resource.options.actions if action.bulk),
+            *resource.options.bulk_actions,
+        )
+
     def _bulk_back_url(self, request, resource):
         base = self._url(request, f"/models/{resource.slug}/")
         return base + ("?" + str(request.query_params) if request.query_params else "")
@@ -18,8 +24,8 @@ class BulkViews:
         choices = []
         if resource.options.bulk_delete and await self._allowed(request, resource, "delete"):
             choices.append({"slug": "delete", "label": self.gettext("Delete selected records")})
-        for action in resource.options.actions:
-            if action.bulk and await self._action_allowed(request, resource, action):
+        for action in self._bulk_custom_actions(resource):
+            if await self._action_allowed(request, resource, action):
                 choices.append({"slug": "action:" + action.slug, "label": action.label})
         return choices
 
@@ -27,6 +33,7 @@ class BulkViews:
         if not await self._allowed(request, resource, "list"):
             raise HTTPException(403, "You do not have permission to perform this action.")
         if name == "delete":
+            action = None
             allowed = resource.options.bulk_delete and await self._allowed(
                 request, resource, "delete"
             )
@@ -34,8 +41,8 @@ class BulkViews:
             action = next(
                 (
                     item
-                    for item in resource.options.actions
-                    if "action:" + item.slug == name and item.bulk
+                    for item in self._bulk_custom_actions(resource)
+                    if "action:" + item.slug == name
                 ),
                 None,
             )
@@ -44,6 +51,7 @@ class BulkViews:
             allowed = await self._action_allowed(request, resource, action)
         if not allowed:
             raise HTTPException(403, "You do not have permission to perform this action.")
+        return action
 
     def _bulk_revision(self, resource, record):
         return self._fingerprint(
@@ -126,10 +134,6 @@ class BulkViews:
 
     async def _bulk_execute(self, request, resource, data):
         name = data["action"]
-        # Resolve the command again: runtime configuration and permissions may change.
-        action = next(
-            (item for item in resource.options.actions if "action:" + item.slug == name), None
-        )
         results = []
         try:
             for token, revision in data["records"]:
@@ -140,7 +144,8 @@ class BulkViews:
                 label = self.gettext("Selected record")
                 status = 200
                 try:
-                    await self._bulk_permission(request, resource, name)
+                    # Resolve the handler alongside fresh permissions for each record.
+                    action = await self._bulk_permission(request, resource, name)
                     record = await self._record(resource, token)
                     label = resource.record_label(record)
                     if not hmac.compare_digest(revision, self._bulk_revision(resource, record)):
@@ -156,7 +161,7 @@ class BulkViews:
                         {},
                         {},
                         key,
-                        lambda key=key: (
+                        lambda key=key, action=action: (
                             resource.adapter.delete(resource.model, key)
                             if name == "delete"
                             else action.handler(current_operation())

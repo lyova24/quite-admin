@@ -7,7 +7,7 @@ from httpx import ASGITransport, AsyncClient
 
 from examples.quickstart import create_app
 
-from .helpers import csrf, login, revision
+from .helpers import confirmation, csrf, login, revision
 
 
 @pytest.mark.parametrize("module_name", ["examples.fastapi_app", "examples.litestar_app"])
@@ -39,6 +39,23 @@ async def test_example_lifespan_and_custom_report(module_name, monkeypatch, tmp_
         listing = await client.get("/admin/models/products/")
         assert "Everyday notebook" in listing.text
         assert "8 records" in listing.text
+        assert "Deactivate products" in listing.text
+        assert "Deactivate products" not in (await client.get("/admin/models/notes/")).text
+        keys = re.findall(r'name="keys" value="([^"]+)"', listing.text)
+        preview = await client.post(
+            "/admin/models/products/actions/bulk",
+            data={"__csrf": csrf(listing), "keys": keys[:2], "action": "action:deactivate"},
+        )
+        assert "Confirm bulk action" in preview.text
+        result = await client.post(
+            "/admin/models/products/actions/bulk",
+            data={"__csrf": csrf(preview), "__confirmation": confirmation(preview)},
+        )
+        assert "Succeeded: 2" in result.text
+        resource = (await module.admin.resources())["products"]
+        for key in keys[:2]:
+            row = await resource.adapter.get(resource.model, resource.schema.parse_key(key))
+            assert row["active"] is False
         report = await client.get("/admin/pages/report")
         assert report.status_code == 200, report.text
         assert "Customers in your workspace" in report.text

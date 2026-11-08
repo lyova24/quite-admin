@@ -29,3 +29,9 @@ async def login(client, prefix="/admin"):
 def revision(response) -> str:
     token = re.search(r'name="__revision" value="([^"]+)"', response.text)
     return html.unescape(token.group(1)) if token else ""
+
+
+def confirmation(response) -> str:
+    token = re.search(r'name="__confirmation" value="([^"]+)"', response.text)
+    assert token is not None, response.text
+    return html.unescape(token.group(1))

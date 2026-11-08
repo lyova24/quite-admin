@@ -118,6 +118,9 @@ test('an application can retain compact sizing or enlarge the rem base without c
   await fitsViewport(page, page.locator('.list-table-scroll'));
   await page.setViewportSize({width:390, height:844});
   await fitsViewport(page, page.locator('.list-table-scroll'));
+  await page.locator('[data-bulk-panel] > summary').click();
+  await fitsViewport(page, page.locator('[data-bulk-form]'));
+  await page.keyboard.press('Escape');
   await page.goto('/admin/models/entries/new');
   await fitsViewport(page, page.locator('.record-form'));
   const picker = page.locator('[data-relation-picker]').filter({has:page.locator('[name="__relation__to_customers_by_customer_id"]')});

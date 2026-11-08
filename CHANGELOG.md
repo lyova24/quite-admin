@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.3 — 2026-11-08
+
+- Place bulk actions in a compact icon menu on the right of each table's toolbar,
+  matching the filter button. Show the selection count on the icon; support keyboard
+  dismissal, mobile layouts and confirmation without JavaScript. Bulk deletion remains
+  available by default when the collection's delete permission allows it.
+- Add per-table `ModelOptions(bulk_actions=(RecordAction(...),))` for list-only commands,
+  using the existing per-record handlers, permissions, hooks and history. Preserve
+  `actions` and `RecordAction(bulk=True)` compatibility; reject ambiguous action slugs.
+- Add a tested product-deactivation action to the FastAPI/Litestar examples and update
+  the English/Russian guides with configuration, confirmation and partial-result behavior.
+
 ## 0.8.2 — 2026-11-06
 
 - Clarify the README and English/Russian documentation around existing application models.

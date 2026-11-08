@@ -149,7 +149,7 @@ for mount, theme in (
                 "name": FieldOptions(label="Name"),
                 "customer_id": FieldOptions(relation_label="caption"),
             },
-            actions=(RecordAction("reset", "Reset counters", reset_counter, bulk=True),),
+            bulk_actions=(RecordAction("reset", "Reset counters", reset_counter),),
         ),
     )
     admin.configure(

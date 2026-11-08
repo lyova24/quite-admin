@@ -1,5 +1,4 @@
-import re
-from html import unescape
+from dataclasses import replace
 
 import pytest
 from fastapi import FastAPI
@@ -9,13 +8,7 @@ from litestar import Litestar
 from quite_admin import ModelOptions, OperationHooks, RecordAction, current_operation
 from quite_admin.errors import Conflict
 
-from .helpers import csrf, login
-
-
-def confirmation(response):
-    match = re.search(r'name="__confirmation" value="([^"]+)"', response.text)
-    assert match is not None, response.text
-    return unescape(match[1])
+from .helpers import confirmation, csrf, login
 
 
 @pytest.fixture(params=["fastapi", "litestar"])
@@ -66,8 +59,9 @@ async def test_bulk_delete_confirms_then_records_each_write(bulk_client, web_adm
     assert all(item.details is not None and not item.details.record_exists for item in events)
 
 
+@pytest.mark.parametrize("option", ["actions", "bulk_actions"])
 async def test_bulk_action_uses_existing_hooks_and_preserves_partial_results(
-    bulk_client, web_admin, web_backend
+    bulk_client, web_admin, web_backend, option
 ):
     adapter, model = web_backend
     web_admin.history_level = "audit"
@@ -90,7 +84,9 @@ async def test_bulk_action_uses_existing_hooks_and_preserves_partial_results(
     web_admin.hooks = OperationHooks(before_write=before)
     web_admin.configure(
         "items",
-        options=ModelOptions(actions=(RecordAction("reset", "Reset counters", reset, bulk=True),)),
+        options=ModelOptions(
+            **{option: (RecordAction("reset", "Reset counters", reset, bulk=option == "actions"),)}
+        ),
     )
     preview = await selection(bulk_client, adapter, model, rows, "action:reset")
     result = await bulk_client.post(
@@ -110,6 +106,127 @@ async def test_bulk_action_uses_existing_hooks_and_preserves_partial_results(
     assert len(events) == 3
     assert sum(item.outcome == "success" for item in events) == 2
     assert current_operation() is None
+
+
+async def test_bulk_only_actions_coexist_with_record_actions(bulk_client, web_admin, web_backend):
+    adapter, model = web_backend
+    row = await adapter.create(model, {"name": "Selected", "count": 7})
+
+    async def reset(operation):
+        return await adapter.update(model, operation.key, {"count": 0})
+
+    action = RecordAction("reset", "Reset selected counters", reset)
+    options = ModelOptions(
+        bulk_delete=False,
+        actions=(
+            RecordAction("single", "Single record only", reset),
+            RecordAction("shared", "Shared action", reset, bulk=True),
+        ),
+        bulk_actions=(action,),
+    )
+    web_admin.configure("items", options=options)
+    listing = await bulk_client.get("/admin/models/items/")
+    assert 'value="action:reset"' in listing.text
+    assert 'value="action:shared"' in listing.text
+    assert 'value="action:single"' not in listing.text
+    assert 'value="delete"' not in listing.text
+    key = adapter.describe(model).record_key(row)
+    record = await bulk_client.get(f"/admin/models/items/{key}")
+    assert "Single record only" in record.text and "Shared action" in record.text
+    assert "Reset selected counters" not in record.text
+    assert not action.bulk  # Registering it for the list never mutates a shared definition.
+    assert (
+        await bulk_client.post(
+            f"/admin/models/items/{key}/actions/reset", data={"__csrf": csrf(record)}
+        )
+    ).status_code == 404
+    preview = await selection(bulk_client, adapter, model, [row], "action:reset")
+    result = await bulk_client.post(
+        "/admin/models/items/actions/bulk",
+        data={"__csrf": csrf(preview), "__confirmation": confirmation(preview)},
+    )
+    assert "Succeeded: 1" in result.text
+    assert (await adapter.get(model, {"id": row["id"]}))["count"] == 0
+    # Removing a configured command also invalidates a previously signed selection.
+    row = await adapter.get(model, {"id": row["id"]})
+    preview = await selection(bulk_client, adapter, model, [row], "action:reset")
+    web_admin.configure("items", options=replace(options, bulk_actions=()))
+    result = await bulk_client.post(
+        "/admin/models/items/actions/bulk",
+        data={"__csrf": csrf(preview), "__confirmation": confirmation(preview)},
+    )
+    assert "Failed: 1" in result.text and "Action not found." in result.text
+
+
+@pytest.mark.parametrize("denied_permission", ["list", "delete", "custom"])
+async def test_bulk_only_action_rechecks_permissions(
+    bulk_client, web_admin, web_backend, denied_permission
+):
+    adapter, model = web_backend
+    row = await adapter.create(model, {"name": "kept", "count": 7})
+    denied = set()
+
+    async def permission(request, identity, action):
+        return action not in denied
+
+    async def custom_permission(request, identity, action):
+        assert action == "delete"
+        return "custom" not in denied
+
+    async def reset(operation):
+        return await adapter.update(model, operation.key, {"count": 0})
+
+    web_admin.configure(
+        "items",
+        options=ModelOptions(
+            bulk_delete=False,
+            permission=permission,
+            bulk_actions=(
+                RecordAction(
+                    "reset",
+                    "Reset",
+                    reset,
+                    permission=custom_permission,
+                    required_permission="delete",
+                ),
+            ),
+        ),
+    )
+    preview = await selection(bulk_client, adapter, model, [row], "action:reset")
+    denied.add(denied_permission)
+    result = await bulk_client.post(
+        "/admin/models/items/actions/bulk",
+        data={"__csrf": csrf(preview), "__confirmation": confirmation(preview)},
+    )
+    assert "Failed: 1" in result.text
+    assert (await adapter.get(model, {"id": row["id"]}))["count"] == 7
+    assert (
+        await bulk_client.post(
+            "/admin/models/items/actions/bulk",
+            data={
+                "__csrf": csrf(preview),
+                "keys": [adapter.describe(model).record_key(row)],
+                "action": "action:reset",
+            },
+        )
+    ).status_code == 403
+    listing = await bulk_client.get("/admin/models/items/")
+    assert "data-bulk-panel" not in listing.text
+
+
+async def test_default_bulk_delete_follows_collection_delete_permission(
+    bulk_client, web_admin, web_backend
+):
+    adapter, model = web_backend
+    row = await adapter.create(model, {"name": "kept"})
+    listing = await bulk_client.get("/admin/models/items/")
+    assert 'aria-label="Bulk actions"' in listing.text
+    assert 'value="delete"' in listing.text
+    web_admin.configure("items", options=ModelOptions(can_delete=False))
+    listing = await bulk_client.get("/admin/models/items/")
+    assert "data-bulk-panel" not in listing.text
+    assert (await selection(bulk_client, adapter, model, [row])).status_code == 403
+    assert await adapter.get(model, {"id": row["id"]})
 
 
 async def test_bulk_rechecks_permissions_and_record_changes(bulk_client, web_admin, web_backend):

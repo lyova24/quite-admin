@@ -131,13 +131,50 @@ Adapter compatibility is governed by `ADAPTER_API_VERSION` and the documented
 
 ## Bulk actions
 
-Lists offer page-local checkboxes and **With selected** when an allowed bulk action
-is available. Select up to 100 distinct records, choose a command, review the labels
-and confirm. The selection never expands to all matching pages. Delete is available
-when normal delete permission allows it; disable only bulk deletion with
-`ModelOptions(bulk_delete=False)`. Collections without allowed commands show no selector.
+Every collection includes **Delete selected records** by default, subject to its usual
+delete permission and `can_delete`. No registration is needed. Disable only bulk deletion
+with `ModelOptions(bulk_delete=False)`; ordinary record deletion remains available.
 
-Reuse a record handler for batch operations by adding `bulk=True`:
+When the current page has records and an allowed command, checkboxes appear beside the
+rows and a compact **Bulk actions** icon appears on the right of the table toolbar, beside
+export and creation. It uses the same size as the filter icon. Select rows individually or
+use the header checkbox to select this page, then open the icon menu. Its badge shows the
+selection count; **With selected** lets you choose a command. **Continue** opens a separate
+confirmation with record labels. Confirm to execute, or cancel to return with the same
+search, filters and pagination. Escape closes the menu and returns focus to the icon;
+clicking outside also closes it. Individual selection and confirmation work without JavaScript.
+The selection contains at most 100 distinct records and never expands to other pages.
+Collections without allowed commands show neither the icon nor checkboxes.
+
+To add a command only to one collection's list, put a `RecordAction` in `bulk_actions`:
+
+```python
+from quite_admin import ModelOptions, RecordAction
+
+# Use the Admin, Product model and adapter from your application's setup.
+async def deactivate_product(operation):
+    return await adapter.update(operation.model, operation.key, {"active": False})
+
+admin.register(Product, adapter=adapter, options=ModelOptions(
+    bulk_actions=(RecordAction("deactivate", "Deactivate products", deactivate_product),),
+))
+```
+
+The action appears alongside built-in deletion for Products only. After confirmation,
+each selected product has `active=False`; other products and collections are unchanged.
+`bulk_actions` defaults to `()`. Its entries are always bulk-enabled, so `bulk=True` is
+unnecessary, and they add no record-page buttons or single-record action endpoints.
+With auto-discovery, use `admin.configure("products", options=...)` instead. Options
+replace the collection's whole configuration; retain any existing field or permission settings.
+
+Try this action in the [local FastAPI/Litestar example](quickstart.md#run-the-sample-application):
+open Products, select two active products, choose **Deactivate products**, continue and
+confirm. Both Active values become false and the result reports two successes. The handler
+lives in [examples/common.py](https://github.com/lyova24/quite-admin/blob/master/examples/common.py).
+The standalone browser demo does not execute Python handlers or bulk actions.
+
+To share a handler between a record-page button and the list, keep using `actions`
+with `bulk=True`:
 
 ```python
 from quite_admin import ModelOptions, RecordAction
@@ -150,8 +187,13 @@ admin.configure("counters", options=ModelOptions(actions=(
 )))
 ```
 
-The same handler stays available on the record page. `bulk` defaults to `False`;
-`permission` and `required_permission` retain their record-action meaning. Each
+The existing `RecordAction(bulk=True)` API is unchanged; `bulk` still defaults to `False`
+for entries in `actions`. Slugs must be unique across `actions` and `bulk_actions` within
+one collection; reuse them freely in other collections. For a shared button, register it
+once in `actions` with `bulk=True` rather than repeating its slug in both options.
+
+Both styles use `edit` permission by default. `required_permission` chooses the ordinary
+collection permission and `permission` adds a sync/async callback. Each
 selected key is processed separately, with fresh list/action permissions and
 `request.path_params["key"]`, the existing `Operation`, `current_operation()`,
 `before_write` and `after_write` hooks. A rule that needs record data belongs in the

@@ -26,7 +26,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
-from quite_admin import Admin, FieldOptions, ModelOptions, Page, PasswordAuth
+from quite_admin import Admin, FieldOptions, ModelOptions, Page, PasswordAuth, RecordAction
 from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
 
 
@@ -113,11 +113,12 @@ class Schedule(Base):
 def make_demo():
     engine = create_engine(os.getenv("QUITE_ADMIN_DEMO_DB", "sqlite:///quite-admin-demo.db"))
     sessions = sessionmaker(engine)
+    adapter = SQLAlchemyAdapter(sessions, base=Base)
     password = os.environ["QUITE_ADMIN_PASSWORD"]
     admin = Admin(
         auth=PasswordAuth.single_user("admin", password),
         secret_key=os.getenv("QUITE_ADMIN_SECRET", secrets.token_urlsafe(48)),
-        adapters=[SQLAlchemyAdapter(sessions, base=Base)],
+        adapters=[adapter],
         templates_dir=Path(__file__).parent / "templates",
         title=os.getenv("QUITE_ADMIN_TITLE", "Quite Admin"),
         language=os.getenv("QUITE_ADMIN_LANGUAGE", "en"),
@@ -130,12 +131,17 @@ def make_demo():
         options=ModelOptions(group="Sales", readonly_fields=("created_at",), pagination="cursor"),
     )
     admin.register(Tag, options=ModelOptions(group="Catalog"))
+
+    async def deactivate_product(operation):
+        return await adapter.update(operation.model, operation.key, {"active": False})
+
     admin.register(
         Product,
         options=ModelOptions(
             group="Catalog",
             list_fields=("id", "name", "category", "price", "stock", "active"),
             fields={"stock": FieldOptions(help_text="Available units in the warehouse.")},
+            bulk_actions=(RecordAction("deactivate", "Deactivate products", deactivate_product),),
         ),
     )
     admin.register(Note, options=ModelOptions(group="Workspace"))

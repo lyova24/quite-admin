@@ -33,6 +33,7 @@ RUSSIAN = {
     "Selected records: {count}": "Выбрано записей: {count}",
     "Succeeded: {count}": "Успешно: {count}",
     "Failed: {count}": "С ошибкой: {count}",
+    "Bulk actions": "Массовые действия",
     "Bulk action results": "Результат массового действия",
     "Confirm bulk action": "Подтвердите массовое действие",
     "With selected": "С выбранными",

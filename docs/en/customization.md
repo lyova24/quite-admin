@@ -118,7 +118,8 @@ has a directional arrow and `aria-sort`; a newly selected column sorts ascending
 The toolbar sits above the table frame, and the record count sits beside the page title.
 An active search is shown below the toolbar. Clearing it resets the page and preserves
 sorting and page size. Rows retain keyboard-accessible record links and a separate delete
-confirmation link. Hover and keyboard focus identify the current row; there is no bulk selection.
+confirmation link. Hover and keyboard focus identify the current row. Page-local selection
+uses checkboxes; the compact right-hand icon opens [bulk actions](extensions.md#bulk-actions).
 Boolean values use neutral text: true/false does not imply success/failure.
 The accent identifies actions and selection; red identifies destructive actions and errors.
 

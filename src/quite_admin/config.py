@@ -136,6 +136,7 @@ class ModelOptions:
     create_handler: Callable[[Operation, Any], Any | Awaitable[Any]] | None = None
     update_handler: Callable[..., Any] | None = None
     bulk_delete: bool = True
+    bulk_actions: tuple[RecordAction, ...] = ()
 
     def validate(self, schema: ModelSchema) -> None:
         if not isinstance(self.bulk_delete, bool):
@@ -212,6 +213,12 @@ class ModelOptions:
                 raise ValueError(f"Unknown fields in {schema.name}: {', '.join(sorted(unknown))}")
         if len({action.slug for action in self.actions}) != len(self.actions):
             raise ValueError("Duplicate record action slugs.")
+        if any(not isinstance(action, RecordAction) for action in self.bulk_actions):
+            raise TypeError("bulk_actions must contain RecordAction instances.")
+        if len({action.slug for action in self.bulk_actions}) != len(self.bulk_actions):
+            raise ValueError("Duplicate bulk action slugs.")
+        if {action.slug for action in self.actions} & {action.slug for action in self.bulk_actions}:
+            raise ValueError("Duplicate action slugs across actions and bulk_actions.")
         if self.search_fields is not None:
             if any(fields[name].kind != "string" for name in self.search_fields):
                 raise ValueError("search_fields must contain string fields.")
