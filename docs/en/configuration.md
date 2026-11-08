@@ -262,6 +262,13 @@ groups remain open on later visits. Without browser storage or JavaScript, other
 still start collapsed. Ungrouped collections appear under Other collections when grouping is used.
 Permissions filter collections before grouping; empty or inaccessible groups are omitted.
 
+The Overview uses the same `group` labels and permission-filtered tables. Every group
+starts collapsed, including the fallback group for tables without a label. Expand a
+group with its heading or Enter/Space, then open a table. The badge counts tables in
+that group; cards show only the table name and link, without a field count. Overview
+expansion is independent of the sidebar and resets on a fresh visit. Native groups
+also work without JavaScript.
+
 Boolean fields use keyboard-operable switches. Nullable booleans have an explicit None
 button, preserving the distinction between false and SQL NULL. Read-only values stay
 read-only; without JavaScript the original select remains usable.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.5 — 2026-11-08
+
+- Group Overview tables in collapsed, keyboard-accessible sections using the same labels and permissions as the sidebar. Remove field counts from table cards and mirror the grouping in the browser demo.
+
 ## 0.8.4 — 2026-11-08
 
 - Collapse sidebar groups by default while remembering explicit choices and revealing the current table. Keep native keyboard and no-storage behavior in the Python interface and browser demo.

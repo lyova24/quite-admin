@@ -78,10 +78,18 @@ const input = (field, value) => window.QuiteAdmin.createFieldControl(
 function login() {
   return `${notice()}<main class="shell-login"><div class="content"><section class="login-card"><div class="login-brand"><span class="brand-mark large" aria-hidden="true"></span><h1>${e(seed.title)}</h1></div><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;
 }
+function tableGroups() {
+  const groups = new Map();
+  for (const [name, collection] of Object.entries(store.state)) {
+    const label = collection.group || "Other collections";
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push([name, collection]);
+  }
+  return groups;
+}
 function dashboard() {
-  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div><div class="section-heading"><h2>${e(t("Collections"))}</h2></div><section class="collection-grid">${Object.entries(store.state)
-    .map(([slug, c]) => `<a class="collection-card" href="${href(slug)}"><h2>${e(c.label)}</h2><p class="muted">${e(records(c.records.length))}</p><div class="card-footer">${e(t("Open collection"))}<span aria-hidden="true">→</span></div></a>`)
-    .join("")}</section>`;
+  const groups = [...tableGroups()].map(([label, items]) => `<details class="dashboard-group" data-dashboard-group><summary><span>${e(t(label))}</span><span class="badge">${items.length}</span></summary><div class="collection-grid">${items.map(([slug, c]) => `<a class="collection-card" href="${href(slug)}"><h2>${e(c.label)}</h2><div class="card-footer">${e(t("Open collection"))}<span aria-hidden="true">→</span></div></a>`).join("")}</div></details>`).join("");
+  return `<div class="page-heading"><h1>${e(seed.title)}</h1></div><div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div><div class="section-heading"><h2>${e(t("Collections"))}</h2></div>${groups}`;
 }
 function demoFilters(slug, query, queryUrl) {
   const c = store.collection(slug);
@@ -178,12 +186,7 @@ function shell(content, slug, key) {
   const section = location.hash.split("?")[0];
   const navLink = (path,label,active) => `<a class="nav-link ${active?'active':''}" href="${path}" ${active?'aria-current="page"':''}>${e(t(label))}</a>`;
   const crumb = `<a href="#/">${e(t("Overview"))}</a>${c ? ` / <a href="${href(slug)}">${e(c.label)}</a>` : ""}${section==="#/schema"?` / ${e(t("Database schema"))}`:section==="#/history"?` / ${e(t("Activity history"))}`:""}${key && key !== "new" ? ` / <span aria-current="page">${e(store.label(slug, store.record(slug, key)))}</span>` : ""}`;
-  const groups = new Map();
-  for (const [name,collection] of Object.entries(store.state)) {
-    const label=collection.group||"Other collections";
-    if(!groups.has(label))groups.set(label,[]);
-    groups.get(label).push([name,collection]);
-  }
+  const groups = tableGroups();
   const navigation = [...groups].map(([group,items])=>`<details class="nav-group" data-demo-group="${e(group)}" ${items.some(([name])=>name===slug)||read("localStorage","quite-admin-demo-group-"+group)==="open"?'open':''}><summary>${e(t(group))}<span>${items.length}</span></summary>${items.map(([name,collection])=>navLink(href(name),collection.label,name===slug)).join('')}</details>`).join('');
   return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark" aria-hidden="true"></span>${e(seed.title)}</a>${navLink('#/','Overview',section==='#/'||!location.hash)}${navLink('#/schema','Database schema',section==='#/schema')}${navLink('#/history','Activity history',section==='#/history')}<p class="nav-label">${e(t("COLLECTIONS"))} <span>${Object.keys(store.state).length}</span></p><nav aria-label="${e(t('Collections'))}">${navigation}</nav><p class="nav-label">${e(t("PAGES"))}</p>${navLink('#/report','Store report',section==='#/report')}<div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
 }

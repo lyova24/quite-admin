@@ -32,3 +32,17 @@ test('sidebar groups remain usable when browser storage is unavailable', async (
   await page.reload();
   await expect(group).not.toHaveAttribute('open', '');
 });
+
+test('overview groups start collapsed and open tables with the keyboard', async ({page}) => {
+  await login(page);
+  const group = page.locator('main [data-dashboard-group]').filter({has:page.locator('a[href="/admin/models/entries/"]')});
+  const card = group.locator('.collection-card');
+  await expect(card).toBeHidden();
+  await group.locator('summary').press('Enter');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.muted')).toHaveCount(0);
+  await card.click();
+  await expect(page).toHaveURL(/\/admin\/models\/entries\/$/);
+  await page.goto('/admin/');
+  await expect(group).not.toHaveAttribute('open', '');
+});
