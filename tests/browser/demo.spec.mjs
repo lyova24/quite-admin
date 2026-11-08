@@ -77,6 +77,7 @@ test('demo history reuses user filters and inclusive period controls in both vie
 });
 
 test('demo exports more than the visible page and restores initial data on reset',async ({page})=>{
+  await page.locator('[data-demo-group="Catalog"] > summary').click();
   await page.getByRole('link',{name:'Products',exact:true}).click();
   await page.locator('.export-panel > summary').click();
   const download=page.waitForEvent('download');

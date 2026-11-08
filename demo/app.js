@@ -184,7 +184,7 @@ function shell(content, slug, key) {
     if(!groups.has(label))groups.set(label,[]);
     groups.get(label).push([name,collection]);
   }
-  const navigation = [...groups].map(([group,items])=>`<details class="nav-group" data-demo-group="${e(group)}" ${items.some(([name])=>name===slug)||read("localStorage","quite-admin-demo-group-"+group)!=="closed"?'open':''}><summary>${e(t(group))}<span>${items.length}</span></summary>${items.map(([name,collection])=>navLink(href(name),collection.label,name===slug)).join('')}</details>`).join('');
+  const navigation = [...groups].map(([group,items])=>`<details class="nav-group" data-demo-group="${e(group)}" ${items.some(([name])=>name===slug)||read("localStorage","quite-admin-demo-group-"+group)==="open"?'open':''}><summary>${e(t(group))}<span>${items.length}</span></summary>${items.map(([name,collection])=>navLink(href(name),collection.label,name===slug)).join('')}</details>`).join('');
   return `<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><span class="brand-mark" aria-hidden="true"></span>${e(seed.title)}</a>${navLink('#/','Overview',section==='#/'||!location.hash)}${navLink('#/schema','Database schema',section==='#/schema')}${navLink('#/history','Activity history',section==='#/history')}<p class="nav-label">${e(t("COLLECTIONS"))} <span>${Object.keys(store.state).length}</span></p><nav aria-label="${e(t('Collections'))}">${navigation}</nav><p class="nav-label">${e(t("PAGES"))}</p>${navLink('#/report','Store report',section==='#/report')}<div class="sidebar-bottom">Quite Admin <span class="muted">v${e(seed.version)}</span></div></aside><main class="main">${notice()}<header class="topbar"><nav aria-label="${e(t("Breadcrumbs"))}" class="breadcrumbs">${crumb}</nav><div class="account"><span>admin</span><button class="link-button" id="demo-logout">${e(t("Sign out"))}</button></div></header><div class="content">${content}</div></main></div>`;
 }
 function restoreLatest() {
@@ -299,7 +299,9 @@ function render() {
   window.QuiteAdmin.initSchemas();
   cleanupInline = window.quiteAdminEnhanceInline(document, inlineRequest);
   initActivity(query);
-  for (const group of document.querySelectorAll('[data-demo-group]')) group.addEventListener('toggle',()=>write('localStorage','quite-admin-demo-group-'+group.dataset.demoGroup,group.open?'open':'closed'));
+  for (const group of document.querySelectorAll('[data-demo-group]')) {
+    group.querySelector('summary').addEventListener('click',()=>write('localStorage','quite-admin-demo-group-'+group.dataset.demoGroup,group.open?'closed':'open'));
+  }
   document.querySelector("#demo-language").onchange = (event) => {
     language = event.target.value;
     write("localStorage", "quite-admin-demo-language", language);

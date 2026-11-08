@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.4 — 2026-11-08
+
+- Collapse sidebar groups by default while remembering explicit choices and revealing the current table. Keep native keyboard and no-storage behavior in the Python interface and browser demo.
+
 ## 0.8.3 — 2026-11-08
 
 - Select CI jobs by changed inputs, separating documentation, Python, JavaScript,

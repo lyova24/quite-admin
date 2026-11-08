@@ -255,9 +255,11 @@ See [field controls and custom widgets](field-widgets.md) for a complete templat
 
 Set `ModelOptions(group="Sales")` on each collection to group its sidebar links.
 For SQL reflection use `admin.configure("orders", options=ModelOptions(group="Sales"))`.
-Groups follow first appearance, support keyboard collapse/expand and remember state per
+Groups start collapsed, follow first appearance, support keyboard collapse/expand and remember state per
 admin mount when browser storage is available. The current collection's group opens
-automatically. Ungrouped collections appear under Other collections when grouping is used.
+automatically without saving that automatic opening as a preference. Explicitly opened
+groups remain open on later visits. Without browser storage or JavaScript, other groups
+still start collapsed. Ungrouped collections appear under Other collections when grouping is used.
 Permissions filter collections before grouping; empty or inaccessible groups are omitted.
 
 Boolean fields use keyboard-operable switches. Nullable booleans have an explicit None

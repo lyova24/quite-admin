@@ -23,7 +23,7 @@
       <nav aria-label="{{ t('Collections') }}" data-collection-navigation data-storage-key="{{ url('/') }}">
       {% if resource_groups %}
         {% for label, items in resource_groups.items() %}
-        <details class="nav-group" data-group="{{ label }}" open{% if resource and resource.slug in items|map(attribute='slug')|list %} data-current-group{% endif %}>
+        <details class="nav-group" data-group="{{ label }}"{% if resource and resource.slug in items|map(attribute='slug')|list %} open data-current-group{% endif %}>
           <summary>{{ label }} <span>{{ items|length }}</span></summary>
           {% for item in items %}{{ nav_link(url('/models/' ~ item.slug ~ '/'), item.label, resource and resource.slug == item.slug) }}{% endfor %}
         </details>
@@ -36,7 +36,7 @@
       <p class="nav-label">{{ t('PAGES') }}</p>
       <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}{{ nav_link(url('/pages/' ~ item.slug), item.title, page and page.slug == item.slug) }}{% endfor %}</nav>
       {% endif %}
-      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.3</span></div>
+      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.4</span></div>
     </aside>
   {% endif %}
     <main class="main">

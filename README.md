@@ -4,7 +4,7 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/lyova24/quite-admin/ci.yml?branch=master&event=push&style=for-the-badge&label=tests&labelColor=202020)](https://github.com/lyova24/quite-admin/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/quite-admin?style=for-the-badge&label=PyPI&labelColor=202020&color=3395fd)](https://pypi.org/project/quite-admin/)
 
-**Version: 0.8.3** · [Changelog](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md)
+**Version: 0.8.4** · [Changelog](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md)
 
 **An admin panel for your existing FastAPI or Litestar models.**
 

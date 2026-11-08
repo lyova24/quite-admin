@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -13,8 +15,13 @@ async def test_sidebar_groups_are_permission_filtered_and_current_group_is_marke
     web_admin.mount_fastapi(app)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         await login(client)
+        dashboard = await client.get("/admin/")
+        group = re.search(r'<details[^>]*data-group="Sales &lt;team&gt;"[^>]*>', dashboard.text)[0]
+        assert " open" not in group
         page = await client.get("/admin/models/items/")
         assert "data-current-group" in page.text and "Sales &lt;team&gt;" in page.text
+        group = re.search(r'<details[^>]*data-group="Sales &lt;team&gt;"[^>]*>', page.text)[0]
+        assert " open" in group
         assert "navigation.js" in page.text
         web_admin.configure(
             "items", options=ModelOptions(group="Hidden", permission=lambda r, i, a: False)
