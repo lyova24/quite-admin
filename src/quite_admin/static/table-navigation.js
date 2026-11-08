@@ -37,11 +37,18 @@
     const buttons = [...shell.querySelectorAll('[data-table-search]')];
     const copy = items => items.map(item => ({...item}));
     const format = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll('{' + name + '}', String(value)), messages[key]);
-    let memory = {recent: [], pins: [], groups: []}, storageAvailable = true;
+    let memory = {recent: [], pins: [], groups: []}, storedValue, storageAvailable = true;
     let previousFocus = null, activeIndex = 0;
 
     function cleanIds(value, limit) {
-      return [...new Set((Array.isArray(value) ? value : []).filter(id => typeof id === 'string' && byId.has(id)))].slice(0, limit);
+      const ids = [], seen = new Set();
+      if (!limit || !Array.isArray(value)) return ids;
+      for (const id of value) {
+        if (typeof id !== 'string' || !byId.has(id) || seen.has(id)) continue;
+        ids.push(id); seen.add(id);
+        if (ids.length === limit) break;
+      }
+      return ids;
     }
     function sanitize(value) {
       return {recent: cleanIds(value?.recent, RECENT_LIMIT), pins: cleanIds(value?.pins, PIN_LIMIT), groups: cleanIds(value?.groups, catalog.length)};
@@ -50,14 +57,17 @@
       if (storageAvailable) {
         try {
           const raw = localStorage.getItem(storageKey);
-          if (raw === null) memory = {recent: [], pins: [], groups: []};
-          else if (raw.length <= 1000000) {
-            const saved = parse(raw, null);
-            if (saved && typeof saved === 'object' && !Array.isArray(saved)) memory = sanitize(saved);
+          // Memory is already sanitized; reparse only when another reader/writer changes storage.
+          if (raw !== storedValue) {
+            storedValue = raw;
+            if (raw === null) memory = {recent: [], pins: [], groups: []};
+            else if (raw.length <= 1000000) {
+              const saved = parse(raw, null);
+              if (saved && typeof saved === 'object' && !Array.isArray(saved)) memory = sanitize(saved);
+            }
           }
         } catch (_) { storageAvailable = false; }
       }
-      memory = sanitize(memory);
       return {...memory, recent: [...memory.recent], pins: [...memory.pins], groups: [...memory.groups]};
     }
     function changed() {
@@ -66,7 +76,11 @@
     function save(value, notify = true) {
       memory = sanitize(value);
       if (storageAvailable) {
-        try { localStorage.setItem(storageKey, JSON.stringify(memory)); }
+        try {
+          const serialized = JSON.stringify(memory);
+          localStorage.setItem(storageKey, serialized);
+          storedValue = serialized;
+        }
         catch (_) { storageAvailable = false; }
       }
       if (notify) changed();

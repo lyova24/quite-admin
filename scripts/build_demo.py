@@ -19,6 +19,8 @@ from sqlalchemy import inspect  # noqa: E402
 from examples.common import make_demo, seed  # noqa: E402
 from quite_admin import Query, __version__  # noqa: E402
 from quite_admin import filters as list_filters  # noqa: E402
+from quite_admin._admin.assets import BUILTIN_SCRIPTS, STYLESHEETS  # noqa: E402
+from quite_admin._admin.rendering import _navigation_context  # noqa: E402
 from quite_admin.diagram import schema_graph  # noqa: E402
 from quite_admin.i18n import MESSAGE_ALIASES, RUSSIAN, Translator  # noqa: E402
 
@@ -141,18 +143,9 @@ async def build(output):
             history_periods = {}
             shell_pages = {}
             home_pages = {}
+            table_pins = {}
             for language in ("en", "ru"):
                 translations = Translator(language)
-                catalog = [
-                    {
-                        "id": slug,
-                        "name": resource.schema.name,
-                        "label": resource.label,
-                        "group": resource.options.group or translations.gettext("Other tables"),
-                        "url": "#/models/" + slug + "/",
-                    }
-                    for slug, resource in resources.items()
-                ]
                 demo_context = dict(
                     title=admin.title,
                     description=admin.description,
@@ -162,8 +155,9 @@ async def build(output):
                     identity=SimpleNamespace(subject="admin", display_name="admin"),
                     resources=list(resources.values()),
                     resource=None,
-                    table_catalog=catalog,
-                    table_group_count=len({item["group"] for item in catalog}),
+                    **_navigation_context(
+                        list(resources.values()), lambda path: "#" + path, translations.gettext
+                    ),
                     pages=[SimpleNamespace(slug="report", title="Store report")],
                     history_allowed=True,
                     csrf="browser-demo",
@@ -176,6 +170,12 @@ async def build(output):
                 home_pages[language] = admin.templates.env.get_template(
                     "quite_admin/_home_content.html"
                 ).render(**demo_context)
+                table_pins[language] = {
+                    slug: admin.templates.env.get_template("quite_admin/_table_pin.html").render(
+                        resource=resource, t=translations.gettext
+                    )
+                    for slug, resource in resources.items()
+                }
                 schema_pages[language] = admin.templates.env.get_template(
                     "quite_admin/_schema_content.html"
                 ).render(
@@ -210,26 +210,8 @@ async def build(output):
             for path in (ROOT / "demo").iterdir():
                 if path.is_file():
                     shutil.copyfile(path, output / path.name)
-            shutil.copyfile(ROOT / "src/quite_admin/static/admin.css", output / "admin.css")
-            shutil.copyfile(ROOT / "src/quite_admin/static/logo.svg", output / "logo.svg")
-            for script in (
-                "relations.js",
-                "schema.js",
-                "datetime.js",
-                "forms.js",
-                "filters.js",
-                "history.js",
-                "inline.js",
-                "listing.js",
-                "navigation.js",
-                "dashboard.js",
-                "table-navigation.js",
-                "shell.css",
-                "table-navigation.css",
-                "dashboard.css",
-                "schema-layout.css",
-            ):
-                shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
+            for name in (*BUILTIN_SCRIPTS, *STYLESHEETS, "logo.svg"):
+                shutil.copyfile(ROOT / "src/quite_admin/static" / name, output / name)
             (output / "theme.css").write_text(admin.theme.stylesheet())
             (output / "seed.json").write_text(
                 json.dumps(
@@ -253,6 +235,7 @@ async def build(output):
                         "schemaPages": schema_pages,
                         "shellPages": shell_pages,
                         "homePages": home_pages,
+                        "tablePins": table_pins,
                         "historyPeriods": history_periods,
                     },
                     ensure_ascii=False,

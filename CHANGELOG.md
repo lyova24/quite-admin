@@ -7,6 +7,7 @@
 - Add global table search with Ctrl/⌘ K, keyboard navigation and bounded results. Synchronize SVG favorite stars in search and record-list headings with Home, retaining user/mount-scoped storage and the twelve-pin limit. Share real templates with the browser demo without new dependencies.
 - Remove individual recent-table shortcuts with × without changing pinned tables; reopening a table adds it back to recent tables.
 - Fill the available height below the header with the database schema, widen its table picker and allow scrolling on short screens. Preserve manual initial selection above 100 permitted tables.
+- Reuse navigation metadata, asset registration, templates, card controls and CSS declarations. Cache unchanged script hashes and browser state, preserve card focus, and keep public APIs, template overrides and storage formats compatible.
 
 ## 0.8.11 — 2026-11-08
 

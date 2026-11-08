@@ -7,6 +7,22 @@ const seed = JSON.parse(
   await readFile(new URL("../build/docs/demo/seed.json", import.meta.url)),
 );
 
+test("demo listings use the shared localized table pin controls", () => {
+  const slugs = Object.keys(seed.collections).sort();
+  for (const language of ["en", "ru"]) {
+    assert.deepEqual(Object.keys(seed.tablePins[language]).sort(), slugs);
+    for (const slug of slugs) {
+      const control = seed.tablePins[language][slug];
+      assert.ok(control.includes(`data-table-pin="${slug}"`));
+      assert.match(control, /<button[^>]* hidden>/);
+      assert.match(control, /aria-pressed="false"/);
+      assert.match(control, /data-table-pin-icon/);
+      assert.match(control, /data-table-pin-notice/);
+      assert.ok(control.includes(language === "ru" ? "Закрепить таблицу:" : "Pin table:"));
+    }
+  }
+});
+
 test("many-to-many changes update both sides", () => {
   const store = new Store(seed),
     product = store.collection("products").records[0];

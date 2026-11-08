@@ -81,8 +81,20 @@ permission checks on each request. The [database schema](database-schema.md) rea
 metadata for permitted tables and fields; record values never enter the graph.
 
 HTML is rendered on the server. Built-in filters, relationship pickers and the schema use
-local scripts with SRI and exact page-specific CSP hashes. Custom pages retain
-`script-src 'none'`.
+local scripts with SRI and exact page-specific CSP hashes. Authenticated custom pages
+receive the shared navigation scripts; arbitrary page scripts remain disallowed.
+
+Rendering and the browser demo share the navigation metadata builder, built-in asset
+registry and navigation templates. Authorization still runs for each request before
+the catalog is built. Only built-in script hashes are cached: file metadata invalidates
+the bounded cache after edits or replacements, preserving the matching SRI/CSP values.
+The demo clones a parsed shell per language and reuses the actual favorite-button partial.
+
+The table-navigation script owns the authorized catalog and browser-local state;
+Home consumes that API instead of maintaining another store. Unchanged storage strings
+are parsed once, and unchanged card collections keep their DOM and keyboard focus.
+Existing storage keys, template context and CSS selectors remain compatible. New shared
+rail markup lives in a separate partial so older overrides of `_ui.html` keep working.
 
 ## Extension boundaries
 

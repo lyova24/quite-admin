@@ -59,6 +59,33 @@ def test_core_import_does_not_load_an_orm():
     )
 
 
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_legacy_ui_macro_overrides_do_not_require_new_rail_macros(auth, tmp_path, framework):
+    templates = tmp_path / "quite_admin"
+    templates.mkdir()
+    (templates / "_ui.html").write_text(
+        '{% macro csrf_input() %}<input type="hidden" name="__csrf" value="{{ csrf }}">'
+        "{% endmacro %}{% macro brand_mark(large=false) %}"
+        '<span class="brand-mark" data-legacy-brand></span>{% endmacro %}'
+    )
+    admin = Admin(
+        auth=auth,
+        secret_key="s" * 48,
+        secure_cookies=False,
+        templates_dir=tmp_path,
+    )
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    getattr(admin, "mount_" + framework)(host, "/tools/admin")
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        await login(client, "/tools/admin")
+        for path in ("/", "/schema"):
+            page = await client.get("/tools/admin" + path)
+            assert page.status_code == 200
+            assert "data-legacy-brand" in page.text
+            assert 'class="shell-nav-link sidebar-home' in page.text
+            assert 'aria-label="Home"' in page.text
+
+
 def test_guard_rejects_removed_export(monkeypatch):
     monkeypatch.setattr(quite_admin, "__all__", [n for n in quite_admin.__all__ if n != "Field"])
     assert any("removed public exports ['Field']" in error for error in check())

@@ -76,6 +76,23 @@ test.describe('recent state boundaries', () => {
     await page.goto('http://recent-tables.test/health');
   });
 
+  test('changes to one Home collection preserve keyboard focus in the other', async ({page}) => {
+    await install(page);
+    await page.evaluate(() => {
+      const tables = document.querySelector('[data-admin-shell]').quiteAdminTables;
+      tables.remember('table_0'); tables.togglePin('table_0');
+    });
+    const unpin = page.locator('[data-home-unpin="table_0"]');
+    await unpin.focus();
+    await page.evaluate(() => document.querySelector('[data-admin-shell]').quiteAdminTables.remember('table_1'));
+    await expect(unpin).toBeFocused();
+    await expect(remove(page, 'table_1')).toBeVisible();
+    await remove(page, 'table_1').focus();
+    await page.evaluate(() => document.querySelector('[data-admin-shell]').quiteAdminTables.togglePin('table_1'));
+    await expect(remove(page, 'table_1')).toBeFocused();
+    await expect(page.locator('[data-home-unpin="table_1"]')).toBeVisible();
+  });
+
   test('removal respects the eight-item history limit, keeps pins and isolates users after rerender', async ({page}) => {
     await install(page);
     const state = await page.evaluate(() => {

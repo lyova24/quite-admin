@@ -1,10 +1,42 @@
 import html
 import json
 import re
+from types import SimpleNamespace
 
 import pytest
 
 from quite_admin.i18n import Translator
+
+
+@pytest.mark.parametrize("language", ["en", "ru"])
+def test_shared_table_pin_escapes_localized_accessible_labels(web_admin, language):
+    resource = SimpleNamespace(slug="orders", label='Orders <script>"team"</script>')
+    translations = Translator(language)
+    rendered = web_admin.templates.env.get_template("quite_admin/_table_pin.html").render(
+        resource=resource, t=translations.gettext
+    )
+    assert "<script>" not in rendered
+    assert 'data-table-pin="orders"' in rendered
+    for attribute in ("aria-label", "title"):
+        value = html.unescape(re.search(rf'{attribute}="([^"]*)"', rendered)[1])
+        assert value == translations.gettext("Pin table: {name}", name=resource.label)
+    assert re.search(r"<button[^>]* hidden>", rendered)
+    assert 'aria-pressed="false"' in rendered
+    assert "data-table-pin-icon" in rendered
+    assert "data-table-pin-notice" in rendered
+
+
+def test_shared_rail_link_preserves_active_state_and_escapes_labels(web_admin):
+    rail_link = web_admin.templates.env.get_template("quite_admin/_rail.html").module.rail_link
+    label = 'Tables <script>"team"</script>'
+    rendered = str(rail_link("/prefix/admin/", label, "home", True, "sidebar-home"))
+    assert 'class="shell-nav-link sidebar-home active"' in rendered
+    assert 'href="/prefix/admin/"' in rendered
+    assert 'aria-current="page"' in rendered
+    assert "<script>" not in rendered
+    assert html.unescape(re.search(r'aria-label="([^"]*)"', rendered)[1]) == label
+    assert 'class="shell-nav-icon"' in rendered
+    assert "aria-current" not in str(rail_link("/schema", "Database schema", "schema"))
 
 
 @pytest.mark.parametrize("language", ["en", "ru"])

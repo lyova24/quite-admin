@@ -1,4 +1,5 @@
 {% from "quite_admin/_ui.html" import csrf_input, brand_mark with context %}
+{% from "quite_admin/_rail.html" import rail_link %}
 {% from "quite_admin/_icons.html" import shell_icon %}
 <!doctype html>
 <html lang="{{ language }}">
@@ -20,10 +21,10 @@
     <aside class="sidebar" id="admin-sidebar">
       <div class="sidebar-rail">
         <nav class="sidebar-rail-navigation" aria-label="{{ t('Workspace') }}">
-          <a class="shell-nav-link sidebar-home {% if not resource and not page and not schema_page and not history_page %}active{% endif %}" href="{{ url('/') }}" aria-label="{{ t('Home') }}" title="{{ t('Home') }}"{% if not resource and not page and not schema_page and not history_page %} aria-current="page"{% endif %}>{{ shell_icon('home') }}</a>
-          <a class="shell-nav-link {% if schema_page %}active{% endif %}" href="{{ url('/schema') }}" aria-label="{{ t('Database schema') }}" title="{{ t('Database schema') }}"{% if schema_page %} aria-current="page"{% endif %}>{{ shell_icon('schema') }}</a>
-          {% if history_allowed %}<a class="shell-nav-link {% if history_page %}active{% endif %}" href="{{ url('/history') }}" aria-label="{{ t('Activity history') }}" title="{{ t('Activity history') }}"{% if history_page %} aria-current="page"{% endif %}>{{ shell_icon('history') }}</a>{% endif %}
-          {% if pages %}<div class="sidebar-pages">{% for item in pages %}<a class="shell-nav-link {% if page and page.slug == item.slug %}active{% endif %}" href="{{ url('/pages/' ~ item.slug) }}" aria-label="{{ item.title }}" title="{{ item.title }}"{% if page and page.slug == item.slug %} aria-current="page"{% endif %}>{{ shell_icon('page') }}</a>{% endfor %}</div>{% endif %}
+          {{ rail_link(url('/'), t('Home'), 'home', not resource and not page and not schema_page and not history_page, 'sidebar-home') }}
+          {{ rail_link(url('/schema'), t('Database schema'), 'schema', schema_page) }}
+          {% if history_allowed %}{{ rail_link(url('/history'), t('Activity history'), 'history', history_page) }}{% endif %}
+          {% if pages %}<div class="sidebar-pages">{% for item in pages %}{{ rail_link(url('/pages/' ~ item.slug), item.title, 'page', page and page.slug == item.slug) }}{% endfor %}</div>{% endif %}
         </nav>
         <footer class="sidebar-footer">
           <details class="sidebar-profile" data-sidebar-profile>

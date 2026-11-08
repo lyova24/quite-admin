@@ -79,15 +79,6 @@ const input = (field, value) => window.QuiteAdmin.createFieldControl(
 function login() {
   return `${notice()}<main class="shell-login"><div class="content"><section class="login-card"><div class="login-brand"><span class="brand-mark large" aria-hidden="true"></span><h1>${e(seed.title)}</h1></div><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;
 }
-function tableGroups() {
-  const groups = new Map();
-  for (const [name, collection] of Object.entries(store.state)) {
-    const label = collection.group || "Other collections";
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label).push([name, collection]);
-  }
-  return groups;
-}
 function dashboard() {
   return seed.homePages[language] + `<div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div>`;
 }
@@ -142,7 +133,7 @@ function listing(slug, query) {
   const page = Math.max(1, Number(query.get("page")) || 1), limit = 5;
   const total = allRows.length;
   const {rows,hasPrevious,hasNext} = listWindow(allRows,query,cursor,limit);
-  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1><button class="table-pin table-list-pin" type="button" data-table-pin="${e(slug)}" aria-pressed="false" hidden></button><span class="table-pin-notice" data-table-pin-notice role="status" aria-live="polite" hidden></span><span class="record-count">${e(cursor?t("{count} on this page",{count:rows.length}):records(total))}</span></div></div>
+  return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1>${seed.tablePins[language][slug]}<span class="record-count">${e(cursor?t("{count} on this page",{count:rows.length}):records(total))}</span></div></div>
   ${inlineDialog(t,e)}<section class="record-list"><div class="list-tools"><form id="demo-search" class="list-query-form" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"></div>${filters.add}</div>${filters.panel}</form><div class="list-actions"><details class="export-panel"><summary class="button secondary" aria-label="${e(t('Export data'))}">↓ CSV</summary><form id="demo-export" class="export-form"><p class="field-help">${e(t('Exports all matching records using the current search, filters and sorting. Apply filters before exporting.'))}</p><fieldset><legend>${e(t('Columns'))}</legend><div class="export-columns">${c.fields.map(field=>`<label class="checkbox-label"><input type="checkbox" name="columns" value="${e(field.name)}" ${c.columns.includes(field.name)?'checked':''}> ${e(field.label)}</label>`).join('')}</div></fieldset><button class="button secondary" type="submit">${e(t('CSV download'))}</button></form></details>${button(href(slug, "new"), "+ " + t("Create record"), "primary list-create")}</div></div>${filters.active}
   ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
   <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
@@ -182,10 +173,14 @@ function deletion(slug, key) {
   const row = store.record(slug, key);
   return `<div class="page-heading"><h1>${e(t("Delete this record?"))}</h1></div><div class="panel delete-panel"><p>${e(store.label(slug, row))}</p><div class="alert" id="form-error" role="alert" hidden></div><form id="demo-delete"><div class="button-group">${button(href(slug, key), "Keep record")}<button class="button danger">${e(t("Delete permanently"))}</button></div></form></div>`;
 }
+const shellTemplates = new Map();
 function shell(content, slug, key) {
-  // Export the real templates so the standalone demo shares navigation and accessibility.
-  const doc = new DOMParser().parseFromString(seed.shellPages[language], "text/html");
-  const shell = doc.querySelector('[data-admin-shell]');
+  // Parse each language's real template once; each page mutates its own clone.
+  if (!shellTemplates.has(language)) {
+    const doc = new DOMParser().parseFromString(seed.shellPages[language], "text/html");
+    shellTemplates.set(language, doc.querySelector('[data-admin-shell]'));
+  }
+  const shell = shellTemplates.get(language).cloneNode(true);
   shell.dataset.storageKey = 'quite-admin-browser-demo';
   shell.dataset.currentTable = slug || '';
   shell.querySelector('.content').innerHTML = content;

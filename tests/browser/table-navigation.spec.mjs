@@ -75,6 +75,31 @@ test('pins and recents store only authorized slugs, cap sizes, isolate users and
   })).toEqual(['table_1']);
 });
 
+test('storage reads detect replacement and clearing while retaining only safe metadata', async ({page}) => {
+  await install(page, tables.slice(0, 3));
+  const state = await page.evaluate(() => {
+    const api = document.querySelector('[data-admin-shell]').quiteAdminTables;
+    const key = 'quite-admin:tables:["/admin/","test-user"]';
+    const saved = {pins: ['forbidden', 'table_1', 'table_1', null, 'table_0'], recent: ['table_2'], groups: []};
+    localStorage.setItem(key, JSON.stringify(saved));
+    const first = api.pins();
+    first[0].label = 'Changed outside the catalog';
+    const unchanged = api.pins();
+    localStorage.setItem(key, '{broken');
+    const malformed = api.pins();
+    localStorage.setItem(key, JSON.stringify({pins: ['table_2'], recent: [], groups: []}));
+    const replaced = api.pins();
+    localStorage.removeItem(key);
+    return {unchanged, malformed, replaced, cleared: api.pins(), recent: api.recent()};
+  });
+  expect(state.unchanged.map(item => item.id)).toEqual(['table_1', 'table_0']);
+  expect(state.unchanged[0].label).toBe('Table 1');
+  expect(state.malformed).toEqual(state.unchanged);
+  expect(state.replaced.map(item => item.id)).toEqual(['table_2']);
+  expect(state.cleared).toEqual([]);
+  expect(state.recent).toEqual([]);
+});
+
 test('blocked storage keeps pins usable; rerender cleanup prevents duplicate shortcuts and respects other dialogs', async ({page}) => {
   await page.evaluate(() => Object.defineProperty(window, 'localStorage', {get() {throw new Error('Storage disabled');}}));
   await install(page, tables.slice(0, 2));

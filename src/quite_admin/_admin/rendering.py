@@ -2,15 +2,39 @@
 
 from __future__ import annotations
 
-import base64
-import hashlib
 from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
 
 from .._display import display_kind, display_value
+from .assets import script_integrity, script_names
 from .web import STATIC_DIR, TEMPLATE_API_VERSION
+
+
+def _navigation_context(resources, url, gettext):
+    """Describe already-authorized resources without reading their records."""
+    groups = {}
+    catalog = []
+    grouped = any(item.options.group is not None for item in resources)
+    for item in resources:
+        group = item.options.group or gettext("Other collections")
+        if grouped:
+            groups.setdefault(group, []).append(item)
+        catalog.append(
+            {
+                "id": item.slug,
+                "name": item.schema.name,
+                "label": item.label,
+                "group": group,
+                "url": url(f"/models/{item.slug}/"),
+            }
+        )
+    return {
+        "resource_groups": groups,
+        "table_catalog": catalog,
+        "table_group_count": len({item["group"] for item in catalog}),
+    }
 
 
 class Rendering:
@@ -35,7 +59,6 @@ class Rendering:
             pages = [
                 page for page in self.pages.values() if await self._page_allowed(request, page)
             ]
-        groups = {}
         resource = context.get("resource")
         display_fields = (
             {
@@ -49,54 +72,19 @@ class Rendering:
         )
         if display_fields and template in {"quite_admin/list.html", "quite_admin/form.html"}:
             trusted_scripts += ("values.js",)
-        if any(item.options.group is not None for item in resources):
-            for item in resources:
-                label = item.options.group or self.gettext("Other collections")
-                groups.setdefault(label, []).append(item)
-        table_catalog = [
-            {
-                "id": item.slug,
-                "name": item.schema.name,
-                "label": item.label,
-                "group": item.options.group or self.gettext("Other collections"),
-                "url": self._url(request, f"/models/{item.slug}/"),
-            }
-            for item in resources
-        ]
         if identity is not None:
             trusted_scripts += ("table-navigation.js", "navigation.js")
             if "dashboard.js" in trusted_scripts:
                 trusted_scripts = tuple(
                     name for name in trusted_scripts if name != "dashboard.js"
                 ) + ("dashboard.js",)
-        dependencies = []
-        for name in trusted_scripts:
-            if name in {"forms.js", "history.js"}:
-                dependencies.append("datetime.js")
-            dependencies.append(name)
-        scripts = []
-        for name in dict.fromkeys(dependencies):
-            if name not in {
-                "relations.js",
-                "schema.js",
-                "filters.js",
-                "forms.js",
-                "datetime.js",
-                "navigation.js",
-                "table-navigation.js",
-                "dashboard.js",
-                "listing.js",
-                "inline.js",
-                "history.js",
-                "values.js",
-            }:
-                raise ValueError("Unknown built-in script.")
-            digest = base64.b64encode(
-                hashlib.sha256((STATIC_DIR / name).read_bytes()).digest()
-            ).decode()
-            scripts.append(
-                {"url": self._url(request, "/assets/" + name), "integrity": "sha256-" + digest}
-            )
+        scripts = [
+            {
+                "url": self._url(request, "/assets/" + name),
+                "integrity": script_integrity(STATIC_DIR / name),
+            }
+            for name in script_names(trusted_scripts)
+        ]
         request.state.quite_admin_script_hashes = tuple(item["integrity"] for item in scripts)
         shared = {
             "template_api_version": TEMPLATE_API_VERSION,
@@ -112,9 +100,7 @@ class Rendering:
             "tn": self.ngettext,
             "identity": identity,
             "resources": resources,
-            "resource_groups": groups,
-            "table_catalog": table_catalog,
-            "table_group_count": len({item["group"] for item in table_catalog}),
+            **_navigation_context(resources, lambda path: self._url(request, path), self.gettext),
             "pages": pages,
             "history_allowed": identity is not None and await self._history_allowed(request),
             "csrf": self._csrf(request),
