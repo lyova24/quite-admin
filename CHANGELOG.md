@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.10 — 2026-11-08
+
+- Resize the left navigation by dragging its edge or using the keyboard, remember widths per admin mount, and restore the theme default on double-click. Wrap long table and group names and keep mobile navigation free of horizontal scrolling.
+
 ## 0.8.9 — 2026-11-08
 
 - Select entire authorized table groups in the database schema with synchronized checked and mixed states. Search by group, table label or name; retain individual selection and the manual-selection guard for large schemas.

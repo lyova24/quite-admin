@@ -12,9 +12,9 @@
   {% block head %}{% endblock %}
 </head>
 <body{% if listing_page %} class="listing-page"{% endif %}>
-  <div class="shell {% if not identity %}shell-login{% endif %}">
+  <div class="shell {% if not identity %}shell-login{% endif %}"{% if identity %} data-admin-shell data-storage-key="{{ url('/') }}"{% endif %}>
   {% if identity %}
-    <aside class="sidebar">
+    <aside class="sidebar" id="admin-sidebar">
       <a class="brand" href="{{ url('/') }}">{{ brand_mark() }}{{ title }}</a>
       {{ nav_link(url('/'), t('Overview'), not resource and not page and not schema_page and not history_page) }}
       {{ nav_link(url('/schema'), t('Database schema'), schema_page) }}
@@ -36,7 +36,8 @@
       <p class="nav-label">{{ t('PAGES') }}</p>
       <nav aria-label="{{ t('Custom pages') }}">{% for item in pages %}{{ nav_link(url('/pages/' ~ item.slug), item.title, page and page.slug == item.slug) }}{% endfor %}</nav>
       {% endif %}
-      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.9</span></div>
+      <div class="sidebar-bottom">Quite Admin <span class="muted">v0.8.10</span></div>
+      <div class="sidebar-resizer" data-sidebar-resizer role="separator" aria-orientation="vertical" aria-controls="admin-sidebar" aria-label="{{ t('Resize sidebar') }}" tabindex="0" title="{{ t('Drag or use arrow keys to resize; double-click to reset.') }}" hidden></div>
     </aside>
   {% endif %}
     <main class="main">

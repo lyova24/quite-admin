@@ -53,6 +53,7 @@ class Rendering:
             for item in resources:
                 label = item.options.group or self.gettext("Other collections")
                 groups.setdefault(label, []).append(item)
+        if identity is not None:
             trusted_scripts += ("navigation.js",)
         dependencies = []
         for name in trusted_scripts:

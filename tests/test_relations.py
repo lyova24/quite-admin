@@ -534,9 +534,13 @@ async def test_searchable_picker_pagination_and_permissions(auth, related_backen
         policy = form.headers["content-security-policy"]
         assert f"script-src '{digest}'" in policy
         assert "unsafe-inline" not in policy and "unsafe-eval" not in policy
-        assert (
-            "script-src 'none'" in (await client.get(base + "/")).headers["content-security-policy"]
+        overview = await client.get(base + "/")
+        navigation = Path(__file__).parents[1] / "src/quite_admin/static/navigation.js"
+        navigation_digest = (
+            "sha256-" + base64.b64encode(hashlib.sha256(navigation.read_bytes()).digest()).decode()
         )
+        assert navigation_digest in overview.headers["content-security-policy"]
+        assert digest not in overview.headers["content-security-policy"]
         bad = await client.post(
             path,
             data={

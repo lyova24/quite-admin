@@ -28,7 +28,7 @@ async def test_sidebar_groups_are_permission_filtered_and_current_group_is_marke
         )
         page = await client.get("/admin/")
         assert 'data-group="Hidden"' not in page.text
-        assert "navigation.js" not in page.text
+        assert "navigation.js" in page.text
 
 
 def test_blank_sidebar_group_is_rejected():

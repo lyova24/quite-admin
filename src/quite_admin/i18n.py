@@ -51,6 +51,10 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Resize sidebar": "Изменить ширину боковой панели",
+    "Drag or use arrow keys to resize; double-click to reset.": (
+        "Перетащите или используйте стрелки для изменения ширины; двойной щелчок сбрасывает её."
+    ),
     "Show full value": "Показать полностью",
     "Copy value": "Скопировать значение",
     "Copy": "Копировать",

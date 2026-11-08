@@ -185,6 +185,7 @@ async def build(output):
                 "history.js",
                 "inline.js",
                 "listing.js",
+                "navigation.js",
             ):
                 shutil.copyfile(ROOT / "src/quite_admin/static" / script, output / script)
             (output / "theme.css").write_text(admin.theme.stylesheet())
