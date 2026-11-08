@@ -32,8 +32,10 @@
     });
     const byId = new Map(nodes.map((node) => [node.id, node]));
     const adjacency = new Map(nodes.map((node) => [node.id, new Set()]));
+    const outgoing = new Map(nodes.map((node) => [node.id, []]));
     for (const edge of edges) if (byId.has(edge.source) && byId.has(edge.target)) {
       adjacency.get(edge.source).add(edge.target); adjacency.get(edge.target).add(edge.source);
+      outgoing.get(edge.source).push(edge);
     }
     const visited = new Set(), components = [];
     for (const first of [...byId.keys()].sort()) {
@@ -47,33 +49,45 @@
     }
     function arrange(ids, verticalPairs) {
       const directed = new Map(ids.map((id) => [id, []]));
-      for (const edge of edges) if (directed.has(edge.source) && directed.has(edge.target) && edge.source !== edge.target && !(verticalPairs && edge.kind === "o2o")) directed.get(edge.source).push(edge.target);
+      for (const id of ids) for (const edge of outgoing.get(id)) if (edge.source !== edge.target && !(verticalPairs && edge.kind === "o2o")) directed.get(id).push(edge.target);
       // Condense cycles before assigning layers, so every graph terminates deterministically.
       let counter = 0;
       const indexes = new Map(), low = new Map(), stack = [], onStack = new Set(), groups = [];
-      function visit(id) {
-        indexes.set(id, counter); low.set(id, counter++); stack.push(id); onStack.add(id);
-        for (const next of directed.get(id)) {
-          if (!indexes.has(next)) { visit(next); low.set(id, Math.min(low.get(id), low.get(next))); }
-          else if (onStack.has(next)) low.set(id, Math.min(low.get(id), indexes.get(next)));
-        }
-        if (low.get(id) === indexes.get(id)) {
-          const group = []; let member;
-          do { member = stack.pop(); onStack.delete(member); group.push(member); } while (member !== id);
-          groups.push(group.sort());
+      // Explicit DFS frames avoid exhausting the browser stack on long FK chains.
+      for (const first of [...ids].sort()) {
+        if (indexes.has(first)) continue;
+        const pending = [{ id: first, next: 0 }];
+        while (pending.length) {
+          const frame = pending[pending.length - 1], id = frame.id;
+          if (!indexes.has(id)) { indexes.set(id, counter); low.set(id, counter++); stack.push(id); onStack.add(id); }
+          if (frame.next < directed.get(id).length) {
+            const next = directed.get(id)[frame.next++];
+            if (!indexes.has(next)) pending.push({ id: next, next: 0 });
+            else if (onStack.has(next)) low.set(id, Math.min(low.get(id), indexes.get(next)));
+            continue;
+          }
+          if (low.get(id) === indexes.get(id)) {
+            const group = []; let member;
+            do { member = stack.pop(); onStack.delete(member); group.push(member); } while (member !== id);
+            groups.push(group.sort());
+          }
+          pending.pop();
+          if (pending.length) { const parent = pending[pending.length - 1].id; low.set(parent, Math.min(low.get(parent), low.get(id))); }
         }
       }
-      for (const id of [...ids].sort()) if (!indexes.has(id)) visit(id);
       const groupOf = new Map(); groups.forEach((group, index) => group.forEach((id) => groupOf.set(id, index)));
-      const incoming = groups.map(() => new Set());
-      for (const [id, nexts] of directed) for (const next of nexts) if (groupOf.get(id) !== groupOf.get(next)) incoming[groupOf.get(next)].add(groupOf.get(id));
-      const ranks = new Map();
-      function rank(group) {
-        if (!ranks.has(group)) ranks.set(group, Math.max(0, ...[...incoming[group]].map((parent) => rank(parent) + 1)));
-        return ranks.get(group);
+      const incoming = groups.map(() => new Set()), successors = groups.map(() => new Set());
+      for (const [id, nexts] of directed) for (const next of nexts) if (groupOf.get(id) !== groupOf.get(next)) {
+        incoming[groupOf.get(next)].add(groupOf.get(id)); successors[groupOf.get(id)].add(groupOf.get(next));
+      }
+      const ranks = groups.map(() => 0), remaining = incoming.map((parents) => parents.size);
+      const ready = remaining.map((count, index) => count ? null : index).filter((index) => index !== null);
+      for (let i = 0; i < ready.length; i++) for (const next of successors[ready[i]]) {
+        ranks[next] = Math.max(ranks[next], ranks[ready[i]] + 1);
+        if (!--remaining[next]) ready.push(next);
       }
       const layers = [];
-      groups.forEach((group, index) => { const value = rank(index); (layers[value] ||= []).push(...group); });
+      groups.forEach((group, index) => { const value = ranks[index]; (layers[value] ||= []).push(...group); });
       layers.forEach((layer) => layer.sort());
       for (let pass = 0; pass < 4; pass++) {
         const positions = new Map(); layers.forEach((layer) => layer.forEach((id, index) => positions.set(id, index)));
@@ -120,7 +134,62 @@
   function segmentBlocked(a, b, obstacles) {
     return obstacles.some((r) => a.x === b.x ? a.x > r.x && a.x < r.x + r.width && Math.max(a.y, b.y) > r.y && Math.min(a.y, b.y) < r.y + r.height : a.y > r.y && a.y < r.y + r.height && Math.max(a.x, b.x) > r.x && Math.min(a.x, b.x) < r.x + r.width);
   }
-  function routeEdge(source, target, edge, nodes, lane = 0) {
+  // One obstacle index is shared by every edge in a render. Large diagrams use a
+  // bounded search: an unusually dense route must never block the whole workspace.
+  function createRoutingContext(nodes) {
+    const obstacles = nodes.map((node) => ({ x: node.x - 10, y: node.y - 10, width: node.width + 20, height: node.height + 20 }));
+    const large = nodes.length > 100, cells = new Map(), cellSize = 512;
+    if (large) for (const obstacle of obstacles) {
+      for (let x = Math.floor(obstacle.x / cellSize); x <= Math.floor((obstacle.x + obstacle.width) / cellSize); x++) {
+        for (let y = Math.floor(obstacle.y / cellSize); y <= Math.floor((obstacle.y + obstacle.height) / cellSize); y++) {
+          const key = x + "," + y;
+          if (!cells.has(key)) cells.set(key, []);
+          cells.get(key).push(obstacle);
+        }
+      }
+    }
+    const blocked = (a, b) => {
+      if (!large) return segmentBlocked(a, b, obstacles);
+      const x1 = Math.floor(Math.min(a.x, b.x) / cellSize), x2 = Math.floor(Math.max(a.x, b.x) / cellSize);
+      const y1 = Math.floor(Math.min(a.y, b.y) / cellSize), y2 = Math.floor(Math.max(a.y, b.y) / cellSize);
+      for (let x = x1; x <= x2; x++) for (let y = y1; y <= y2; y++) {
+        const bucket = cells.get(x + "," + y);
+        if (bucket && segmentBlocked(a, b, bucket)) return true;
+      }
+      return false;
+    };
+    return { obstacles, large, blocked };
+  }
+
+  // Min heap keeps A* queue operations logarithmic rather than repeatedly sorting it.
+  function routeQueue() {
+    const items = [];
+    return {
+      get length() { return items.length; },
+      push(item) {
+        let index = items.length; items.push(item);
+        while (index) { const parent = (index - 1) >> 1; if (items[parent][1] <= item[1]) break; items[index] = items[parent]; index = parent; }
+        items[index] = item;
+      },
+      pop() {
+        const first = items[0], last = items.pop();
+        if (items.length) {
+          let index = 0;
+          while (index * 2 + 1 < items.length) {
+            let child = index * 2 + 1;
+            if (child + 1 < items.length && items[child + 1][1] < items[child][1]) child++;
+            if (last[1] <= items[child][1]) break;
+            items[index] = items[child]; index = child;
+          }
+          items[index] = last;
+        }
+        return first;
+      }
+    };
+  }
+
+  function routeEdge(source, target, edge, nodes, lane = 0, context = null) {
+    context ||= createRoutingContext(nodes);
     const port = (node, fields) => {
       const indexes = fields.map((name) => node.shownFields.findIndex((field) => field.name === name)).filter((index) => index >= 0);
       return node.y + HEADER + (indexes.length ? indexes.reduce((a, b) => a + b, 0) / indexes.length + .5 : .5) * ROW;
@@ -130,20 +199,32 @@
     const start = { x: source.x + (sourceRight ? source.width : 0), y: port(source, edge.sourceFields) };
     const end = { x: target.x + (targetRight ? target.width : 0), y: port(target, edge.targetFields) };
     const a = { x: start.x + (sourceRight ? 24 : -24), y: start.y }, b = { x: end.x + (targetRight ? 24 : -24), y: end.y };
-    const obstacles = nodes.map((node) => ({ x: node.x - 10, y: node.y - 10, width: node.width + 20, height: node.height + 20 }));
-    const valid = (points) => points.slice(1).every((point, index) => !segmentBlocked(points[index], point, obstacles));
+    const { obstacles, blocked, large } = context;
+    const valid = (points) => points.slice(1).every((point, index) => !blocked(points[index], point));
     const middle = rightward || leftward ? (a.x + b.x) / 2 + lane * 12 : Math.max(a.x, b.x) + 24 + lane * 16;
     let route = [a, { x: middle, y: a.y }, { x: middle, y: b.y }, b];
     if (source.id === target.id && a.y === b.y) route = [a, { x: middle, y: a.y }, { x: middle, y: a.y - 42 }, { x: b.x, y: a.y - 42 }, b];
+    if (large && !valid(route)) {
+      const above = Math.min(source.y, target.y) - 24 - lane * 12, below = Math.max(source.y + source.height, target.y + target.height) + 24 + lane * 12;
+      const alternatives = [
+        [a, { x: a.x, y: b.y }, b], [a, { x: b.x, y: a.y }, b],
+        [a, { x: a.x, y: above }, { x: b.x, y: above }, b],
+        [a, { x: a.x, y: below }, { x: b.x, y: below }, b]
+      ];
+      const clear = alternatives.find(valid);
+      if (clear) route = clear;
+    }
     if (!valid(route)) {
       // Manhattan A* over obstacle boundaries; short routes avoid this allocation entirely.
-      const xs = [...new Set([a.x, b.x, ...obstacles.flatMap((r) => [r.x - 8, r.x + r.width + 8])])].sort((x, y) => x - y);
-      const ys = [...new Set([a.y, b.y, ...obstacles.flatMap((r) => [r.y - 8, r.y + r.height + 8])])].sort((x, y) => x - y);
+      const nearby = large ? obstacles.filter((r) => r.x < Math.max(a.x, b.x) + 64 && r.x + r.width > Math.min(a.x, b.x) - 64 && r.y < Math.max(a.y, b.y) + 64 && r.y + r.height > Math.min(a.y, b.y) - 64) : obstacles;
+      const xs = [...new Set([a.x, b.x, ...nearby.flatMap((r) => [r.x - 8, r.x + r.width + 8])])].sort((x, y) => x - y);
+      const ys = [...new Set([a.y, b.y, ...nearby.flatMap((r) => [r.y - 8, r.y + r.height + 8])])].sort((x, y) => x - y);
       const encode = (x, y) => y * xs.length + x, point = (id) => ({ x: xs[id % xs.length], y: ys[Math.floor(id / xs.length)] });
       const first = encode(xs.indexOf(a.x), ys.indexOf(a.y)), last = encode(xs.indexOf(b.x), ys.indexOf(b.y));
-      const cost = new Map([[first, 0]]), previous = new Map(), queue = [[first, 0]], closed = new Set();
-      while (queue.length) {
-        queue.sort((x, y) => y[1] - x[1]);
+      const cost = new Map([[first, 0]]), previous = new Map(), queue = large ? routeQueue() : [], closed = new Set();
+      queue.push([first, 0]);
+      while (queue.length && (!large || closed.size < 1024)) {
+        if (!large) queue.sort((x, y) => y[1] - x[1]);
         const [id] = queue.pop(); if (closed.has(id)) continue;
         if (id === last) { const result = []; let current = id; while (current != null) { result.push(point(current)); current = previous.get(current); } route = result.reverse(); break; }
         closed.add(id);
@@ -151,7 +232,7 @@
         for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
           if (nx < 0 || nx >= xs.length || ny < 0 || ny >= ys.length) continue;
           const next = encode(nx, ny), p = point(next);
-          if (closed.has(next) || segmentBlocked(current, p, obstacles)) continue;
+          if (closed.has(next) || blocked(current, p)) continue;
           const parent = previous.get(id), before = parent == null ? current : point(parent);
           const bend = parent != null && (before.x === current.x) !== (current.x === p.x) ? 16 : 0;
           const score = cost.get(id) + Math.abs(p.x - current.x) + Math.abs(p.y - current.y) + bend;
@@ -166,7 +247,7 @@
     return { points: simplified, label, path: simplified.map((point, index) => `${index ? "L" : "M"}${point.x},${point.y}`).join(" ") };
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { layoutSchema, projectGraph, routeEdge, bounds, compactFields };
+  if (typeof module !== "undefined" && module.exports) module.exports = { layoutSchema, projectGraph, routeEdge, bounds, compactFields, createRoutingContext };
   if (typeof document === "undefined") return;
 
   function initSchemas() {
@@ -179,6 +260,8 @@
       const known = new Map(graph.nodes.map((node) => [node.id, node]));
       const manualSelection = root.dataset.initialSelection === "none";
       const visible = new Set(manualSelection ? [] : known.keys()), expanded = new Set(), opened = new Set(), manual = new Map();
+      let positions = new Map(), routing = null;
+      const edgeViews = [], nodeViews = new Map(), incident = new Map();
       let laidOut = [], selected = null, view = { x: 0, y: 0, width: 600, height: 360 }, zoom = 1, autoFit = true, drag = null, frame = null, suppressClick = false;
       const ns = "http://www.w3.org/2000/svg";
       const el = (tag, attributes = {}, text) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value); if (text != null) node.textContent = text; return node; };
@@ -237,11 +320,31 @@
         select(id, true);
         svg.querySelectorAll("[data-node]").forEach((group) => { if (group.dataset.node === id) group.focus(); });
       }
+      function updateEdge(item) {
+        const source = positions.get(item.edge.source), target = positions.get(item.edge.target);
+        const route = routeEdge(source, target, item.edge, laidOut, item.lane, routing);
+        item.line.setAttribute("d", route.path); item.hit.setAttribute("d", route.path);
+        item.label.setAttribute("x", route.label.x); item.label.setAttribute("y", route.label.y + 3.5);
+        item.background.setAttribute("x", route.label.x - item.width / 2); item.background.setAttribute("y", route.label.y - 10);
+      }
+      function moveNode(id) {
+        const node = positions.get(id), position = manual.get(id);
+        if (!node || !position) return;
+        Object.assign(node, position); nodeViews.get(id).setAttribute("transform", `translate(${node.x},${node.y})`);
+        routing = createRoutingContext(laidOut);
+        for (const item of incident.get(id) || []) updateEdge(item);
+      }
+      function rerouteEdges() {
+        routing = createRoutingContext(laidOut);
+        edgeViews.forEach(updateEdge);
+      }
       function draw() {
         const focused = svg.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
         const projected = projectGraph(graph, visible, opened), size = dimensions();
+        lastWidth = size.width; lastHeight = size.height;
         laidOut = layoutSchema(projected.nodes, projected.edges, expanded, size.width / size.height).map((node) => ({ ...node, ...manual.get(node.id) }));
-        const positions = new Map(laidOut.map((node) => [node.id, node]));
+        positions = new Map(laidOut.map((node) => [node.id, node]));
+        routing = createRoutingContext(laidOut); edgeViews.length = 0; nodeViews.clear(); incident.clear();
         svg.replaceChildren();
         const defs = el("defs");
         for (const kind of ["one", "many"]) { const marker = el("marker", { id: "schema-" + kind, viewBox: "-12 -7 14 14", markerWidth: 14, markerHeight: 14, refX: 0, refY: 0, markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" }); marker.append(el("path", { class: "schema-marker", d: kind === "one" ? "M-5,-6 V6" : "M-10,-6 L0,0 L-10,6 M-10,0 H0" })); defs.append(marker); }
@@ -251,16 +354,20 @@
         for (const edge of projected.edges) {
           const source = positions.get(edge.source), target = positions.get(edge.target); if (!source || !target) continue;
           const pair = [source.id, target.id].sort().join("|"); const lane = pairs.get(pair) || 0; pairs.set(pair, lane + 1);
-          const route = routeEdge(source, target, edge, laidOut, lane);
+          const route = routeEdge(source, target, edge, laidOut, lane, routing);
           const action = edge.originals[0] || (edge.junction ? edge.id : null), collapse = edge.originals.length > 0;
           const multiplicity = edge.kind === "o2o" ? "1:1" : edge.kind === "o2m" ? "1:N" : "N:M";
           const caption = `${multiplicity} · ${edge.kind}${action ? collapse ? " −" : " +" : ""}`;
           const accessible = `${source.name} (${edge.sourceFields.join(", ")}) → ${target.name} (${edge.targetFields.join(", ")}): ${multiplicity}, ${messages[edge.kind]}. ${action ? messages[collapse ? "collapseJunction" : "expandJunction"] : edge.label}`;
           const group = el("g", { class: "schema-edge" + (action ? " is-expandable" : ""), "data-edge": edge.id, "data-source": edge.source, "data-target": edge.target, tabindex: 0, role: action ? "button" : "img", "aria-label": accessible });
           if (action) { group.setAttribute("aria-expanded", String(collapse)); group.dataset.junctionAction = action; }
-          group.append(el("title", {}, accessible), el("path", { class: "edge-line", d: route.path, "marker-start": `url(#schema-${edge.kind === "m2m" ? "many" : "one"})`, "marker-end": `url(#schema-${edge.kind === "o2o" ? "one" : "many"})` }), el("path", { class: "edge-hit", d: route.path }));
+          const line = el("path", { class: "edge-line", d: route.path, "marker-start": `url(#schema-${edge.kind === "m2m" ? "many" : "one"})`, "marker-end": `url(#schema-${edge.kind === "o2o" ? "one" : "many"})` }), hit = el("path", { class: "edge-hit", d: route.path });
+          group.append(el("title", {}, accessible), line, hit);
           const width = caption.length * 6 + 12;
-          group.append(el("rect", { class: "edge-label-bg", x: route.label.x - width / 2, y: route.label.y - 10, width, height: 20, rx: 4 }), el("text", { x: route.label.x, y: route.label.y + 3.5 }, caption));
+          const background = el("rect", { class: "edge-label-bg", x: route.label.x - width / 2, y: route.label.y - 10, width, height: 20, rx: 4 }), label = el("text", { x: route.label.x, y: route.label.y + 3.5 }, caption);
+          group.append(background, label);
+          const item = { edge, lane, line, hit, background, label, width }; edgeViews.push(item);
+          for (const id of new Set([edge.source, edge.target])) { if (!incident.has(id)) incident.set(id, []); incident.get(id).push(item); }
           if (action) { group.addEventListener("click", () => toggleJunction(action)); group.addEventListener("keydown", (event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); toggleJunction(action); } }); }
           group.addEventListener("pointerenter", () => highlight(selected || edge.source)); group.addEventListener("pointerleave", () => highlight(selected));
           edgeLayer.append(group);
@@ -279,9 +386,9 @@
           group.addEventListener("keydown", (event) => {
             if (["Enter", " "].includes(event.key)) { event.preventDefault(); toggleNode(node.id); }
             const delta = { ArrowLeft: [-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[event.key];
-            if (delta) { event.preventDefault(); const step = event.shiftKey ? 40 : 10; fixPositions(); manual.set(node.id, { x: node.x + delta[0] * step, y: node.y + delta[1] * step }); autoFit = false; draw(); svg.querySelectorAll("[data-node]").forEach((g) => { if (g.dataset.node === node.id) g.focus(); }); }
+            if (delta) { event.preventDefault(); const step = event.shiftKey ? 40 : 10; fixPositions(); manual.set(node.id, { x: node.x + delta[0] * step, y: node.y + delta[1] * step }); autoFit = false; moveNode(node.id); rerouteEdges(); }
           });
-          nodeLayer.append(group);
+          nodeViews.set(node.id, group); nodeLayer.append(group);
         }
         svg.append(edgeLayer, nodeLayer);
         if (!laidOut.length) svg.append(el("text", { class: "schema-empty", x: 300, y: 180 }, messages.selectTables));
@@ -296,7 +403,7 @@
       svg.addEventListener("pointerdown", (event) => {
         if (event.button !== 0 || event.target.closest("[data-edge]")) return;
         const id = event.target.closest("[data-node]")?.dataset.node, point = world(event), node = laidOut.find((node) => node.id === id);
-        drag = { pointer: event.pointerId, id, start: point, view: { ...view }, node, clientX: event.clientX, clientY: event.clientY, moved: false };
+        drag = { pointer: event.pointerId, id, start: point, view: { ...view }, node: node ? { ...node } : null, clientX: event.clientX, clientY: event.clientY, moved: false };
         if (id) select(id); svg.setPointerCapture(event.pointerId); event.preventDefault();
       });
       svg.addEventListener("pointermove", (event) => {
@@ -305,12 +412,13 @@
         if (!drag.moved) return;
         autoFit = false; svg.classList.add("is-dragging");
         const dx = (event.clientX - drag.clientX) / zoom, dy = (event.clientY - drag.clientY) / zoom;
-        if (drag.id) { if (!drag.fixed) { fixPositions(); drag.fixed = true; } manual.set(drag.id, { x: drag.node.x + dx, y: drag.node.y + dy }); if (!frame) frame = requestAnimationFrame(() => { frame = null; draw(); }); }
+        if (drag.id) { if (!drag.fixed) { fixPositions(); drag.fixed = true; } manual.set(drag.id, { x: drag.node.x + dx, y: drag.node.y + dy }); if (!frame) frame = requestAnimationFrame(() => { frame = null; moveNode(drag?.id); }); }
         else { view.x = drag.view.x - dx; view.y = drag.view.y - dy; updateView(); }
       });
       function endDrag(event) {
         if (!drag || event.pointerId !== drag.pointer) return;
         const ended = drag; drag = null; svg.classList.remove("is-dragging");
+        if (ended.id && ended.moved) { if (frame) { cancelAnimationFrame(frame); frame = null; } moveNode(ended.id); rerouteEdges(); }
         suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
         if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
         if (event.type !== "pointercancel" && !ended.moved) { if (ended.id) toggleNode(ended.id); else select(null); }
@@ -358,7 +466,7 @@
         }
       });
       if (!manualSelection && root.getBoundingClientRect().width < 700) { root.classList.add("is-sidebar-hidden"); root.querySelector("[data-schema-sidebar-toggle]").setAttribute("aria-expanded", "false"); }
-      let lastWidth = 0, lastHeight = 0;
+      let { width: lastWidth, height: lastHeight } = dimensions();
       const resize = new ResizeObserver(() => { if (!root.isConnected) { root.schemaCleanup(); return; } const size = dimensions(); if (size.width === lastWidth && size.height === lastHeight) return; lastWidth = size.width; lastHeight = size.height; if (autoFit) draw(); else { view.width = size.width / zoom; view.height = size.height / zoom; updateView(); } });
       root.schemaCleanup = () => { restoreBackground(); resize.disconnect(); if (frame) cancelAnimationFrame(frame); };
       resize.observe(svg); renderChoices(); draw();

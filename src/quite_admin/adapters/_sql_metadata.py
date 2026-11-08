@@ -50,8 +50,14 @@ def _name(value):
 
 class SQLRelationMetadata:
     def _links(self, model):
-        links = []
-        for table in sorted(model.metadata.tables.values(), key=lambda item: item.fullname):
+        return self._links_many((model,))[model]
+
+    def _links_many(self, models):
+        """Describe all requested tables in one pass over each metadata snapshot."""
+        links = {model: [] for model in models}
+        metadata = {id(model.metadata): model.metadata for model in links}
+        tables = [table for item in metadata.values() for table in item.tables.values()]
+        for table in sorted(tables, key=lambda item: item.fullname):
             if not table.primary_key.columns:
                 continue
             constraints = sorted(
@@ -68,9 +74,9 @@ class SQLRelationMetadata:
                 local = tuple(element.parent.name for element in constraint.elements)
                 remote = tuple(element.column.name for element in constraint.elements)
                 resolved.append((target, local, remote))
-                if table is model:
+                if table in links:
                     name = _name("to_" + target.name + "_by_" + "_".join(local))
-                    links.append(
+                    links[table].append(
                         _Link(
                             Relation(
                                 name,
@@ -81,16 +87,16 @@ class SQLRelationMetadata:
                                 target_key_fields=remote,
                                 can_detach=all(table.c[n].nullable for n in local),
                                 read_only=bool(
-                                    set(local) & {c.name for c in model.primary_key.columns}
+                                    set(local) & {c.name for c in table.primary_key.columns}
                                 ),
                             ),
                             local,
                             remote,
                         )
                     )
-                if target is model:
+                if target in links:
                     name = _name("from_" + table.name + "_by_" + "_".join(local))
-                    links.append(
+                    links[target].append(
                         _Link(
                             Relation(
                                 name,
@@ -117,9 +123,9 @@ class SQLRelationMetadata:
             if covered != {c.name for c in table.columns} or not _unique(table, covered):
                 continue
             for left, right in (resolved, resolved[::-1]):
-                if left[0] is model:
+                if left[0] in links:
                     target, target_columns, target_remote = right
-                    links.append(
+                    links[left[0]].append(
                         _Link(
                             Relation(
                                 _name(target.name + "_via_" + table.name + "_" + "_".join(left[1])),
@@ -143,7 +149,9 @@ class SQLRelationMetadata:
                             through_remote=target_columns,
                         )
                     )
-        return {link.relation.name: link for link in links}
+        return {
+            model: {link.relation.name: link for link in items} for model, items in links.items()
+        }
 
 
 def related_predicates(model, query, links):

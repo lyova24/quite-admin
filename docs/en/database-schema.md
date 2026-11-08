@@ -61,6 +61,24 @@ Set `schema_auto_limit=False` to select every available table immediately, or ch
 or record operations. The full metadata catalog is still loaded; these settings do not
 limit reflection or metadata transferred to the browser.
 
+## Rendering large selections
+
+**Show all** and `schema_auto_limit=False` keep every selected table available in the
+canvas. Large selections use bounded routing work and update the moved card and its
+incident links during dragging, without rebuilding every card. Pan and zoom keep the
+existing diagram. Long foreign-key chains do not depend on the browser's recursion limit.
+
+In dense selections, a link can cross an unrelated card when a clear detour would be
+expensive to find. Select its source or target to highlight the relationship, or hide
+unrelated tables in the sidebar for a clearer diagram. Smaller selections retain full
+obstacle-avoiding routing.
+
+The SQL reflection adapter reuses relationship metadata within its current reflected
+snapshot. After database migrations, call `await adapter.refresh()` before reloading the
+page to discover added or removed foreign keys and changed uniqueness constraints;
+see [SQL reflection](integration.md). The cache contains physical metadata only; permissions
+and field visibility are evaluated for each schema request.
+
 ## Permissions and field policy
 
 The schema requires authentication and both `list` and `view` permission for each

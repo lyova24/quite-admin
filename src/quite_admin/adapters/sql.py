@@ -137,6 +137,7 @@ class SQLAdapter(CheckedWrites, SQLRelations, WindowReads):
                 stacklevel=2,
             )
         self._metadata = metadata
+        self._relation_snapshot = None
 
     async def discover(self) -> Iterable[Table]:
         if self._metadata is None:

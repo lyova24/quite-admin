@@ -18,6 +18,16 @@ from ._sql_metadata import SQLRelationMetadata
 
 
 class SQLRelations(SQLRelationMetadata):
+    def _links(self, model):
+        metadata = getattr(self, "_metadata", None)
+        if model.metadata is not metadata:
+            return SQLRelationMetadata._links(self, model)
+        snapshot = getattr(self, "_relation_snapshot", None)
+        if snapshot is None or snapshot[0] is not metadata:
+            snapshot = metadata, self._links_many(metadata.tables.values())
+            self._relation_snapshot = snapshot
+        return snapshot[1][model]
+
     async def related_batch(self, model, name, keys, *, limit=10001, columns=None):
         schema, target_schema, relation = prepare_batch(self, model, name, keys, limit, columns)
         if not keys:

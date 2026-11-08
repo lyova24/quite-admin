@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.8 — 2026-11-08
+
+- Bound routing work and reuse a shared obstacle index for large diagrams; move cards without rebuilding the whole SVG and handle long foreign-key chains without recursive stack growth. Reuse SQL relationship metadata per reflection snapshot and invalidate it on refresh; retain per-request permissions and field visibility.
+
 ## 0.8.7 — 2026-11-08
 
 - Start diagrams with more than 100 permitted tables unselected and explain manual selection. Add schema_auto_limit=True and a configurable schema_table_limit; preserve Show all and allow disabling the initial guard without changing table access.
