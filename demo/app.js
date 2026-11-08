@@ -43,6 +43,7 @@ const extra = {
   "None means this event is awaiting review.": "None означает, что событие ожидает согласования.",
 };
 const t = (text, values = {}) => {
+  text = seed.messageAliases?.[text] || text;
   let translated = language === "ru" ? seed.translations[text] || extra[text] || text : text;
   for (const [name,value] of Object.entries(values)) translated = translated.replaceAll("{"+name+"}",value);
   return translated;

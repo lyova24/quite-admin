@@ -68,7 +68,7 @@ admin.mount_fastapi(app)
 
 `base=Base` discovers all three models. Their column types supply the forms, and
 SQLAlchemy relationships supply the related-record editors. No separate admin classes,
-DTOs or Pydantic schemas are needed. You can later [configure individual collections
+DTOs or Pydantic schemas are needed. You can later [configure individual tables
 and fields](configuration.md) without replacing your models.
 
 ## Local files and sessions

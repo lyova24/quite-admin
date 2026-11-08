@@ -26,7 +26,7 @@ implement an adapter around your application service.
 
 ## Contracts
 
-- `ModelSchema`: collection name, scalar fields and one or more primary keys.
+- `ModelSchema`: table name, scalar fields and one or more primary keys.
 - `Field`: type, nullable/default/generated/read-only flags, choices and foreign-key metadata.
 - `ModelOptions`: ORM-independent display and write policy.
 - `Query`: validated pagination, sorting, text search, typed filters and scalar projection.
@@ -44,7 +44,7 @@ The required adapter API remains version 1; new capabilities are optional.
 ## A write request
 
 1. Validate the signed session and revalidate the identity through the authentication backend.
-2. Authorize the collection operation.
+2. Authorize the table operation.
 3. Bound the body size, parse form data, reject duplicates and validate CSRF.
 4. Build the server-side writable-field allowlist and reject unknown, hidden or read-only fields.
 5. Convert form strings to scalar types and return validation errors to the form.
@@ -70,7 +70,7 @@ separate SQLAlchemy 1.3 environment and is not installed alongside SQLAlchemy 2.
 The host owns engines, pools, migrations and lifespan.
 Model discovery runs after startup, which matters for Tortoise raw foreign-key fields.
 Reflection caches metadata and replaces it atomically on `refresh()`.
-The dashboard does not execute `COUNT(*)` for every collection; record queries start
+The dashboard does not execute `COUNT(*)` for every table; record queries start
 when opening a list.
 
 ## Interactive screens
@@ -78,7 +78,7 @@ when opening a list.
 [List filters](filters.md) build a validated `Query`; adapters apply conditions before
 counting and pagination. Relationship selection loads 25 candidates per page and repeats
 permission checks on each request. The [database schema](database-schema.md) reads only
-metadata for permitted collections and fields; record values never enter the graph.
+metadata for permitted tables and fields; record values never enter the graph.
 
 HTML is rendered on the server. Built-in filters, relationship pickers and the schema use
 local scripts with SRI and exact page-specific CSP hashes. Custom pages retain
@@ -88,11 +88,11 @@ local scripts with SRI and exact page-specific CSP hashes. Custom pages retain
 
 - Data access: implement `Adapter`.
 - Identity: implement `AuthBackend`.
-- Collections and fields: use `ModelOptions`, `FieldOptions`, `register()` and `configure()`.
+- Tables and fields: use `ModelOptions`, `FieldOptions`, `register()` and `configure()`.
 - Layout and forms: override Jinja templates in your template directory.
 - Additional screens: register `Page` with a context callback and permission.
 
-Current permissions apply to entire collections; row filtering belongs in the adapter.
+Current permissions apply to entire tables; row filtering belongs in the adapter.
 GET requests never mutate records. Deletion requires POST after a confirmation screen.
 
 ## Framework integration

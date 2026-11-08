@@ -66,7 +66,7 @@ Use the supported hooks below; custom templates retain the existing CSP.
 
 ## Render and parse a custom input
 
-For an integer displayed as `#7`, configure the field on its collection:
+For an integer displayed as `#7`, configure the field on its table:
 
 ```python
 from quite_admin import FieldOptions, ModelOptions

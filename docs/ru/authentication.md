@@ -39,9 +39,9 @@ async def can_access(request, identity, action):
 admin.register(User, options=ModelOptions(permission=can_access))
 ```
 
-Действия: `list`, `view`, `create`, `edit`, `delete`. Это права уровня коллекции.
+Действия: `list`, `view`, `create`, `edit`, `delete`. Это права уровня таблицы.
 Для [истории действий](storage.md) доступен `history_permission`; история и поиск
-пользователей учитывают текущие права `list`/`view` на коллекции.
+пользователей учитывают текущие права `list`/`view` на таблицы.
 Для tenant isolation и ограничений отдельных записей фильтруйте запросы в собственном
 адаптере; одного скрытия элементов интерфейса недостаточно.
 

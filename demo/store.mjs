@@ -22,7 +22,7 @@ export class Store {
   }
   collection(slug, state = this.state) {
     const collection = state[slug];
-    if (!collection) throw new Error("Collection not found.");
+    if (!collection) throw new Error("Table not found.");
     return collection;
   }
   record(slug, key, state = this.state) {

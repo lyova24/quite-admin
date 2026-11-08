@@ -25,7 +25,7 @@ items:
         href: gino.md
   - name: User guide
     items:
-      - name: Collections and fields
+      - name: Tables and fields
         href: configuration.md
       - name: Filters and search
         href: filters.md

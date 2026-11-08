@@ -67,7 +67,7 @@ admin.configure("links", options=ModelOptions(fields={
 
 ## Отрисовка и разбор своего input
 
-Для целого числа в виде `#7` настройте поле коллекции:
+Для целого числа в виде `#7` настройте поле таблицы:
 
 ```python
 from quite_admin import FieldOptions, ModelOptions

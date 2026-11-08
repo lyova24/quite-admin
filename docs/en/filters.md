@@ -85,7 +85,7 @@ Custom adapters keep their existing operators unless they opt into the extended 
 ## Related records
 
 Registered relationships appear beside scalar fields when the adapter supports
-`Query.related`. Search the target collection, then select one existing record. The
+`Query.related`. Search the target table, then select one existing record. The
 list includes records linked to that target: 1:1, N:1, 1:N and M:N are supported.
 Different relationships combine with AND; one target is selected per relationship.
 

@@ -27,7 +27,7 @@ test.beforeEach(async ({page}) => {
   ]);
 });
 
-test('history filters the authenticated user and collection in journal cards', async ({page}) => {
+test('history filters the authenticated user and table in journal cards', async ({page}) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/admin/models/entries/');
@@ -41,13 +41,13 @@ test('history filters the authenticated user and collection in journal cards', a
   await expect(cards.first()).toContainText('Browse records');
   await expect(cards.first()).toContainText('Success');
   await expect(page.locator('.activity-journal')).not.toContainText('Alex Smith');
-  await expect(page.getByLabel('Collection', {exact: true})).toHaveValue('entries');
+  await expect(page.getByLabel('Table', {exact: true})).toHaveValue('entries');
   const period = await openPeriod(page, 'Quick select');
   await period.getByRole('button', {name: 'Today', exact: true}).click();
   const today = await page.locator('[data-history-period]').getAttribute('data-today');
-  await page.getByRole('link', {name: 'Remove: Collection: Entries', exact: true}).click();
+  await page.getByRole('link', {name: 'Remove: Table: Entries', exact: true}).click();
   await expect(page.locator('.active-filters')).toContainText('User: admin');
-  await expect(page.locator('.active-filters')).not.toContainText('Collection: Entries');
+  await expect(page.locator('.active-filters')).not.toContainText('Table: Entries');
   await expect(page.locator('[name=date]')).toHaveValue(today);
   await page.getByRole('navigation', {name: 'Activity view'}).getByRole('link', {name: 'Table', exact: true}).click();
   await page.getByRole('link', {name: 'Clear all', exact: true}).click();
@@ -97,7 +97,7 @@ test('persisted field changes show before and after with working expand controls
   await chooseFilter(page, 'subject', /admin/);
   await chooseFilter(page, 'collection', 'Entries');
   await expect(page.getByRole('table', {name: 'Activity history', exact: true})).toBeVisible();
-  await expect(page.getByLabel('Collection', {exact: true})).toHaveValue('entries');
+  await expect(page.getByLabel('Table', {exact: true})).toHaveValue('entries');
   await expect(page.locator('[name=date_mode]')).toHaveValue('day');
   await expect(page.getByLabel('Date (UTC)', {exact: true})).toHaveValue(day);
   await page.reload();
@@ -105,7 +105,7 @@ test('persisted field changes show before and after with working expand controls
   await views.getByRole('link', {name: 'Journal', exact: true}).click();
   await expect(page.locator('.activity-journal')).toBeVisible();
   await expect(page.getByLabel('User', {exact: true})).toHaveValue('admin');
-  await expect(page.getByLabel('Collection', {exact: true})).toHaveValue('entries');
+  await expect(page.getByLabel('Table', {exact: true})).toHaveValue('entries');
   await expect(page.locator('[name=date_mode]')).toHaveValue('day');
   await expect(page.getByLabel('Date (UTC)', {exact: true})).toHaveValue(day);
   await openPeriod(page, 'Date range');

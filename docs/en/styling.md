@@ -113,7 +113,7 @@ changes through tokens over selectors targeting individual rows or generated lab
 
 ## Templates and field labels
 
-`ModelOptions(label=...)` names collections. `FieldOptions(label=..., help_text=...)`
+`ModelOptions(label=...)` names tables. `FieldOptions(label=..., help_text=...)`
 changes field labels and hints without replacing HTML. A field-specific `template`
 can customize its control; see [field extensions](extensions.md).
 

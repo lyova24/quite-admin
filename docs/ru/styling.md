@@ -111,7 +111,7 @@ CSS загружается **после** базовых стилей и `theme.
 
 ## Шаблоны и подписи полей
 
-`ModelOptions(label=...)` меняет название коллекции. `FieldOptions(label=..., help_text=...)`
+`ModelOptions(label=...)` меняет название таблицы. `FieldOptions(label=..., help_text=...)`
 меняет подписи и подсказки без замены HTML. Параметр поля `template` заменяет отдельный
 контрол; см. [расширения полей](extensions.md).
 

@@ -17,7 +17,7 @@ ordinary `Query.validate(schema)` rejects it without related schema metadata.
 Adapters require exactly the complete primary key for get/update/delete, including all
 parts of composite keys. Empty keys, null key values, lookup operators such as `id__gt`
 and unknown write fields are rejected. Updating a primary key is not supported.
-CRUD collections without primary keys fail explicitly instead of using a guessed row identifier.
+CRUD tables without primary keys fail explicitly instead of using a guessed row identifier.
 A [diagram-only junction](database-schema.md) may still describe a table without a primary key;
 it does not gain record operations.
 
@@ -90,7 +90,7 @@ Local verification on **2026-10-30**:
 | GINO minimum/latest, CPython 3.11.18 and 3.15.2, PostgreSQL 17 | 62 passed in each of four runs |
 | Locked dependencies, PostgreSQL 17 / MySQL 8.4, CPython 3.12.14 | 534 passed on each server, including 128 SQLModel checks |
 
-The two full-suite skips are the separately executed GINO collection and optional
+The two full-suite skips are the separately executed GINO test suite and optional
 picologging coverage; SQLModel tests are not skipped. Version JSON and JUnit XML from
 local endpoint runs are written under `build/compatibility/`; CI uploads the same report
 formats. See [dependency compatibility](dependency-compatibility.md) to reproduce them.

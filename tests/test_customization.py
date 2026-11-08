@@ -94,10 +94,10 @@ async def test_localized_crud_and_theme_with_nested_mounts(auth, web_backend, fr
         assert "Неверное имя пользователя или пароль." in bad.text
         await login(client, prefix)
         dashboard = await client.get(prefix + "/")
-        assert "1 коллекция" in dashboard.text
+        assert "1 таблица" in dashboard.text
         assert "Управление магазином" in dashboard.text
         assert "Товары и заказы в одном месте." in dashboard.text
-        assert "Открыть коллекцию" in dashboard.text
+        assert "Открыть таблицу" in dashboard.text
 
         form = await client.get(prefix + "/models/items/new")
         assert "Создать запись" in form.text
@@ -305,7 +305,7 @@ async def test_default_screens_have_no_unsolicited_descriptions(auth):
         home = await client.get("/")
         for unwanted in (
             "ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО",
-            "Просматривайте коллекции",
+            "Просматривайте таблицы",
             "Готовы к работе",
         ):
             assert unwanted not in home.text

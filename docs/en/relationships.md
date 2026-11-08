@@ -41,7 +41,7 @@ Invalid keys, unavailable targets and failed constraints reject the entire save.
 
 ## Foreign-key labels
 
-A foreign key to a registered collection appears as a link to that record, showing the
+A foreign key to a registered table appears as a link to that record, showing the
 stored ID by default. Choose a visible target field with `relation_label` to use it
 in list links. When the relationship editor is enabled, the same option sets the
 label for selected records and picker results in create and edit forms:
@@ -68,7 +68,7 @@ and history continue to use raw IDs.
 
 ## Search and selection
 
-Use **Choose records** to open a picker. Search uses the target collection's visible
+Use **Choose records** to open a picker. Search uses the target table's visible
 `search_fields` (visible strings by default). If the source field sets `relation_label`
 to a permitted string field, the picker also searches that field, even when it is
 absent from the target's `search_fields` or that setting is empty. An exact ID search

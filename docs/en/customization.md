@@ -34,7 +34,7 @@ All settings are optional. Defaults are `title="Quite Admin"`, `description=""`,
 Set `language="en"` for English or `language="ru"` for Russian. Other values raise `ValueError`.
 The language applies to all built-in screens: sign-in, navigation, CRUD actions, empty states,
 pagination, boolean labels, validation errors and standard library error messages.
-Russian record, collection and field counts use the appropriate plural forms.
+Russian record, table and field counts use the appropriate plural forms.
 The HTML `lang` attribute follows the selected language.
 
 Language selection is application configuration. There is no browser-language detection,
@@ -47,6 +47,14 @@ and record values belong to your application. They are not translated automatica
 Use `ModelOptions(label=...)` and `FieldOptions(label=..., help_text=...)` to name your own fields.
 Only known library messages are translated; unknown error messages are displayed as supplied.
 Submitted boolean values remain `true` / `false`, and stored data, URLs and log event names do not change.
+
+The interface calls registered models **tables** in both languages: navigation, overview,
+history filters and schema links use the same wording. For example, choose a table under
+**Tables** in the sidebar to browse its records. Existing custom templates can continue
+using message IDs such as `t('Collections')`, `t('Open collection')` and
+`tn('collection', 'collections', count)`; they render the current table wording.
+Python identifiers such as `Admin.configure(collection, ...)`, history fields and filter
+parameters named `collection`, and `/models/<slug>/` URLs remain compatible.
 
 ## Name and description
 

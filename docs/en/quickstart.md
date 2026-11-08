@@ -64,7 +64,7 @@ adapter = SQLAdapter(engine)
 Use `adapters=[adapter]` in `Admin`. Reflection runs database rules and triggers;
 Python ORM hooks and service rules require a native or service adapter. Review
 [default secret/service field protection](configuration.md) and the
-[database compatibility matrix](data-safety.md) before exposing collections.
+[database compatibility matrix](data-safety.md) before exposing tables.
 
 ## See the interface
 
@@ -105,7 +105,7 @@ replicas. History defaults to committed writes (`history_level="changes"`); choo
 See [storage, backups and recording levels](storage.md).
 
 For HTTPS deployment, keep `secure_cookies=True`, share a stable secret across workers,
-review discovered collections and permissions, and keep the host's database startup/shutdown.
+review discovered tables and permissions, and keep the host's database startup/shutdown.
 [Read limits](configuration.md#shared-read-limits) can reserve pool capacity for application
 traffic. [Session and proxy settings](authentication.md) explain access revocation and cookies;
 [integration](integration.md) covers mount paths and reverse-proxy prefixes.

@@ -27,8 +27,8 @@ All `Admin(...)` arguments are keyword-only. Configure the instance before servi
 
 Use `add_adapter(adapter, discover=True, namespace=None)` to attach a data source,
 `register(model, adapter=..., options=...)` to select/configure a model and
-`configure(slug, options=...)` to configure a discovered collection. `ModelOptions` replaces
-the collection's options as a whole; include every setting you want to retain.
+`configure(slug, options=...)` to configure a discovered table. `ModelOptions` replaces
+the table's options as a whole; include every setting you want to retain.
 Mount with `mount_fastapi(app, "/admin")`, `mount_litestar(app, "/admin")` or
 `litestar_route("/admin")`; see [integration](integration.md).
 
@@ -70,7 +70,7 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 
 | Option | Behavior |
 | --- | --- |
-| `slug`, `label` | Collection URL name and display name; defaults come from the adapter schema |
+| `slug`, `label` | Table URL name and display name; defaults come from the adapter schema |
 | `list_fields` | Columns in the list; the default is the first six visible fields |
 | `edit_fields` | Field order and selection for edit forms |
 | `create_fields` | Field order and selection for create forms |
@@ -92,7 +92,7 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 | `create_schema`, `update_schema` | Optional Pydantic 2 models validating submitted values |
 | `create_handler`, `update_handler` | Per-model services replacing native creation/editing; see [services and schemas](extensions.md) |
 | `actions` | Tuple of permission-checked `RecordAction` buttons on the record page |
-| `bulk_actions` | `()`; per-collection `RecordAction` commands available only in the list's right-hand icon menu; [bulk actions](extensions.md#bulk-actions) |
+| `bulk_actions` | `()`; per-table `RecordAction` commands available only in the list's right-hand icon menu; [bulk actions](extensions.md#bulk-actions) |
 | `bulk_delete` | `True`; allow page-local bulk delete subject to ordinary delete permission; [bulk actions](extensions.md) |
 
 `FieldOptions(read_only=True)` also makes a field read-only.
@@ -166,7 +166,7 @@ admin.add_adapter(tortoise_adapter, namespace="catalog")
 ```
 
 When several adapters are configured, pass `adapter=adapter` to `register()`.
-Conflicting collection names require a namespace or `ModelOptions(slug=...)`.
+Conflicting table names require a namespace or `ModelOptions(slug=...)`.
 
 ## Concurrent edits
 
@@ -174,7 +174,7 @@ Built-in adapters reject stale edit forms atomically: if a record or an edited
 relationship changed after opening the page, saving returns **409**. Entered values
 remain on the form. Use **Reload record** to load the latest version before editing
 again. No database migration or extra version column is required. Revision tokens
-expire with the configured session lifetime and are bound to the user, collection
+expire with the configured session lifetime and are bound to the user, table
 and complete primary key. They contain keyed fingerprints, not field values.
 
 The standard template includes the token automatically. When upgrading a custom
@@ -253,14 +253,14 @@ See [field controls and custom widgets](field-widgets.md) for a complete templat
 
 ## Sidebar groups
 
-Set `ModelOptions(group="Sales")` on each collection to group its sidebar links.
+Set `ModelOptions(group="Sales")` on each table to group its sidebar links.
 For SQL reflection use `admin.configure("orders", options=ModelOptions(group="Sales"))`.
 Groups start collapsed, follow first appearance, support keyboard collapse/expand and remember state per
-admin mount when browser storage is available. The current collection's group opens
+admin mount when browser storage is available. The current table's group opens
 automatically without saving that automatic opening as a preference. Explicitly opened
 groups remain open on later visits. Without browser storage or JavaScript, other groups
-still start collapsed. Ungrouped collections appear under Other collections when grouping is used.
-Permissions filter collections before grouping; empty or inaccessible groups are omitted.
+still start collapsed. Ungrouped tables appear under Other tables when grouping is used.
+Permissions filter tables before grouping; empty or inaccessible groups are omitted.
 
 The Overview uses the same `group` labels and permission-filtered tables. Every group
 starts collapsed, including the fallback group for tables without a label. Expand a
@@ -297,7 +297,7 @@ unchanged and show an error; rapid repeated clicks are disabled during saving.
 
 ## Large collections and query deadlines
 
-For a large collection, use `ModelOptions(pagination="cursor")`. Every built-in adapter
+For a large table, use `ModelOptions(pagination="cursor")`. Every built-in adapter
 supports this mode. It reads at most one extra record to show Next/Previous, without an
 exact `COUNT(*)` or a growing OFFSET. Click any scalar column header, including dates,
 to sort ascending or descending without additional configuration. The complete primary
@@ -307,7 +307,7 @@ JSON, binary and unsupported types have no cursor sort control. The default
 `pagination="offset"` retains exact totals and page numbers.
 
 Cursor links are signed, expire with the configured session age and are bound to the
-collection, identity, filters, search, ordering and page size. Changing a filter, search or sort
+table, identity, filters, search, ordering and page size. Changing a filter, search or sort
 starts a new traversal. They do not freeze database contents; concurrent inserts/deletes
 can change the visible pages. Exports still include all matching records within export
 limits, regardless of the current cursor.

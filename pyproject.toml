@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "quite-admin"
-version = "0.8.5"
+version = "0.8.6"
 description = "An admin panel for existing FastAPI and Litestar models."
 readme = "README.md"
 requires-python = ">=3.11"

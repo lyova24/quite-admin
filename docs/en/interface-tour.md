@@ -14,10 +14,10 @@ Custom logos use the same alignment.
 
 [![Sign-in card with the logo beside the title](../assets/screenshots/login.png)](../assets/screenshots/login.png)
 
-Overview shows the grouped collections and custom pages. Collection lists share its
+Overview shows the grouped tables and custom pages. Table lists share its
 content padding and maximum width, as do Database schema and Activity history.
 
-[![Overview with grouped collection navigation](../assets/screenshots/overview.png)](../assets/screenshots/overview.png)
+[![Overview with grouped table navigation](../assets/screenshots/overview.png)](../assets/screenshots/overview.png)
 
 ## Edit without leaving the list
 
@@ -62,7 +62,7 @@ clearly identified fictional sample events. Expand one event or **Expand all cha
 
 [![Activity journal with field comparisons](../assets/screenshots/activity-history.png)](../assets/screenshots/activity-history.png)
 
-Choose **+ Add filter → User** and select Demo Admin or Olivia Chen. Add **Collection**,
+Choose **+ Add filter → User** and select Demo Admin or Olivia Chen. Add **Table**,
 **Action** or **Result** through the same editor as list filters. The period sits in the
 same toolbar: use a quick preset, a **Specific day**, or a **Date range**. Both range
 endpoints include the entire UTC day. Switching to **Table** preserves these selections.
@@ -79,7 +79,7 @@ directory; SQLite/PostgreSQL/MySQL storage is configurable.
 ## Navigate and export
 
 Collapse a sidebar group and navigate elsewhere: its state is remembered. The current
-collection's group opens automatically. **Orders** illustrates cursor-style paging; its
+table's group opens automatically. **Orders** illustrates cursor-style paging; its
 real ASGI counterpart uses database keysets and signed cursors without exact counts.
 
 In **Products**, apply a filter, open **Export data**, select columns and download CSV.
@@ -89,6 +89,6 @@ and related columns such as Tags → Name; [exports](exports.md) documents limit
 Finally, change a product's tags on its record page and explore **Database schema**:
 expand fields, toggle **N:M** to reveal `product_tags`, and move a table. **Auto layout**
 releases the fixed positions. Both the [relationship editor](relationships.md) and
-[schema](database-schema.md) show the same registered collections and relationships.
+[schema](database-schema.md) show the same registered tables and relationships.
 
 [![Database schema with the expanded product_tags junction](../assets/screenshots/database-schema.png)](../assets/screenshots/database-schema.png)

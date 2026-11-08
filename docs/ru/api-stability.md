@@ -11,7 +11,7 @@ PATCH-релизы сохраняют описанные импорты,
 | Интерфейс | Гарантированная поверхность |
 |---|---|
 | Python-импорты | Имена из `quite_admin.__all__`, `__version__`, `Adapter` из `quite_admin.adapters.base`, публичные ошибки из `quite_admin.errors`, `StaleRecord` из `quite_admin.concurrency` |
-| Интеграция | Конструктор `Admin`, ASGI-вызов, регистрация и настройка коллекций и страниц, подключение FastAPI/Litestar и методы перевода |
+| Интеграция | Конструктор `Admin`, ASGI-вызов, регистрация и настройка таблиц и страниц, подключение FastAPI/Litestar и методы перевода |
 | Конфигурация и данные | Аргументы, defaults и описанные методы `Field`, `ModelSchema`, `ModelOptions`, `FieldOptions`, `Theme`, `Query`, фильтров, страниц записей, связей, действий и identity |
 | Встроенные адаптеры | Описанные конструкторы, discovery, метаданные, CRUD, связи и checked writes; `SQLAdapter.refresh()` |
 | Протоколы расширений | `Adapter`, `AuthBackend`, `RelationAdapter`, `CheckedAdapter`, `LoggerProtocol`; hooks и `current_operation()` |

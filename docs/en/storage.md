@@ -101,10 +101,10 @@ The library automatically creates these tables and their `quiteadmin_` indexes:
 | `quiteadmin_documents` | Versioned JSON documents for service features |
 | `quiteadmin_activity` | Activity event metadata |
 | `quiteadmin_activity_details` | Bounded before/after field values |
-| `quiteadmin_actors` | Compact user/collection index for autocomplete |
+| `quiteadmin_actors` | Compact user/table index for autocomplete |
 
 Reserve the entire `quiteadmin_` prefix. These tables never appear as ordinary admin
-collections, including when SQL discovery uses the same database. Table creation
+tables, including when SQL discovery uses the same database. Table creation
 requires DDL permissions; routine operations require read/write permissions.
 Initialization is serialized across workers. Unknown storage schema versions are
 rejected rather than overwritten. The physical schema version is 2; the library manages
@@ -129,8 +129,8 @@ fictional sample events and your local edits; the ASGI example exercises the dur
 [![Activity journal with persisted field comparisons](../assets/screenshots/activity-history.png)](../assets/screenshots/activity-history.png)
 
 
-Open **Activity history** in the sidebar. The toolbar reuses the collection listing
-filter editor: **Add filter** selects a user, collection, action or success/failure
+Open **Activity history** in the sidebar. The toolbar reuses the table listing
+filter editor: **Add filter** selects a user, table, action or success/failure
 result. Search values, edit active chips or remove an individual condition with ×.
 **Clear all** removes these conditions while preserving the separate period control
 in the same toolbar. Users are discovered from
@@ -172,7 +172,7 @@ admin = Admin(auth=auth, secret_key=session_secret, history_level="changes")
 | --- | --- |
 | `changes` (default) | Committed create, edit, inline edit, delete and custom record actions, including relationship writes inside saves. |
 | `audit` | Everything in `changes`, plus failed writes/custom actions, login/logout and exports. |
-| `all` | Everything in `audit`, plus collection listings and record/form views, including failed reads. |
+| `all` | Everything in `audit`, plus table listings and record/form views, including failed reads. |
 
 The level is enforced **before creating/appending an activity event**, not just in
 templates. Excluded requests write no activity, field-details or actor-index rows.
@@ -197,7 +197,7 @@ protocol is unchanged: older custom stores use its existing filters and paged re
 with a filtered fallback for audit pages and user lookup. Implement the optional
 capability for efficient filtering on large custom histories.
 
-Events contain time, authenticated subject/display name, collection slug, action,
+Events contain time, authenticated subject/display name, table slug, action,
 outcome and HTTP status. Successful writes also store changed field names, labels,
 previous/persisted values and a record key when its fields are visible. Creation
 shows absent → value; deletion shows value → absent. NULL, empty strings and false
@@ -215,8 +215,8 @@ Backups of service storage contain historical business values; apply the same
 access controls as to the source data.
 
 By default every authenticated admin can open history. The history page and user
-search both apply the viewer's current `list` **and** `view` collection permissions.
-Events for removed/unregistered collections are hidden. Authentication events are
+search both apply the viewer's current `list` **and** `view` table permissions.
+Events for removed/unregistered tables are hidden. Authentication events are
 separate. An optional callback further restricts access to the entire section:
 
 ```python

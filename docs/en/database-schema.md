@@ -1,7 +1,7 @@
 # Interactive database schema
 
 Open **Database schema** in the navigation (`/admin/schema`, or your mount prefix).
-The diagram includes every registered collection you can list and view. All these tables
+The diagram includes every registered table you can list and view. All these tables
 are selected by default, including tables without relationships. It uses adapter metadata;
 opening or rearranging the diagram does not read or modify record values.
 
@@ -9,7 +9,7 @@ opening or rearranging the diagram does not read or modify record values.
 
 ## Explore the diagram
 
-- **Tables** opens the sidebar. Search by collection label or table name, use checkboxes
+- **Tables** opens the sidebar. Search by table label or table name, use checkboxes
   to choose visible tables, or select **Show all** / **Hide all**. Search narrows the
   sidebar choices without changing the diagram. Clicking a table name centers it.
 - Cards initially show primary keys and relationship fields. Click a card, or focus it
@@ -25,7 +25,7 @@ opening or rearranging the diagram does not read or modify record values.
   manual positions. Moving any table fixes the positions of every visible table until
   **Auto layout** is used. Automatic layout accounts for expanded cards and disconnected groups.
 - **Expand view** gives the diagram the available window area; Escape exits it. On narrow
-  screens the table sidebar starts collapsed. **Open collection** opens the selected
+  screens the table sidebar starts collapsed. **Open table** opens the selected
   registered table's record list.
 
 Keyboard users can move a focused table with arrow keys (Shift moves farther), expand
@@ -36,13 +36,13 @@ while this page is open; reloading selects all authorized registered tables agai
 ## Permissions and field policy
 
 The schema requires authentication and both `list` and `view` permission for each
-collection. Relationships to unavailable collections and links through hidden join fields
+table. Relationships to unavailable tables and links through hidden join fields
 are omitted. Field visibility follows `ModelOptions`, including the default exclusion of
 credential fields. A restricted registered junction cannot reappear as a synthetic card.
 
 An unregistered junction exposes only its adapter-supplied field metadata, with credential
 fields excluded. It has no record-list link or CRUD operations. Register/configure the
-junction as a collection if it needs application-specific field restrictions.
+junction as a table if it needs application-specific field restrictions.
 
 The page uses the same theme tokens as lists and forms; see [interface customization](styling.md).
 Its packaged JavaScript is allowed by a page-specific SHA-256 CSP hash and SRI. Custom

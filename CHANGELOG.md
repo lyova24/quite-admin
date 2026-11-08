@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.6 — 2026-11-08
+
+- Use table/tables terminology throughout the English/Russian interface, history filters, schema links and browser demo. Preserve collection-named Python identifiers, URLs, history keys and legacy template translation IDs.
+
 ## 0.8.5 — 2026-11-08
 
 - Group Overview tables in collapsed, keyboard-accessible sections using the same labels and permissions as the sidebar. Remove field counts from table cards and mirror the grouping in the browser demo.

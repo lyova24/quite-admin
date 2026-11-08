@@ -25,7 +25,7 @@ items:
         href: gino.md
   - name: Руководство пользователя
     items:
-      - name: Коллекции и поля
+      - name: Таблицы и поля
         href: configuration.md
       - name: Фильтры и поиск
         href: filters.md

@@ -16,9 +16,9 @@ See [sessions and request protection](authentication.md#sessions).
 
 ## Review models and write rules
 
-Automatic discovery exposes the adapter's models. Review the selected collections,
+Automatic discovery exposes the adapter's models. Review the selected tables,
 visible fields, editable fields and allowed operations before granting access.
-[Collection and field settings](configuration.md) apply on the server as well as in the UI.
+[Table and field settings](configuration.md) apply on the server as well as in the UI.
 
 Choose the data-access mode that preserves your application rules:
 

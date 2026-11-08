@@ -23,7 +23,7 @@ Follow the [interface tour](interface-tour.md) for screenshots and a complete wa
 Switch **Language** to see the same controls in English and Russian. Changes and the
 latest 200 local activity events stay in this browser's storage when enabled. **Reset demo**
 restores the fictional records and sample events. Each visitor has their own copy.
-Existing saved demos gain new collections and current field metadata without losing local records.
+Existing saved demos gain new tables and current field metadata without losing local records.
 
 ## Browser and server coverage
 

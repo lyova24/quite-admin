@@ -34,7 +34,7 @@ The shared context reserves `template_api_version`, `resource_groups`, `request`
 `pages`, `scripts`, `title`, `description`, `language`, `theme`, `logo_url`, `breadcrumbs`, `t` and `tn`.
 Use `url("/models/orders/")` to generate a link with the correct mount prefix.
 The base template inherits your [language and appearance](customization.md) settings.
-Breadcrumbs link to the overview, collection and parent record, preserving mount/proxy prefixes.
+Breadcrumbs link to the overview, table and parent record, preserving mount/proxy prefixes.
 The current page is marked with `aria-current="page"`.
 
 Callback values named `request`, `template`, `page`, `status` or `trusted_scripts` are

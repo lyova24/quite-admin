@@ -6,7 +6,7 @@ or wrap reads with a [service adapter](custom-adapters.md).
 
 ## Write lifecycle
 
-1. Revalidate identity and authorize the collection action.
+1. Revalidate identity and authorize the table action.
 2. Validate CSRF, writable fields, scalar types and relationship selections.
 3. Call `OperationHooks.before_write` with a snapshot of the operation.
 4. Execute one atomic adapter/service write; errors roll it back.
@@ -31,7 +31,7 @@ admin = Admin(
 
 Hooks may be sync or async. Sync hooks must not perform blocking I/O. They run for
 create, edit (including relationships), delete and custom record actions. `Operation`
-contains request, current identity, collection, model, action, typed key, values,
+contains request, current identity, table, model, action, typed key, values,
 relationship keys and the previous record. Mappings are copied snapshots with read-only
 top levels; changing nested snapshot values cannot change the pending write.
 Hooks do not mutate form values; use a field parser or service for transformations.
@@ -131,7 +131,7 @@ Adapter compatibility is governed by `ADAPTER_API_VERSION` and the documented
 
 ## Bulk actions
 
-Every collection includes **Delete selected records** by default, subject to its usual
+Every table includes **Delete selected records** by default, subject to its usual
 delete permission and `can_delete`. No registration is needed. Disable only bulk deletion
 with `ModelOptions(bulk_delete=False)`; ordinary record deletion remains available.
 
@@ -144,9 +144,9 @@ confirmation with record labels. Confirm to execute, or cancel to return with th
 search, filters and pagination. Escape closes the menu and returns focus to the icon;
 clicking outside also closes it. Individual selection and confirmation work without JavaScript.
 The selection contains at most 100 distinct records and never expands to other pages.
-Collections without allowed commands show neither the icon nor checkboxes.
+Tables without allowed commands show neither the icon nor checkboxes.
 
-To add a command only to one collection's list, put a `RecordAction` in `bulk_actions`:
+To add a command only to one table's list, put a `RecordAction` in `bulk_actions`:
 
 ```python
 from quite_admin import ModelOptions, RecordAction
@@ -161,11 +161,11 @@ admin.register(Product, adapter=adapter, options=ModelOptions(
 ```
 
 The action appears alongside built-in deletion for Products only. After confirmation,
-each selected product has `active=False`; other products and collections are unchanged.
+each selected product has `active=False`; other products and tables are unchanged.
 `bulk_actions` defaults to `()`. Its entries are always bulk-enabled, so `bulk=True` is
 unnecessary, and they add no record-page buttons or single-record action endpoints.
 With auto-discovery, use `admin.configure("products", options=...)` instead. Options
-replace the collection's whole configuration; retain any existing field or permission settings.
+replace the table's whole configuration; retain any existing field or permission settings.
 
 Try this action in the [local FastAPI/Litestar example](quickstart.md#run-the-sample-application):
 open Products, select two active products, choose **Deactivate products**, continue and
@@ -189,17 +189,17 @@ admin.configure("counters", options=ModelOptions(actions=(
 
 The existing `RecordAction(bulk=True)` API is unchanged; `bulk` still defaults to `False`
 for entries in `actions`. Slugs must be unique across `actions` and `bulk_actions` within
-one collection; reuse them freely in other collections. For a shared button, register it
+one table; reuse them freely in other tables. For a shared button, register it
 once in `actions` with `bulk=True` rather than repeating its slug in both options.
 
 Both styles use `edit` permission by default. `required_permission` chooses the ordinary
-collection permission and `permission` adds a sync/async callback. Each
+table permission and `permission` adds a sync/async callback. Each
 selected key is processed separately, with fresh list/action permissions and
 `request.path_params["key"]`, the existing `Operation`, `current_operation()`,
 `before_write` and `after_write` hooks. A rule that needs record data belongs in the
 handler or `before_write`. No new adapter methods or bulk-specific service class is required.
 
-Confirmation is signed, bound to the collection, command, identity and session, and
+Confirmation is signed, bound to the table, command, identity and session, and
 expires after 15 minutes. CSRF is required for both steps. A fingerprint detects
 record changes since confirmation before dispatching each command; this is not an
 atomic compare-and-delete or a replacement for a handler's transaction/locking.

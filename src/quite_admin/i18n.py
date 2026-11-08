@@ -6,6 +6,36 @@ from typing import Any, Literal
 
 Language = Literal["en", "ru"]
 
+# Preserve message IDs used by template API 1 while using relational terminology.
+MESSAGE_ALIASES = {
+    "Collection": "Table",
+    "All collections": "All tables",
+    "Choose another user or collection, or clear the filters.": (
+        "Choose another user or table, or clear the filters."
+    ),
+    "Other collections": "Other tables",
+    (
+        "Related collections use one value per line in each cell; missing single "
+        "relations are empty. Limits: 10000 records, or 1000 with related columns."
+    ): (
+        "Related tables use one value per line in each cell; missing single "
+        "relations are empty. Limits: 10000 records, or 1000 with related columns."
+    ),
+    "COLLECTIONS": "TABLES",
+    "Collections": "Tables",
+    "No collections available.": "No tables available.",
+    "Browse your collections and keep things running.": (
+        "Browse your tables and keep things running."
+    ),
+    "Open collection": "Open table",
+    "No collections yet": "No tables yet",
+    "A new addition to your collection.": "A new addition to your table.",
+    "COLLECTION": "TABLE",
+    "This collection has no records yet.": "This table has no records yet.",
+    "collection": "table",
+    "collections": "tables",
+}
+
 
 class Message(str):
     """Keep validation parameters while preserving the public English string API."""
@@ -210,7 +240,7 @@ RUSSIAN = {
     "Previous month": "Предыдущий месяц",
     "Next month": "Следующий месяц",
     "Year": "Год",
-    "Other collections": "Другие коллекции",
+    "Other collections": "Другие таблицы",
     "Format JSON": "Форматировать JSON",
     "Valid JSON": "Корректный JSON",
     "Invalid JSON": "Ошибка синтаксиса JSON",
@@ -338,19 +368,19 @@ RUSSIAN = {
     "WORKSPACE": "РАБОЧЕЕ ПРОСТРАНСТВО",
     "Workspace": "Рабочее пространство",
     "Overview": "Обзор",
-    "COLLECTIONS": "КОЛЛЕКЦИИ",
-    "Collections": "Коллекции",
-    "No collections available.": "Нет доступных коллекций.",
+    "COLLECTIONS": "ТАБЛИЦЫ",
+    "Collections": "Таблицы",
+    "No collections available.": "Нет доступных таблиц.",
     "PAGES": "СТРАНИЦЫ",
     "Custom pages": "Свои страницы",
     "Sign out": "Выйти",
     "YOUR WORKSPACE, AT A GLANCE": "ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО",
     "Browse your collections and keep things running.": (
-        "Просматривайте коллекции и управляйте записями."
+        "Просматривайте таблицы и управляйте записями."
     ),
     "Ready to explore": "Готовы к работе",
-    "Open collection": "Открыть коллекцию",
-    "No collections yet": "Коллекций пока нет",
+    "Open collection": "Открыть таблицу",
+    "No collections yet": "Таблиц пока нет",
     "Connect an adapter or register an existing model in your application.": (
         "Подключите адаптер или зарегистрируйте существующую модель в приложении."
     ),
@@ -382,7 +412,7 @@ RUSSIAN = {
     "Something needs your attention.": "Требуется ваше внимание.",
     "Back to workspace": "Вернуться к обзору",
     "Create record": "Создать запись",
-    "A new addition to your collection.": "Новая запись в вашей коллекции.",
+    "A new addition to your collection.": "Новая запись в вашей таблице.",
     "Make a change. Keep everything in order.": "Измените значения полей и сохраните запись.",
     "Please correct the highlighted fields.": "Исправьте выделенные поля.",
     "Read only": "Только чтение",
@@ -401,8 +431,8 @@ RUSSIAN = {
     ),
     "Cancel": "Отмена",
     "Save changes": "Сохранить изменения",
-    "COLLECTION": "КОЛЛЕКЦИЯ",
-    "A little order for every record.": "Все записи коллекции в одном месте.",
+    "COLLECTION": "ТАБЛИЦА",
+    "A little order for every record.": "Все записи таблицы в одном месте.",
     "Search records": "Поиск записей",
     "Search records…": "Поиск записей…",
     "Search": "Найти",
@@ -414,7 +444,7 @@ RUSSIAN = {
     "No matching records": "Совпадений не найдено",
     "A fresh start.": "Здесь пока пусто.",
     "Try a different search.": "Попробуйте другой поисковый запрос.",
-    "This collection has no records yet.": "В этой коллекции пока нет записей.",
+    "This collection has no records yet.": "В этой таблице пока нет записей.",
     "Create your first record": "Создать первую запись",
     "Page {number}": "Страница {number}",
     "{count} per page": "По {count} на странице",
@@ -428,7 +458,7 @@ RUSSIAN = {
     "Too many attempts. Try again shortly.": "Слишком много попыток. Попробуйте немного позже.",
     "Invalid username or password.": "Неверное имя пользователя или пароль.",
     "Credentials are too long.": "Имя пользователя или пароль слишком длинные.",
-    "Table not found.": "Коллекция не найдена.",
+    "Table not found.": "Таблица не найдена.",
     "Record not found.": "Запись не найдена.",
     "Page not found.": "Страница не найдена.",
     "You do not have permission to perform this action.": "У вас нет прав на это действие.",
@@ -463,7 +493,7 @@ RUSSIAN_PLURALS = {
     "table": ("таблица", "таблицы", "таблиц"),
     "relationship": ("связь", "связи", "связей"),
     "record": ("запись", "записи", "записей"),
-    "collection": ("коллекция", "коллекции", "коллекций"),
+    "collection": ("таблица", "таблицы", "таблиц"),
     "field": ("поле", "поля", "полей"),
 }
 
@@ -493,6 +523,16 @@ RUSSIAN.update(
 )
 
 
+# Keep direct dictionary consumers and the browser demo compatible with old IDs.
+RUSSIAN.update(
+    {
+        canonical: RUSSIAN[legacy]
+        for legacy, canonical in MESSAGE_ALIASES.items()
+        if legacy in RUSSIAN
+    }
+)
+
+
 class Translator:
     def __init__(self, language: Language) -> None:
         if language not in ("en", "ru"):
@@ -503,10 +543,13 @@ class Translator:
         if isinstance(message, Message):
             values = {**message.values, **values}
             message = message.template
+        message = MESSAGE_ALIASES.get(message, message)
         translated = RUSSIAN.get(message, message) if self.language == "ru" else message
         return translated.format(**values) if values else translated
 
     def ngettext(self, singular: str, plural: str, count: int) -> str:
+        singular = MESSAGE_ALIASES.get(singular, singular)
+        plural = MESSAGE_ALIASES.get(plural, plural)
         if self.language == "ru" and singular in RUSSIAN_PLURALS:
             count = abs(count)
             if 11 <= count % 100 <= 14:

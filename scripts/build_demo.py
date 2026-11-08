@@ -19,7 +19,7 @@ from examples.common import make_demo, seed  # noqa: E402
 from quite_admin import Query, __version__  # noqa: E402
 from quite_admin import filters as list_filters  # noqa: E402
 from quite_admin.diagram import schema_graph  # noqa: E402
-from quite_admin.i18n import RUSSIAN, Translator  # noqa: E402
+from quite_admin.i18n import MESSAGE_ALIASES, RUSSIAN, Translator  # noqa: E402
 
 
 async def build(output):
@@ -194,6 +194,7 @@ async def build(output):
                         "version": __version__,
                         "title": admin.title,
                         "translations": RUSSIAN,
+                        "messageAliases": MESSAGE_ALIASES,
                         "formMessages": {
                             lang: {
                                 name: Translator(lang).gettext(name)

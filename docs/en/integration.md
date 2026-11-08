@@ -42,7 +42,7 @@ Use `exclude_tables` to omit internal tables. Every exposed table must have a pr
 
 SQL auto-discovery skips tables without primary keys and emits a RuntimeWarning once
 per metadata refresh. They remain unavailable for CRUD; explicitly describing or
-registering an unsupported table still raises a configuration error. Other collections
+registering an unsupported table still raises a configuration error. Other tables
 remain usable.
 
 Reflection runs lazily after authentication and caches metadata.
@@ -158,7 +158,7 @@ Use file-backed SQLite or a database server. A regular SQLite `:memory:` databas
 is not shared between worker threads. Each connection and transaction opens and closes
 within the same worker thread.
 
-All adapters share the same [collection configuration](configuration.md).
+All adapters share the same [table configuration](configuration.md).
 To support another data source, implement the [Adapter protocol](custom-adapters.md).
 
 SQLModel applications can install the explicit `sqlmodel` extra, which includes the

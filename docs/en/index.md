@@ -2,7 +2,7 @@
 
 **An admin panel for your existing FastAPI or Litestar models.**
 
-Automatically discover collections and forms without writing a separate admin class
+Automatically discover tables and forms without writing a separate admin class
 for every model. Edit related records, inspect before/after history and export data
 from the same interface. No additional Pydantic schemas or DTOs are required.
 
@@ -36,7 +36,7 @@ With a service adapter, writes can use your application's existing business oper
 [Choose your integration](integration.md) or [connect a custom adapter](custom-adapters.md).
 
 Your application keeps its accounts, database lifecycle and migrations. Configure
-collections and fields in Python, add business actions when needed and customize templates
+tables and fields in Python, add business actions when needed and customize templates
 without replacing your models. The library supports **CPython 3.11–3.15** and is MIT licensed.
 
 ## Find a guide
@@ -47,7 +47,7 @@ Customization → Deployment → Reference**. Repository development instruction
 
 | Task | Guide |
 | --- | --- |
-| Choose columns, editable fields and collection groups | [Collections and fields](configuration.md) |
+| Choose columns, editable fields and table groups | [Tables and fields](configuration.md) |
 | Find records and edit their relationships | [Filters](filters.md), [related records](relationships.md) |
 | Export matching data and linked columns | [CSV/XLSX export](exports.md) |
 | Change the language, colors or layout | [Language and appearance](customization.md), [styles](styling.md) |
