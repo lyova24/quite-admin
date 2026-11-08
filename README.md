@@ -4,87 +4,131 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/lyova24/quite-admin/ci.yml?branch=master&event=push&style=for-the-badge&label=tests&labelColor=202020)](https://github.com/lyova24/quite-admin/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/quite-admin?style=for-the-badge&label=PyPI&labelColor=202020&color=3395fd)](https://pypi.org/project/quite-admin/)
 
-![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/.github/social-preview.png)
+**Version: 0.8.2** · [Changelog](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md)
 
-**Version: 0.8.2** · [Changelog](CHANGELOG.md)
+**An admin panel for your existing FastAPI or Litestar models.**
 
-An embeddable admin for **FastAPI** and **Litestar** with native **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x** adapters, SQL reflection and a custom adapter API.
+Automatically discover collections and forms without writing a separate admin class
+for every model. Edit related records, inspect before/after history and export data
+from the same interface. No additional Pydantic schemas or DTOs are required.
+
+[Try the browser demo](https://lyova24.github.io/quite-admin/demo/) · [Run your first app](https://lyova24.github.io/quite-admin/en/first-app.html) · [Connect an existing app](https://lyova24.github.io/quite-admin/en/quickstart.html)
+
+[English documentation](https://lyova24.github.io/quite-admin/en/index.html) · [Документация на русском](https://lyova24.github.io/quite-admin/ru/index.html)
+
 Supports **CPython 3.11–3.15**. MIT licensed.
 
-[English documentation](docs/en/index.md) · [Документация на русском](docs/ru/index.md)
+## Add to your existing app
 
-[Browser demo](https://lyova24.github.io/quite-admin/demo/) — `admin` / `admin`.
-Its fictional records stay in browser storage; **Reset demo** restores the examples.
-Try inline edits in **Products**, date/time/JSON controls in **Schedules**, and the
-**Activity history** journal. [Interface tour](docs/en/interface-tour.md).
-The site workflow publishes this standalone demo alongside the documentation.
-
-[Add to an existing app in two minutes](docs/en/quickstart.md) · [Public API guarantees](docs/en/api-stability.md)
-
-![quite-admin record list](https://raw.githubusercontent.com/lyova24/quite-admin/master/docs/assets/screenshots/products.png)
-
-[See the current sign-in, forms, calendars and activity journal](docs/en/interface-tour.md).
-
-Collections, fields and forms are discovered from existing SQL tables or ORM models.
-No additional Pydantic schemas, DTOs or `ModelAdmin` classes are required.
-
-- CSV/XLSX export with column selection, filters and related-table data.
-- Authenticated CRUD, automatic search, sorting and pagination; typed filters for text
-  fragments, ranges, sets, dates, NULL and related records with name/exact-ID lookup.
-- Count-free cursor pagination for large collections and configurable SQL read deadlines.
-- Automatic SQLite service storage, optional SQLite/PostgreSQL/MySQL storage and
-  permission-aware [activity history](docs/en/storage.md) with before/after field
-  comparisons by user and collection. Recording levels: `changes` (default), `audit`
-  and `all`; disable it with `history_enabled=False`.
-- Interactive database schema and atomic stale-edit detection.
-- Inline one-to-one, one-to-many and many-to-many relationship editing with atomic saves.
-- Inline cell editing, nullable boolean switches and grouped collection navigation.
-- Editable, read-only and hidden fields, with server-side enforcement.
-- SQL reflection without model imports.
-- SQLAlchemy / SQLModel, Tortoise, Peewee and GINO 1.x (`gino-legacy` extra) adapters;
-  an adapter protocol for other data sources.
-- Typed adapter filters/projections and delegation to application services for writes.
-- Type-aware forms: TEXT textareas, date/time pickers and JSON/JSONB syntax highlighting.
-- Custom pages and Jinja2 template overrides.
-- Write lifecycle hooks, custom field controls, record actions and confirmed bulk commands.
-- Form-only inputs, safe password controls and per-model service handlers with optional
-  Pydantic form validation; ordinary ORM discovery needs no schemas or handlers.
-- English/Russian UI, configurable colors, admin name and description.
-- Application-owned logging with stdlib, structlog, Loguru and Litestar backends.
-- FastAPI and Litestar mounting, including nested paths and reverse-proxy prefixes.
-
-## Install
+Install into your application's environment:
 
 ```bash
 pip install 'quite-admin[sqlalchemy,fastapi]'
-# Or: uv add 'quite-admin[sqlalchemy,litestar]'
+# For Litestar: uv add 'quite-admin[sqlalchemy,litestar]'
 ```
 
-Choose `sqlmodel`, `tortoise`, `peewee` or `gino-legacy` for another adapter.
-Use `pip install quite-admin` for the ORM-independent core. Native GINO requires a
-separate environment from SQLAlchemy 2.x. [PyPI package](https://pypi.org/project/quite-admin/).
-Install the `pydantic` extra for optional per-model form schemas; it is unnecessary
-for ordinary model discovery. See [services and form validation](docs/en/extensions.md).
+Add this beside your existing FastAPI `app`. Replace the database import with your
+SQLAlchemy or SQLModel base and session factory:
 
-## Run the demo
+```python
+import os
 
-From this source checkout:
+from quite_admin import Admin, PasswordAuth
+from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
+from myapp.database import Base, SessionFactory
+
+admin = Admin(
+    auth=PasswordAuth.single_user("admin", os.environ["QUITE_ADMIN_PASSWORD"]),
+    secret_key=os.environ["QUITE_ADMIN_SECRET"],
+    adapters=[SQLAlchemyAdapter(SessionFactory, base=Base)],
+    secure_cookies=False,  # Local HTTP; keep True for production HTTPS.
+)
+admin.mount_fastapi(app)
+```
+
+Set `QUITE_ADMIN_PASSWORD` and a persistent random `QUITE_ADMIN_SECRET` of at least
+32 bytes in your application configuration. Import your model modules before startup,
+run the app and open `/admin/`. Sign in as `admin` with the configured password.
+For Litestar, replace the last line with `admin.mount_litestar(app)`.
+
+Your application keeps its database lifecycle and migrations. See the
+[quickstart](https://lyova24.github.io/quite-admin/en/quickstart.html) and
+[deployment guide](https://lyova24.github.io/quite-admin/en/deployment.html).
+
+[![quite-admin record list](https://raw.githubusercontent.com/lyova24/quite-admin/master/docs/assets/screenshots/products.png)](https://lyova24.github.io/quite-admin/demo/)
+
+## Try a complete application
+
+The [single-file example](https://github.com/lyova24/quite-admin/blob/master/examples/quickstart.py)
+includes **Customers → Orders → Order items**, sign-in and persistent SQLite data.
+Download it and run with uv; its dependency header installs the packages automatically:
 
 ```bash
-uv sync --locked --python 3.15
-QUITE_ADMIN_PASSWORD='local-demo-only' uv run uvicorn examples.fastapi_app:app --reload
+curl -fsSLo quickstart.py https://raw.githubusercontent.com/lyova24/quite-admin/master/examples/quickstart.py
+QUITE_ADMIN_PASSWORD='local-demo-only' uv run --script quickstart.py
 ```
 
-Open [localhost:8000/admin/](http://localhost:8000/admin/) and sign in with
-`admin` / `local-demo-only`. For Litestar, use `examples.litestar_app:app` instead.
-The demo seeds a local SQLite database. Its HTTP cookie settings are intended for local development.
-Use uv 0.13.6 or newer to download a stable Python 3.15 interpreter.
+Open [localhost:8000/admin/](http://localhost:8000/admin/), sign in with
+`admin` / `local-demo-only`, change an order and inspect **Activity history**.
+No repository checkout or Node.js is needed.
+[Step-by-step walkthrough and pip alternative](https://lyova24.github.io/quite-admin/en/first-app.html).
 
-## Documentation
+To explore without running Python, open the
+[browser demo](https://lyova24.github.io/quite-admin/demo/) with `admin` / `admin`.
+Its fictional data stays in your browser; **Reset demo** restores it.
+[See the interface tour](https://lyova24.github.io/quite-admin/en/interface-tour.html).
 
-The documentation uses [Diplodoc](https://diplodoc.com/), with **English as the default**
-and a complete **Russian** translation. Source pages and navigation live in `docs/en`
-and `docs/ru`; configuration lives in `docs/.yfm`.
+## What you get
+
+- Authenticated CRUD with automatic forms, search, sorting and typed filters.
+- Inline cell editing and atomic one-to-one, one-to-many and many-to-many relationship editing.
+- CSV/XLSX export with column selection, filters and related-table data.
+- [Activity history](https://lyova24.github.io/quite-admin/en/storage.html) with before/after
+  field values, user and collection filters, configurable recording levels and storage.
+- Automatic stale-edit detection, field permissions and server-side write validation.
+- Count-free cursor pagination, SQL read deadlines and configurable read concurrency.
+- Interactive database schema, grouped navigation and English/Russian UI.
+- Type-aware date/time, JSON, multiline text and nullable boolean controls.
+- Custom pages, Jinja2 templates, field controls, write hooks, record actions and bulk commands.
+- Optional per-model application services, form-only inputs and Pydantic validation.
+
+## Choose your data source
+
+Native adapters support **SQLAlchemy 2.x, SQLModel, Tortoise ORM, Peewee and GINO 1.x**.
+Install the matching extra: `sqlalchemy`, `sqlmodel`, `tortoise`, `peewee` or `gino-legacy`.
+GINO needs a separate environment from SQLAlchemy 2.x.
+
+**SQL reflection** discovers existing SQL tables without importing ORM models.
+The **custom adapter API** can connect another data source or route writes through
+your application's services.
+[Integration guide](https://lyova24.github.io/quite-admin/en/integration.html) · [Custom adapters](https://lyova24.github.io/quite-admin/en/custom-adapters.html).
+
+Use `pip install quite-admin` for the ORM-independent core. The `pydantic` extra is
+only needed for optional per-model form schemas; ordinary model discovery does not need it.
+
+## Compatibility and guarantees
+
+Read the [public API guarantees](https://lyova24.github.io/quite-admin/en/api-stability.html),
+[database compatibility matrix](https://lyova24.github.io/quite-admin/en/data-safety.html)
+and [dependency compatibility guide](https://lyova24.github.io/quite-admin/en/dependency-compatibility.html)
+before adopting quite-admin. Patch releases preserve the documented public API;
+adapter and template contracts are versioned.
+
+SQL reflection runs database constraints and triggers. Use a native ORM or application-service
+adapter when writes must execute Python ORM hooks or business rules.
+[Current limitations](https://lyova24.github.io/quite-admin/en/development.html#current-limitations).
+
+## Development
+
+From a source checkout, run the larger FastAPI or Litestar showcase:
+
+```bash
+uv sync --locked
+QUITE_ADMIN_PASSWORD='local-demo-only' uv run uvicorn examples.fastapi_app:app --reload
+# Or: examples.litestar_app:app
+```
+
+Build the English/Russian Diplodoc site with Node.js 24+ and npm 11.5.1+:
 
 ```bash
 npm ci
@@ -92,20 +136,7 @@ npm run docs:build
 npm run docs:serve
 ```
 
-Requires Node.js 24+ and npm 11.5.1+. Open [localhost:8001](http://localhost:8001/)
-for English or [localhost:8001/ru/](http://localhost:8001/ru/) for Russian.
-The static HTML output is written to `build/docs`.
-CI checks both translations, builds the site and uploads it as an artifact.
-
-See [integration](docs/en/integration.md), [field configuration](docs/en/configuration.md),
-[GINO 1.x / PostgreSQL](docs/en/gino.md),
-[relationships](docs/en/relationships.md),
-[language and appearance](docs/en/customization.md),
-[authentication](docs/en/authentication.md), [custom pages](docs/en/custom-pages.md),
-[logging](docs/en/logging.md),
-[architecture](docs/en/architecture.md) and [development](docs/en/development.md).
-
-## Checks
+Run the repository checks:
 
 ```bash
 uv run pytest -q
@@ -113,19 +144,8 @@ uv run ruff check src tests examples scripts
 uv run ruff format --check src tests examples scripts
 ```
 
-GitHub releases provide source-code ZIP/tar.gz archives. A version tag requires successful
-master CI for its exact commit and publishes the GitHub release with its changelog.
-After it succeeds, Pages deploys that CI run's documentation artifact and the separate
-PyPI workflow builds one wheel/sdist pair and publishes it through Trusted Publishing.
-Tests run in CI and are not repeated for a release; Python test matrix jobs do not
-build distributions.
-
-CI tests CPython 3.11, 3.12, 3.13, 3.14 and 3.15 with the pinned dependencies.
-The full test suite uses SQLite; PostgreSQL 17 and MySQL 8.4 have dedicated contract jobs.
-Separate minimum/latest dependency jobs resolve fresh isolated environments and include
-real SQLModel sync/async contracts. PostgreSQL/MySQL jobs run the SQLModel suite too.
-See the [compatibility matrix](docs/en/data-safety.md) and
-[dependency endpoints](docs/en/dependency-compatibility.md) for evidence, ranges and limits.
-SQL reflection executes database rules and triggers;
-Python ORM hooks require an ORM or application-service adapter.
-See [current limitations](docs/en/development.md#current-limitations) before choosing an integration mode.
+CI checks CPython 3.11–3.15, with dedicated PostgreSQL/MySQL contracts and isolated
+minimum/latest dependency profiles. Tagged releases reuse successful CI for the exact
+commit, publish source archives and deploy its documentation artifact; the separate PyPI
+workflow builds and validates one wheel/sdist pair before Trusted Publishing.
+[Development](https://lyova24.github.io/quite-admin/en/development.html) · [Release policy](https://lyova24.github.io/quite-admin/en/releases.html).

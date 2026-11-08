@@ -1,4 +1,7 @@
-# Add an admin in two minutes
+# Add to an existing app
+
+Already have models and an application? This guide connects them to quite-admin.
+For a complete runnable application, start with [your first admin](first-app.md).
 
 Use CPython **3.11–3.15** and your existing application, database and models.
 Install quite-admin from PyPI into your application's virtual environment:
@@ -92,6 +95,8 @@ Open [localhost:8000/admin/](http://localhost:8000/admin/) and sign in with
 Python 3.15. The Python package does not need Node.js; only documentation builds do.
 
 ## Storage and deployment
+
+Use the [deployment guide](deployment.md) when moving beyond local development.
 
 The admin initializes its own `.quite-admin/state.sqlite3` service store. Use a persistent,
 writable directory or configure `storage` / `QUITE_ADMIN_STORAGE_URL` for containers and

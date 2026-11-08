@@ -52,3 +52,11 @@ for (const language of languages) {
   }
 }
 console.log(`Documentation checked: ${primaryPages.length} matching pages per language (en, ru).`);
+
+// PyPI renders the repository README without a base URL for repository-relative files.
+const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+const readmeLinks = [...readme.matchAll(/\]\(([^)\s]+)\)/g)].map(match => match[1]);
+for (const href of readmeLinks) {
+  assert.match(href, /^(?:https?:\/\/|mailto:|#)/i, `README link will not resolve on PyPI: ${href}`);
+}
+console.log(`README checked: ${readmeLinks.length} links/images are portable to PyPI.`);

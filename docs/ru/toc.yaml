@@ -9,60 +9,68 @@ items:
     href: index.md
   - name: Начало работы
     items:
-      - name: Быстрый старт
+      - name: Ваша первая админка
+        href: first-app.md
+      - name: Подключение к своему приложению
         href: quickstart.md
       - name: Демо в браузере
         href: browser-demo.md
-      - name: "Обзор интерфейса"
+      - name: Обзор интерфейса
         href: interface-tour.md
-      - name: Интеграция и адаптеры
+  - name: Интеграции
+    items:
+      - name: Фреймворки и адаптеры ORM
         href: integration.md
       - name: GINO / PostgreSQL
         href: gino.md
-  - name: Работа с данными
+  - name: Руководство пользователя
     items:
       - name: Коллекции и поля
         href: configuration.md
-      - name: Фильтры списков
+      - name: Фильтры и поиск
         href: filters.md
+      - name: Связанные записи
+        href: relationships.md
       - name: Экспорт данных
         href: exports.md
-      - name: Связи
-        href: relationships.md
       - name: Схема базы данных
         href: database-schema.md
-  - name: Настройка интерфейса
+  - name: Настройка и расширение
     items:
-      - name: Язык и цвета
+      - name: Язык и оформление
         href: customization.md
-      - name: Кастомизация оформления
+      - name: Стили и компоновка
         href: styling.md
       - name: Свои страницы и шаблоны
         href: custom-pages.md
-      - name: Операции и расширения
-        href: extensions.md
-      - name: Контролы полей и свои виджеты
+      - name: Контролы полей
         href: field-widgets.md
-  - name: Безопасность и эксплуатация
+      - name: Хуки, действия и сервисы
+        href: extensions.md
+      - name: Свои адаптеры данных
+        href: custom-adapters.md
+  - name: Развёртывание
     items:
+      - name: Развёртывание админки
+        href: deployment.md
       - name: Авторизация и права
         href: authentication.md
-      - name: Логирование
-        href: logging.md
       - name: Хранилище и история действий
         href: storage.md
-      - name: Доступ к данным и совместимость
+      - name: Логирование
+        href: logging.md
+  - name: Справочник
+    items:
+      - name: Совместимость БД и ограничения
         href: data-safety.md
       - name: Совместимость зависимостей
         href: dependency-compatibility.md
-  - name: Разработка библиотеки
-    items:
-      - name: Поддержка другой ORM
-        href: custom-adapters.md
       - name: Гарантии публичного API
         href: api-stability.md
-      - name: Архитектура
+      - name: Архитектура и контракты
         href: architecture.md
+  - name: Разработка библиотеки
+    items:
       - name: Разработка и проверки
         href: development.md
       - name: Релизы и политика совместимости

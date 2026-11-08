@@ -2,6 +2,10 @@
 
 ## 0.8.2 — 2026-11-06
 
+- Clarify the README and English/Russian documentation around existing application models.
+  Add a standalone three-model FastAPI example and deployment guides;
+  organize navigation by user tasks while preserving existing page paths.
+  Use absolute README links and check their portability to PyPI during documentation builds.
 - Reuse successful master CI for version-tag releases instead of rerunning the test
   matrix. Require the exact tagged commit and a successful latest validation gate;
   deploy its existing documentation artifact to Pages after the GitHub release

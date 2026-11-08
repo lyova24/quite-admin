@@ -9,60 +9,68 @@ items:
     href: index.md
   - name: Getting started
     items:
-      - name: Quick start
+      - name: Your first admin
+        href: first-app.md
+      - name: Add to an existing app
         href: quickstart.md
-      - name: Browser demo
+      - name: Try the browser demo
         href: browser-demo.md
-      - name: "Interface tour"
+      - name: Interface tour
         href: interface-tour.md
-      - name: Integration and adapters
+  - name: Integrations
+    items:
+      - name: Frameworks and ORM adapters
         href: integration.md
       - name: GINO / PostgreSQL
         href: gino.md
-  - name: Working with data
+  - name: User guide
     items:
       - name: Collections and fields
         href: configuration.md
-      - name: List filters
+      - name: Filters and search
         href: filters.md
-      - name: Data export
-        href: exports.md
-      - name: Relationships
+      - name: Related records
         href: relationships.md
+      - name: Export data
+        href: exports.md
       - name: Database schema
         href: database-schema.md
   - name: Customization
     items:
-      - name: Language and colors
+      - name: Language and appearance
         href: customization.md
-      - name: Customize the interface
+      - name: Styles and layout
         href: styling.md
       - name: Custom pages and templates
         href: custom-pages.md
-      - name: Operations and extensions
-        href: extensions.md
-      - name: Field controls and custom widgets
+      - name: Field controls
         href: field-widgets.md
-  - name: Security and operations
+      - name: Hooks, actions and services
+        href: extensions.md
+      - name: Custom data adapters
+        href: custom-adapters.md
+  - name: Deployment
     items:
+      - name: Deploy your admin
+        href: deployment.md
       - name: Authentication and permissions
         href: authentication.md
+      - name: Storage and activity history
+        href: storage.md
       - name: Logging
         href: logging.md
-      - name: Admin storage and activity history
-        href: storage.md
-      - name: Data access and compatibility
+  - name: Reference
+    items:
+      - name: Database compatibility and limits
         href: data-safety.md
       - name: Dependency compatibility
         href: dependency-compatibility.md
-  - name: Library development
-    items:
-      - name: Support another ORM
-        href: custom-adapters.md
       - name: Public API guarantees
         href: api-stability.md
-      - name: Architecture
+      - name: Architecture and contracts
         href: architecture.md
+  - name: Contributing
+    items:
       - name: Development and checks
         href: development.md
       - name: Releases and compatibility policy
