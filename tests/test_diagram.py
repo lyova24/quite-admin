@@ -12,6 +12,7 @@ from litestar import Litestar
 
 from quite_admin import Admin, ModelOptions
 from quite_admin.diagram import schema_graph
+from quite_admin.i18n import Translator
 
 from . import test_relations
 from .helpers import login
@@ -109,6 +110,44 @@ async def test_schema_uses_metadata_with_visible_fields_and_expandable_junctions
             assert not next(edge for edge in hidden["edges"] if edge["kind"] == "m2m").get(
                 "junction"
             )
+
+
+@pytest.mark.parametrize("framework", ["fastapi", "litestar"])
+async def test_schema_groups_contain_only_tables_with_list_and_view_permission(
+    auth, related_backend, framework
+):
+    adapter, _ = related_backend
+    admin = Admin(auth=auth, secret_key="s" * 32, secure_cookies=False, adapters=[adapter])
+    for slug in ("parents", "children"):
+        admin.configure(slug, options=ModelOptions(group="Sales & operations"))
+    admin.configure(
+        "profiles",
+        options=ModelOptions(group="Sales & operations", permission=lambda r, i, a: a != "view"),
+    )
+    admin.configure(
+        "tags",
+        options=ModelOptions(group="Restricted group", permission=lambda r, i, a: a != "list"),
+    )
+    host = FastAPI() if framework == "fastapi" else Litestar()
+    if framework == "fastapi":
+        admin.mount_fastapi(host)
+    else:
+        admin.mount_litestar(host)
+    async with AsyncClient(transport=ASGITransport(app=host), base_url="http://test") as client:
+        await login(client)
+        response = await client.get("/admin/schema")
+        assert response.status_code == 200, response.text
+        graph = graph_data(response)
+        assert {node["id"] for node in graph["nodes"] if node["group"]} == {
+            "parents",
+            "children",
+        }
+        assert {node["group"] for node in graph["nodes"] if node["group"]} == {"Sales & operations"}
+        assert not {"profiles", "tags"} & {node["id"] for node in graph["nodes"]}
+        assert "Restricted group" not in json.dumps(graph)
+        assert all(node["group"] is None for node in graph["junctions"])
+        assert admin._schema_messages()["showGroup"] == "Show group"
+        assert admin._schema_messages(Translator("ru"))["showGroup"] == "Показать группу"
 
 
 async def test_physical_foreign_keys_without_orm_relationships_and_unique_targets(auth, tmp_path):

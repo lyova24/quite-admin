@@ -295,6 +295,10 @@ RUSSIAN = {
     "Tables and relationships": "Таблицы и связи",
     "Tables": "Таблицы",
     "Show table": "Показать таблицу",
+    "Show group": "Показать группу",
+    (
+        "Group checkboxes select every table in the group, including tables hidden by search."
+    ): "Флажки групп выбирают все таблицы группы, включая скрытые поиском.",
     "Visible tables": "Отображаемые таблицы",
     "Search tables": "Поиск таблиц",
     "Show all": "Показать все",

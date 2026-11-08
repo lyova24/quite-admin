@@ -165,6 +165,11 @@ class Rendering:
                 "selectTables": "Select tables to display",
                 "searchTables": "Search tables",
                 "showTable": "Show table",
+                "showGroup": "Show group",
+                "groupSearchHelp": (
+                    "Group checkboxes select every table in the group, "
+                    "including tables hidden by search."
+                ),
                 "expandView": "Expand view",
                 "exitView": "Exit expanded view",
                 "noTables": "No matching tables.",

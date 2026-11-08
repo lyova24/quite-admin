@@ -550,6 +550,14 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 }
 .schema-table-name { min-width: 0; text-align: left; font-size: var(--text-xs); line-height: 1.4; }
 .schema-table-name:hover { color: var(--accent); }
+.schema-table-group { min-width: 0; border: 0; border-top: var(--border); margin: 0.75rem 0 0; padding: 0.25rem 0 0; }
+.schema-table-group legend { max-width: 100%; padding: 0 0.375rem 0 0; }
+.schema-group-choice { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0; font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
+.schema-group-choice input { width: 0.9375rem; min-height: 0.9375rem; height: 0.9375rem; flex-shrink: 0; margin: 0.125rem 0 0; accent-color: var(--accent); }
+.schema-group-choice span { min-width: 0; overflow-wrap: anywhere; }
+.schema-group-choice small { flex-shrink: 0; font-size: var(--text-xs); font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.schema-table-group .schema-table-choice { margin-inline-start: 0.5rem; }
+.schema-group-search-help { margin-block: 0.75rem; }
 .schema-workspace.is-expanded { position: fixed; inset: 0; z-index: 1000; border-radius: 0; display: flex; flex-direction: column; }
 .schema-workspace.is-expanded .schema-body { flex: 1; min-height: 0; overflow: hidden; }
 .schema-workspace.is-expanded .schema-canvas { height: 100%; min-height: 0; }

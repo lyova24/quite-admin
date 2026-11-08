@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.9 — 2026-11-08
+
+- Select entire authorized table groups in the database schema with synchronized checked and mixed states. Search by group, table label or name; retain individual selection and the manual-selection guard for large schemas.
+
 ## 0.8.8 — 2026-11-08
 
 - Bound routing work and reuse a shared obstacle index for large diagrams; move cards without rebuilding the whole SVG and handle long foreign-key chains without recursive stack growth. Reuse SQL relationship metadata per reflection snapshot and invalidate it on refresh; retain per-request permissions and field visibility.

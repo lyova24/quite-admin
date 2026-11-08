@@ -11,9 +11,15 @@ opening or rearranging the diagram does not read or modify record values.
 
 ## Explore the diagram
 
-- **Tables** opens the sidebar. Search by table label or table name, use checkboxes
+- **Tables** opens the sidebar. Search by table label, table name or configured group, use checkboxes
   to choose visible tables, or select **Show all** / **Hide all**. Search narrows the
   sidebar choices without changing the diagram. Clicking a table name centers it.
+- A group checkbox selects or clears all its tables at once. Groups follow
+  `ModelOptions(group="Sales")`, just like the navigation. A mixed checkbox means only
+  some tables in the group are selected; its count always covers the whole group.
+  Searching hides nonmatching choices, but a group checkbox still changes every table
+  in that group, including those hidden by search. Searching for a group name shows
+  all its tables. Tables without a group and unregistered junctions remain individual choices.
 - Cards initially show primary keys and relationship fields. Click a card, or focus it
   and press Enter/Space, to show its remaining visible fields. Click again to collapse it.
 - Lines connect the participating fields. Their labels and end markers distinguish
@@ -83,7 +89,8 @@ and field visibility are evaluated for each schema request.
 
 The schema requires authentication and both `list` and `view` permission for each
 table. Relationships to unavailable tables and links through hidden join fields
-are omitted. Field visibility follows `ModelOptions`, including the default exclusion of
+are omitted. Group choices and their counts include only these authorized tables;
+groups with no available tables are absent. Field visibility follows `ModelOptions`, including the default exclusion of
 credential fields. A restricted registered junction cannot reappear as a synthetic card.
 
 An unregistered junction exposes only its adapter-supplied field metadata, with credential

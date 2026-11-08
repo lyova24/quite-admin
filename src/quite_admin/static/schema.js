@@ -262,6 +262,7 @@
       const visible = new Set(manualSelection ? [] : known.keys()), expanded = new Set(), opened = new Set(), manual = new Map();
       let positions = new Map(), routing = null;
       const edgeViews = [], nodeViews = new Map(), incident = new Map();
+      const tableChecks = new Map(), groupChecks = [];
       let laidOut = [], selected = null, view = { x: 0, y: 0, width: 600, height: 360 }, zoom = 1, autoFit = true, drag = null, frame = null, suppressClick = false;
       const ns = "http://www.w3.org/2000/svg";
       const el = (tag, attributes = {}, text) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value); if (text != null) node.textContent = text; return node; };
@@ -289,21 +290,52 @@
         }
       }
       function renderChoices() {
-        const search = root.querySelector("[data-schema-search]").value.toLocaleLowerCase();
-        choices.replaceChildren(); let count = 0;
-        for (const node of known.values()) {
-          if (!(node.label + " " + node.name).toLocaleLowerCase().includes(search)) continue;
+        const search = root.querySelector("[data-schema-search]").value.trim().toLocaleLowerCase();
+        const groups = new Map();
+        const matches = (node) => (node.label + " " + node.name + " " + (node.group || "")).toLocaleLowerCase().includes(search);
+        for (const node of known.values()) { const group = node.group || null; if (!groups.has(group)) groups.set(group, []); groups.get(group).push(node); }
+        choices.replaceChildren(); tableChecks.clear(); groupChecks.length = 0; let count = 0;
+        if (search && [...groups].some(([group, nodes]) => group && nodes.some(node => matches(node)))) {
+          const help = document.createElement("p"); help.className = "field-help schema-group-search-help"; help.textContent = messages.groupSearchHelp; choices.append(help);
+        }
+        function tableChoice(node, container) {
           const row = document.createElement("div"); row.className = "schema-table-choice";
           const check = document.createElement("input"); check.type = "checkbox"; check.checked = visible.has(node.id); check.setAttribute("aria-label", (messages.showTable || messages.tables) + ": " + node.label); check.dataset.table = node.id;
+          tableChecks.set(node.id, check);
           check.addEventListener("change", () => { if (check.checked) visible.add(node.id); else visible.delete(node.id); if (!visible.has(selected)) select(null); autoFit = true; draw(); updateCount(); });
           const name = document.createElement("button"); name.type = "button"; name.className = "link-button schema-table-name"; name.textContent = node.label; const small = document.createElement("small"); small.textContent = node.name; name.append(small);
           name.addEventListener("click", () => { if (!visible.has(node.id)) { visible.add(node.id); check.checked = true; draw(); updateCount(); } select(node.id, true); });
-          row.append(check, name); choices.append(row); count++;
+          row.append(check, name); container.append(row); count++;
+        }
+        for (const [group, members] of groups) {
+          const filtered = members.filter(matches);
+          if (!filtered.length) continue;
+          let container = choices;
+          if (group) {
+            container = document.createElement("fieldset"); container.className = "schema-table-group"; container.dataset.schemaGroup = group;
+            const legend = document.createElement("legend"), label = document.createElement("label"); label.className = "schema-group-choice";
+            const check = document.createElement("input"); check.type = "checkbox"; check.dataset.schemaGroupToggle = group; check.setAttribute("aria-label", messages.showGroup + ": " + group); check.setAttribute("aria-description", messages.groupSearchHelp);
+            const name = document.createElement("span"); name.textContent = group;
+            const count = document.createElement("small"); count.setAttribute("aria-hidden", "true");
+            groupChecks.push({ check, count, members });
+            check.addEventListener("change", () => { for (const node of members) { if (check.checked) visible.add(node.id); else visible.delete(node.id); } if (!visible.has(selected)) select(null); autoFit = true; draw(); updateCount(); });
+            label.append(check, name, count); legend.append(label); container.append(legend); choices.append(container);
+          }
+          filtered.forEach(node => tableChoice(node, container));
         }
         if (!count) { const empty = document.createElement("p"); empty.className = "field-help"; empty.textContent = messages.noTables; choices.append(empty); }
         updateCount();
       }
-      function updateCount() { root.querySelector("[data-schema-count]").textContent = `${[...known.keys()].filter((id) => visible.has(id)).length}/${known.size}`; }
+      function updateCount() {
+        root.querySelector("[data-schema-count]").textContent = `${[...known.keys()].filter((id) => visible.has(id)).length}/${known.size}`;
+        tableChecks.forEach((check, id) => { check.checked = visible.has(id); });
+        groupChecks.forEach(({ check, count, members }) => {
+          const selected = members.filter(node => visible.has(node.id)).length;
+          check.checked = selected === members.length; check.indeterminate = selected > 0 && !check.checked;
+          check.setAttribute("aria-checked", check.indeterminate ? "mixed" : String(check.checked));
+          count.textContent = `${selected}/${members.length}`;
+        });
+      }
       function toggleJunction(id) {
         const edge = graph.edges.find((edge) => edge.id === id); if (!edge?.junction) return;
         if (opened.has(id) && visible.has(edge.junction)) {

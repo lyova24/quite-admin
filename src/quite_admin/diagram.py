@@ -20,7 +20,11 @@ async def schema_graph(resources, *, all_resources=None):
         fields = resource.options.visible_fields(resource.schema)
         visible[resource.slug] = {field.name for field in fields}
         nodes[resource.slug] = graph_node(
-            resource.slug, resource.schema.name, resource.label, fields
+            resource.slug,
+            resource.schema.name,
+            resource.label,
+            fields,
+            group=resource.options.group,
         )
     for resource in resources:
         describe = getattr(resource.adapter, "schema_relations", None)
@@ -139,11 +143,12 @@ async def schema_graph(resources, *, all_resources=None):
     return {"nodes": list(nodes.values()), "edges": edges, "junctions": list(junctions.values())}
 
 
-def graph_node(identifier, name, label, fields, *, junction=False):
+def graph_node(identifier, name, label, fields, *, junction=False, group=None):
     return {
         "id": identifier,
         "name": name,
         "label": label,
+        "group": group,
         "junction": junction,
         "fields": [
             {
