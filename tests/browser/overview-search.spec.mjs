@@ -124,6 +124,65 @@ test.describe('without JavaScript', () => {
 
 test.describe('browser demo', () => {
   test.use({baseURL: 'http://127.0.0.1:8128'});
+  test('Home cards keep equal column widths with partially filled rows and adapt to narrow screens', async ({page}) => {
+    await page.setViewportSize({width:1280, height:1000});
+    await page.goto('/');
+    await page.getByLabel('Username', {exact:true}).fill('admin');
+    await page.getByLabel('Password', {exact:true}).fill('admin');
+    await page.getByRole('button', {name:'Sign in', exact:true}).click();
+    await expect(homeSearch(page)).toBeVisible();
+
+    async function expectColumns(columns) {
+      for (const selector of ['[data-home-pinned]', '[data-home-recent]', '.home-tools', '.home .page-grid']) {
+        const geometry = await page.locator(selector).evaluate(grid => {
+          const {width} = grid.getBoundingClientRect();
+          return {width, gap:parseFloat(getComputedStyle(grid).columnGap), cards:[...grid.children].map(card => {
+            const {width, x, y} = card.getBoundingClientRect();
+            return {width, x, y};
+          })};
+        });
+        for (const card of geometry.cards) {
+          expect(Math.abs(card.width - (geometry.width - (columns - 1) * geometry.gap) / columns)).toBeLessThan(1);
+        }
+        if (geometry.cards.length > columns) {
+          expect(geometry.cards[columns].y).toBeGreaterThan(geometry.cards[0].y);
+          expect(geometry.cards[columns].x).toBeCloseTo(geometry.cards[0].x, 0);
+        }
+      }
+      expect(await page.locator('[data-dashboard]').evaluate(home => home.scrollWidth <= home.clientWidth)).toBe(true);
+      for (const text of await page.locator('.home-tool h3, .home-tool p').all()) {
+        expect(await text.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+      }
+    }
+
+    for (let index = 0; index < 4; index++) {
+      await page.evaluate(index => {
+        const tables = document.querySelector('[data-admin-shell]').quiteAdminTables;
+        const {id} = tables.catalog()[index];
+        tables.togglePin(id);
+        tables.remember(id);
+      }, index);
+      await expect(page.locator('[data-home-pinned] > *')).toHaveCount(index + 1);
+      await expect(page.locator('[data-home-recent] > *')).toHaveCount(index + 1);
+      await expectColumns(3);
+    }
+    for (const [width, columns] of [[800,2], [390,1]]) {
+      await page.setViewportSize({width, height:1000});
+      await expectColumns(columns);
+    }
+    await page.route('**/admin.css', async route => {
+      const response = await route.fetch();
+      await route.fulfill({response, body:(await response.text()) + '\n:root { --ui-font-size: 200%; }'});
+    });
+    await page.reload();
+    await expect(homeSearch(page)).toBeVisible();
+    await expect(page.locator('html')).toHaveCSS('font-size', '32px');
+    for (const [width, columns] of [[1280,3], [901,3], [800,2], [390,1]]) {
+      await page.setViewportSize({width, height:1000});
+      await expectColumns(columns);
+    }
+  });
+
   test('shared search finds labels, names and groups, localizes empty results and persists Home shortcuts', async ({page}) => {
     await page.goto('/');
     await page.getByLabel('Username', {exact: true}).fill('admin');

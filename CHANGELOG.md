@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.14 — 2026-11-10
+
+- Keep Home shortcuts in three equal-width desktop columns, including rows with only one or two cards. Share the grid across pinned tables, recently opened tables, workspace tools and custom pages; use two columns on tablets and one on narrow screens.
+
 ## 0.8.13 — 2026-11-09
 
 - Compact overcrowded database-schema layers and pack disconnected components to fit the workspace proportions. Avoid long sparse rows and columns when displaying thousands of tables; preserve small diagrams, expanded-card sizes, manual positioning and every selected table.

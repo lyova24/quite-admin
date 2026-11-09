@@ -18,6 +18,10 @@ Custom logos use the same alignment.
 pinned and recently opened tables, plus shortcuts to the schema, activity history and
 custom pages. Opening Home uses authorized metadata without scanning table records.
 
+Home cards use three equal-width columns on desktop. One or two cards keep the
+same width instead of filling the row. Tablet screens use two columns and narrow
+screens use one.
+
 Choose **Find a table** or press **Ctrl/⌘ K** on any authenticated page. The search
 opens with its input focused and matches table labels, technical names and groups.
 Use arrows and Enter to open a result; Escape closes search and returns focus.
