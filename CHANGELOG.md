@@ -4,6 +4,7 @@
 
 - Compact overcrowded database-schema layers and pack disconnected components to fit the workspace proportions. Avoid long sparse rows and columns when displaying thousands of tables; preserve small diagrams, expanded-card sizes, manual positioning and every selected table.
 - Route large-diagram connections through verified column gaps before bounded obstacle search, keeping links clear of cards with different widths and heights.
+- Add a reversible related-table view from each diagram card. Show its direct neighbours within the current selection, then restore the previous tables, positions and zoom with the same button; support hover, keyboard and touch.
 
 ## 0.8.12 — 2026-11-08
 

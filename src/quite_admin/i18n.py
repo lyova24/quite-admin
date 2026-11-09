@@ -51,6 +51,8 @@ class Message(str):
 
 
 RUSSIAN = {
+    "Show only related tables": "Показать только связанные таблицы",
+    "Restore previous tables": "Вернуть прежний набор таблиц",
     "Remove from recently opened: {name}": "Убрать из недавно открытых: {name}",
     "Home": "Главная",
     "Profile": "Профиль",

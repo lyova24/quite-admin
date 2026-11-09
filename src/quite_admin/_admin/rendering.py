@@ -170,6 +170,8 @@ class Rendering:
                 "selectTables": "Select tables to display",
                 "searchTables": "Search tables",
                 "showTable": "Show table",
+                "showRelated": "Show only related tables",
+                "restoreRelated": "Restore previous tables",
                 "showGroup": "Show group",
                 "groupSearchHelp": (
                     "Group checkboxes select every table in the group, "

@@ -12,3 +12,12 @@
 .schema-page .schema-workspace.is-sidebar-hidden .schema-body { grid-template-columns: minmax(0, 1fr); }
 .schema-page .schema-workspace.is-expanded { min-height: 0; overflow: auto; }
 .schema-page .schema-workspace.is-expanded .schema-body { min-height: min(20rem, 40dvh); }
+
+/* Keep the card action reachable by keyboard and touch as well as hover. */
+.schema-related-control { overflow: visible; opacity: 0; pointer-events: none; }
+.schema-node:hover + .schema-related-control, .schema-node:focus + .schema-related-control,
+.schema-related-control:hover, .schema-related-control:focus-within, .schema-related-control.is-active { opacity: 1; pointer-events: auto; }
+.schema-related-toggle { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 8px; border: var(--border); border-radius: 6px; color: var(--muted); background: var(--paper); box-shadow: var(--popup-shadow); }
+.schema-related-toggle:hover, .schema-related-toggle[aria-pressed=true] { color: var(--accent); border-color: var(--accent-border); background: var(--accent-soft); }
+.schema-related-toggle > svg { display: block; width: 20px; height: 20px; pointer-events: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover: none), (pointer: coarse) { .schema-related-control { opacity: 1; pointer-events: auto; } }

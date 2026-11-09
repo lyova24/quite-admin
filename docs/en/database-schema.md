@@ -28,6 +28,12 @@ This layout preserves the initial manual-selection guard for more than 100 permi
   all its tables. Tables without a group and unregistered junctions remain individual choices.
 - Cards initially show primary keys and relationship fields. Click a card, or focus it
   and press Enter/Space, to show its remaining visible fields. Click again to collapse it.
+- Hover over a card or focus it to reveal **Show only related tables**. This keeps
+  that table and its directly connected neighbours from the current selection.
+  Press the same button again to restore the previous tables, positions and zoom.
+  The active button stays visible; on touch screens card buttons are always shown.
+  Choosing another card's button switches the related view within the original selection.
+  Changing table or group checkboxes ends this temporary view and uses the edited selection.
 - Lines connect the participating fields. Their labels and end markers distinguish
   **1:1 · o2o**, **1:N · o2m** and **N:M · m2m**. Selecting a table highlights its links.
 - Click an **N:M** label to reveal the junction table and its two **1:N** links. Click

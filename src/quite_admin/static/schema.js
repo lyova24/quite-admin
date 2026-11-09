@@ -313,9 +313,10 @@
       const manualSelection = root.dataset.initialSelection === "none";
       const visible = new Set(manualSelection ? [] : known.keys()), expanded = new Set(), opened = new Set(), manual = new Map();
       let positions = new Map(), routing = null;
-      const edgeViews = [], nodeViews = new Map(), incident = new Map();
+      const edgeViews = [], nodeViews = new Map(), relatedViews = new Map(), incident = new Map();
       const tableChecks = new Map(), groupChecks = [];
       let laidOut = [], selected = null, view = { x: 0, y: 0, width: 600, height: 360 }, zoom = 1, autoFit = true, drag = null, frame = null, suppressClick = false;
+      let related = null;
       const ns = "http://www.w3.org/2000/svg";
       const el = (tag, attributes = {}, text) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value); if (text != null) node.textContent = text; return node; };
       const dimensions = () => { const box = svg.getBoundingClientRect(); return { width: Math.max(1, box.width), height: Math.max(1, box.height) }; };
@@ -341,6 +342,40 @@
           }
         }
       }
+      function replaceSet(target, values) { target.clear(); for (const value of values) target.add(value); }
+      function replaceManual(values) { manual.clear(); for (const [id, position] of values) manual.set(id, { ...position }); }
+      function toggleRelated(id) {
+        if (!visible.has(id)) return;
+        if (related?.id === id) {
+          const saved = related.saved; related = null;
+          replaceSet(visible, saved.visible); replaceSet(expanded, saved.expanded); replaceSet(opened, saved.opened);
+          replaceManual(saved.positions); view = { ...saved.view }; zoom = saved.zoom; autoFit = false;
+          const size = dimensions();
+          if (Math.abs(size.width - view.width * zoom) > .5 || Math.abs(size.height - view.height * zoom) > .5) {
+            const width = size.width / zoom, height = size.height / zoom;
+            view = { x: view.x + (view.width - width) / 2, y: view.y + (view.height - height) / 2, width, height };
+            autoFit = saved.autoFit;
+          }
+          select(saved.selected); updateCount(); draw();
+          replaceManual(saved.manual); autoFit = saved.autoFit;
+        } else {
+          const saved = related?.saved || {
+            visible: new Set(visible), expanded: new Set(expanded), opened: new Set(opened),
+            manual: new Map([...manual].map(([key, value]) => [key, { ...value }])),
+            positions: new Map(laidOut.map((node) => [node.id, { x: node.x, y: node.y }])),
+            selected, view: { ...view }, zoom, autoFit
+          };
+          const projected = projectGraph(graph, saved.visible, saved.opened), neighbors = new Set([id]);
+          for (const edge of projected.edges) {
+            if (edge.source === id) neighbors.add(edge.target);
+            if (edge.target === id) neighbors.add(edge.source);
+          }
+          related = { id, saved }; replaceSet(visible, neighbors); manual.clear(); autoFit = true;
+          select(id); updateCount(); draw();
+        }
+        const button = [...svg.querySelectorAll("[data-schema-related]")].find((node) => node.dataset.schemaRelated === id);
+        button?.focus({ preventScroll: true });
+      }
       function renderChoices() {
         const search = root.querySelector("[data-schema-search]").value.trim().toLocaleLowerCase();
         const groups = new Map();
@@ -354,9 +389,9 @@
           const row = document.createElement("div"); row.className = "schema-table-choice";
           const check = document.createElement("input"); check.type = "checkbox"; check.checked = visible.has(node.id); check.setAttribute("aria-label", (messages.showTable || messages.tables) + ": " + node.label); check.dataset.table = node.id;
           tableChecks.set(node.id, check);
-          check.addEventListener("change", () => { if (check.checked) visible.add(node.id); else visible.delete(node.id); if (!visible.has(selected)) select(null); autoFit = true; draw(); updateCount(); });
+          check.addEventListener("change", () => { related = null; if (check.checked) visible.add(node.id); else visible.delete(node.id); if (!visible.has(selected)) select(null); autoFit = true; draw(); updateCount(); });
           const name = document.createElement("button"); name.type = "button"; name.className = "link-button schema-table-name"; name.textContent = node.label; const small = document.createElement("small"); small.textContent = node.name; name.append(small);
-          name.addEventListener("click", () => { if (!visible.has(node.id)) { visible.add(node.id); check.checked = true; draw(); updateCount(); } select(node.id, true); });
+          name.addEventListener("click", () => { if (!visible.has(node.id)) { related = null; visible.add(node.id); check.checked = true; draw(); updateCount(); } select(node.id, true); });
           row.append(check, name); container.append(row); count++;
         }
         for (const [group, members] of groups) {
@@ -370,7 +405,7 @@
             const name = document.createElement("span"); name.textContent = group;
             const count = document.createElement("small"); count.setAttribute("aria-hidden", "true");
             groupChecks.push({ check, count, members });
-            check.addEventListener("change", () => { for (const node of members) { if (check.checked) visible.add(node.id); else visible.delete(node.id); } if (!visible.has(selected)) select(null); autoFit = true; draw(); updateCount(); });
+            check.addEventListener("change", () => { related = null; for (const node of members) { if (check.checked) visible.add(node.id); else visible.delete(node.id); } if (!visible.has(selected)) select(null); autoFit = true; draw(); updateCount(); });
             label.append(check, name, count); legend.append(label); container.append(legend); choices.append(container);
           }
           filtered.forEach(node => tableChoice(node, container));
@@ -390,6 +425,7 @@
       }
       function toggleJunction(id) {
         const edge = graph.edges.find((edge) => edge.id === id); if (!edge?.junction) return;
+        related = null;
         if (opened.has(id) && visible.has(edge.junction)) {
           opened.delete(id);
           if (catalog.get(edge.junction).junction && !graph.edges.some((item) => item.junction === edge.junction && opened.has(item.id))) visible.delete(edge.junction);
@@ -415,6 +451,7 @@
         const node = positions.get(id), position = manual.get(id);
         if (!node || !position) return;
         Object.assign(node, position); nodeViews.get(id).setAttribute("transform", `translate(${node.x},${node.y})`);
+        relatedViews.get(id)?.setAttribute("transform", `translate(${node.x},${node.y})`);
         routing = createRoutingContext(laidOut);
         for (const item of incident.get(id) || []) updateEdge(item);
       }
@@ -428,7 +465,7 @@
         lastWidth = size.width; lastHeight = size.height;
         laidOut = layoutSchema(projected.nodes, projected.edges, expanded, size.width / size.height).map((node) => ({ ...node, ...manual.get(node.id) }));
         positions = new Map(laidOut.map((node) => [node.id, node]));
-        routing = createRoutingContext(laidOut); edgeViews.length = 0; nodeViews.clear(); incident.clear();
+        routing = createRoutingContext(laidOut); edgeViews.length = 0; nodeViews.clear(); relatedViews.clear(); incident.clear();
         svg.replaceChildren();
         const defs = el("defs");
         for (const kind of ["one", "many"]) { const marker = el("marker", { id: "schema-" + kind, viewBox: "-12 -7 14 14", markerWidth: 14, markerHeight: 14, refX: 0, refY: 0, markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" }); marker.append(el("path", { class: "schema-marker", d: kind === "one" ? "M-5,-6 V6" : "M-10,-6 L0,0 L-10,6 M-10,0 H0" })); defs.append(marker); }
@@ -461,7 +498,7 @@
           const group = el("g", { class: "schema-node" + (node.junction ? " is-junction" : ""), transform: `translate(${node.x},${node.y})`, "data-node": node.id, tabindex: 0, role: "button", "aria-expanded": String(full), "aria-label": `${node.label} · ${node.name} · ${node.fields.length} ${fieldWord(node.fields.length)}${additional ? ". " + messages[full ? "collapse" : "expand"] : ""}. ${node.shownFields.map((field) => field.name + ": " + field.type).join(", ")}` });
           group.append(el("title", {}, node.name + " · " + node.fields.length + " " + fieldWord(node.fields.length)), el("rect", { class: "node-surface", width: node.width, height: node.height, rx: 7 }), el("path", { class: "node-header", d: `M7,1 H${node.width-7} Q${node.width-1},1 ${node.width-1},7 V${HEADER} H1 V7 Q1,1 7,1` }), el("line", { class: "node-divider", x1: 0, x2: node.width, y1: HEADER, y2: HEADER }));
           const shorten = (text, max) => text.length > max ? text.slice(0, max - 1) + "…" : text;
-          group.append(el("text", { class: "node-title", x: 14, y: 23 }, shorten(node.name, Math.floor((node.width - 28) / 8))), el("text", { class: "node-subtitle", x: 14, y: 43 }, shorten(node.label, Math.floor((node.width - 28) / 6))));
+          group.append(el("text", { class: "node-title", x: 14, y: 23 }, shorten(node.name, Math.floor((node.width - 76) / 8))), el("text", { class: "node-subtitle", x: 14, y: 43 }, shorten(node.label, Math.floor((node.width - 76) / 6))));
           node.shownFields.forEach((field, index) => { const y = HEADER + index * ROW + 18; group.append(el("text", { class: "key-label", x: 12, y }, [field.pk ? "PK" : "", field.fk ? "FK" : ""].filter(Boolean).join("/")), el("text", { class: "field-name", x: 51, y }, shorten(field.name, Math.floor((node.width - 140) / 7))), el("text", { class: "field-type", x: node.width - 12, y, "text-anchor": "end" }, field.type)); });
           if (!node.shownFields.length) group.append(el("text", { class: "field-type", x: 14, y: HEADER + 18 }, node.fields.length ? messages.expand : messages.empty));
           group.append(el("line", { class: "node-divider", x1: 0, x2: node.width, y1: node.height - FOOTER, y2: node.height - FOOTER }), el("text", { class: "node-toggle", x: 14, y: node.height - 11 }, additional ? full ? messages.collapse + " ↑" : `+ ${additional} ${fieldWord(additional)}` : `${node.fields.length} ${fieldWord(node.fields.length)}`));
@@ -472,20 +509,32 @@
             const delta = { ArrowLeft: [-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[event.key];
             if (delta) { event.preventDefault(); const step = event.shiftKey ? 40 : 10; fixPositions(); manual.set(node.id, { x: node.x + delta[0] * step, y: node.y + delta[1] * step }); autoFit = false; moveNode(node.id); rerouteEdges(); }
           });
-          nodeViews.set(node.id, group); nodeLayer.append(group);
+          const active = related?.id === node.id;
+          const control = el("foreignObject", { class: "schema-related-control" + (active ? " is-active" : ""), x: node.width - 48, y: 8, width: 40, height: 40, transform: `translate(${node.x},${node.y})` });
+          const button = document.createElement("button"); button.type = "button"; button.className = "schema-related-toggle"; button.dataset.schemaRelated = node.id;
+          const label = `${messages[active ? "restoreRelated" : "showRelated"] || (active ? "Restore previous tables" : "Show only related tables")}: ${node.label}`;
+          button.setAttribute("aria-label", label); button.setAttribute("aria-pressed", String(active)); button.title = label;
+          const icon = el("svg", { viewBox: "0 0 24 24", width: 20, height: 20, "aria-hidden": "true" });
+          icon.append(el("path", { d: "M9 12h3V6h3M12 12v6h3" }), el("rect", { x: 3, y: 9, width: 6, height: 6, rx: 1 }), el("rect", { x: 15, y: 3, width: 6, height: 6, rx: 1 }), el("rect", { x: 15, y: 15, width: 6, height: 6, rx: 1 }));
+          button.append(icon); control.append(button);
+          button.addEventListener("pointerdown", (event) => event.stopPropagation());
+          button.addEventListener("click", (event) => { event.preventDefault(); event.stopPropagation(); toggleRelated(node.id); });
+          button.addEventListener("keydown", (event) => { event.stopPropagation(); if (["Enter", " "].includes(event.key)) { event.preventDefault(); toggleRelated(node.id); } });
+          button.addEventListener("keyup", (event) => event.stopPropagation());
+          nodeViews.set(node.id, group); relatedViews.set(node.id, control); nodeLayer.append(group, control);
         }
         svg.append(edgeLayer, nodeLayer);
         if (!laidOut.length) svg.append(el("text", { class: "schema-empty", x: 300, y: 180 }, messages.selectTables));
         if (autoFit) fit(); else updateView(); highlight(selected);
         if (focused) {
-          const replacement = [...svg.querySelectorAll("[data-node], [data-edge]")].find((node) =>
-            focused.node ? node.dataset.node === focused.node : focused.junctionAction ? node.dataset.junctionAction === focused.junctionAction : node.dataset.edge === focused.edge);
+          const replacement = [...svg.querySelectorAll("[data-node], [data-edge], [data-schema-related]")].find((node) =>
+            focused.schemaRelated ? node.dataset.schemaRelated === focused.schemaRelated : focused.node ? node.dataset.node === focused.node : focused.junctionAction ? node.dataset.junctionAction === focused.junctionAction : node.dataset.edge === focused.edge);
           (replacement || svg).focus();
         }
       }
       const world = (event) => { const box = svg.getBoundingClientRect(); return { x: view.x + (event.clientX - box.left) / box.width * view.width, y: view.y + (event.clientY - box.top) / box.height * view.height }; };
       svg.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0 || event.target.closest("[data-edge]")) return;
+        if (event.button !== 0 || event.target.closest("[data-edge], [data-schema-related]")) return;
         const id = event.target.closest("[data-node]")?.dataset.node, point = world(event), node = laidOut.find((node) => node.id === id);
         drag = { pointer: event.pointerId, id, start: point, view: { ...view }, node: node ? { ...node } : null, clientX: event.clientX, clientY: event.clientY, moved: false };
         if (id) select(id); svg.setPointerCapture(event.pointerId); event.preventDefault();
@@ -514,8 +563,8 @@
       root.querySelector("[data-schema-fit]").addEventListener("click", () => { autoFit = true; fit(); });
       root.querySelector("[data-schema-layout]").addEventListener("click", () => { manual.clear(); autoFit = true; draw(); });
       root.querySelector("[data-schema-search]").addEventListener("input", renderChoices);
-      root.querySelector("[data-schema-show-all]").addEventListener("click", () => { known.forEach((node) => visible.add(node.id)); autoFit = true; renderChoices(); draw(); });
-      root.querySelector("[data-schema-hide-all]").addEventListener("click", () => { visible.clear(); select(null); autoFit = true; renderChoices(); draw(); });
+      root.querySelector("[data-schema-show-all]").addEventListener("click", () => { related = null; known.forEach((node) => visible.add(node.id)); autoFit = true; renderChoices(); draw(); });
+      root.querySelector("[data-schema-hide-all]").addEventListener("click", () => { related = null; visible.clear(); select(null); autoFit = true; renderChoices(); draw(); });
       root.querySelector("[data-schema-sidebar-toggle]").addEventListener("click", (event) => { const hidden = root.classList.toggle("is-sidebar-hidden"); event.currentTarget.setAttribute("aria-expanded", String(!hidden)); autoFit = true; requestAnimationFrame(fit); });
       const expandView = root.querySelector("[data-schema-expand-view]");
       const previousRole = root.getAttribute("role"), previousModal = root.getAttribute("aria-modal");
