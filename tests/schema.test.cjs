@@ -1,8 +1,15 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { layoutSchema, projectGraph, routeEdge, compactFields } = require('../src/quite_admin/static/schema.js');
+const { layoutSchema, projectGraph, routeEdge, compactFields } = require(process.env.QUITE_ADMIN_SCHEMA_SCRIPT || '../src/quite_admin/static/schema.js');
 const node = (id, extra = 3) => ({id, name:id, label:id, fields:[{name:'id',type:'integer',pk:true},{name:'owner_id',type:'integer',fk:true,linked:true},...Array.from({length:extra},(_,i)=>({name:'value_'+i,type:'string'}))]});
 const edge = (id, source, target, kind='o2m') => ({id,source,target,kind,sourceFields:['id'],targetFields:['owner_id']});
+
+test('small hierarchical schemas keep relationships ordered from left to right', () => {
+  const nodes = ['parent', 'left', 'right', 'leaf'].map(id => node(id));
+  const edges = [edge('left', 'parent', 'left'), edge('right', 'parent', 'right'), edge('leaf', 'right', 'leaf')];
+  const positions = new Map(layoutSchema(nodes, edges).map(item => [item.id, item]));
+  for (const relation of edges) assert.ok(positions.get(relation.source).x < positions.get(relation.target).x);
+});
 
 test('automatic layout handles cycles, parallel/self edges, isolated tables and expanded cards without overlap', () => {
   const nodes = Array.from({length:25},(_,i)=>node('table_'+i,i%6));

@@ -41,6 +41,20 @@ test('all two thousand tables render and remain movable when initial selection i
   await expect(root.locator('[data-edge]')).toHaveCount(2421);
   await expect(root.locator('[data-schema-count]')).toHaveText('2000/2000');
   expect(renderMs).toBeLessThan(5000);
+  const initialViewBox = await root.locator('[data-schema-canvas]').getAttribute('viewBox');
+  const initialPositions = await root.locator('[data-node]').evaluateAll(nodes => nodes.map(node => [node.dataset.node, node.getAttribute('transform')]));
+  const fill = await root.locator('[data-schema-canvas]').evaluate(canvas => {
+    const nodes = [...canvas.querySelectorAll('[data-node]')].map(node => {
+      const position = node.transform.baseVal.consolidate().matrix;
+      const surface = node.querySelector('.node-surface');
+      return {x:position.e, y:position.f, width:surface.width.baseVal.value, height:surface.height.baseVal.value};
+    });
+    const width = Math.max(...nodes.map(node => node.x + node.width)) - Math.min(...nodes.map(node => node.x));
+    const height = Math.max(...nodes.map(node => node.y + node.height)) - Math.min(...nodes.map(node => node.y));
+    const box = canvas.getBoundingClientRect(), aspect = box.width / box.height;
+    return nodes.reduce((sum, node) => sum + node.width * node.height, 0) / (Math.max(width / aspect, height) ** 2 * aspect);
+  });
+  expect(fill, 'tables should occupy the workspace after fitting the whole graph').toBeGreaterThan(0.2);
 
   await root.locator('[data-schema-search]').fill('Table 0');
   await root.locator('.schema-table-name').filter({hasText:'Table 0'}).first().click();
@@ -72,4 +86,12 @@ test('all two thousand tables render and remain movable when initial selection i
   await root.locator('[data-schema-zoom="in"]').click();
   expect(await root.locator('[data-schema-canvas]').getAttribute('viewBox')).not.toBe(beforeZoom);
   await expect(root.locator('[data-node="table_0"]')).toHaveAttribute('data-scale-identity', 'preserved');
+
+  // Auto layout discards manual positions and zoom, but keeps every table/edge.
+  await root.locator('[data-schema-layout]').click();
+  await expect(root.locator('[data-schema-canvas]')).toHaveAttribute('viewBox', initialViewBox);
+  expect(await root.locator('[data-node]').evaluateAll(nodes => nodes.map(node => [node.dataset.node, node.getAttribute('transform')]))).toEqual(initialPositions);
+  await expect(root.locator('[data-node]')).toHaveCount(2000);
+  await expect(root.locator('[data-edge]')).toHaveCount(2421);
+  await expect(root.locator('[data-schema-count]')).toHaveText('2000/2000');
 });

@@ -25,6 +25,7 @@
   }
 
   function layoutSchema(inputNodes, edges, expanded = new Set(), aspect = 1.8) {
+    aspect = Number.isFinite(aspect) && aspect > 0 ? aspect : 1.8;
     const nodes = inputNodes.map((node) => {
       const fields = expanded.has(node.id) ? node.fields : compactFields(node);
       const longest = Math.max(node.name.length, ...node.fields.map((field) => field.name.length));
@@ -107,22 +108,47 @@
         for (const id of layer) { const node = byId.get(id); output.push({ ...node, x, y }); y += node.height + 48; }
         x += Math.max(...layer.map((id) => byId.get(id).width)) + 110;
       });
-      return { nodes: output, width: x - 110, height, id: ids[0] };
+      const layered = { nodes: output, width: x - 110, height, id: ids[0] };
+      if (ids.length < 40) return layered;
+      // A rank can contain thousands of tables, or a long chain can have one
+      // table per rank. Keep their graph order, but fold either extreme into
+      // columns instead of letting one sparse dimension shrink the whole view.
+      const ordered = layers.flat().map((id) => byId.get(id));
+      const area = ordered.reduce((sum, node) => sum + (node.width + 110) * (node.height + 48), 0);
+      const targetHeight = Math.max(...ordered.map((node) => node.height), Math.sqrt(area / aspect));
+      const compact = []; let left = 0, top = 0, columnWidth = 0, compactHeight = 0;
+      for (const node of ordered) {
+        if (top && top + node.height > targetHeight) { left += columnWidth + 110; top = 0; columnWidth = 0; }
+        compact.push({ ...node, x: left, y: top });
+        top += node.height + 48; columnWidth = Math.max(columnWidth, node.width);
+        compactHeight = Math.max(compactHeight, top - 48);
+      }
+      const folded = { nodes: compact, width: left + columnWidth, height: compactHeight, id: ids[0] };
+      const score = (part) => Math.max(part.width / aspect, part.height);
+      return score(folded) < score(layered) * .9 ? folded : layered;
     }
+    const score = (items) => { const box = bounds(items); return Math.max(box.width / aspect, box.height); };
     function pack(verticalPairs) {
       const parts = components.map((ids) => arrange(ids, verticalPairs)).sort((a, b) => b.height * b.width - a.height * a.width || a.id.localeCompare(b.id));
       const area = parts.reduce((sum, part) => sum + part.width * part.height, 0);
-      const maxWidth = Math.max(0, ...parts.map((part) => part.width), Math.sqrt(area * aspect) * 1.6);
-      const result = []; let x = 32, y = 32, rowHeight = 0;
-      for (const part of parts) {
-        if (x > 32 && x + part.width > maxWidth + 32) { x = 32; y += rowHeight + 64; rowHeight = 0; }
-        for (const node of part.nodes) result.push({ ...node, x: node.x + x, y: node.y + y });
-        x += part.width + 64; rowHeight = Math.max(rowHeight, part.height);
+      let best = [], bestScore = Infinity;
+      // A few bounded shelf widths keep disconnected tables from adding a long,
+      // mostly empty strip below one large component. Small diagrams retain
+      // their established arrangement.
+      for (const factor of nodes.length > 100 ? [1, 1.15, 1.3, 1.6] : [1.6]) {
+        const maxWidth = Math.max(0, ...parts.map((part) => part.width), Math.sqrt(area * aspect) * factor);
+        const result = []; let x = 32, y = 32, rowHeight = 0;
+        for (const part of parts) {
+          if (x > 32 && x + part.width > maxWidth + 32) { x = 32; y += rowHeight + 64; rowHeight = 0; }
+          for (const node of part.nodes) result.push({ ...node, x: node.x + x, y: node.y + y });
+          x += part.width + 64; rowHeight = Math.max(rowHeight, part.height);
+        }
+        const value = score(result);
+        if (value < bestScore) { best = result; bestScore = value; }
       }
-      return result;
+      return best;
     }
     const horizontal = pack(false), paired = pack(true);
-    const score = (items) => { const box = bounds(items); return Math.max(box.width / aspect, box.height); };
     return score(paired) < score(horizontal) ? paired : horizontal;
   }
 
@@ -138,7 +164,14 @@
   // bounded search: an unusually dense route must never block the whole workspace.
   function createRoutingContext(nodes) {
     const obstacles = nodes.map((node) => ({ x: node.x - 10, y: node.y - 10, width: node.width + 20, height: node.height + 20 }));
-    const large = nodes.length > 100, cells = new Map(), cellSize = 512;
+    const large = nodes.length > 100, cells = new Map(), columns = new Map(), cellSize = 512;
+    let top = Infinity, bottom = -Infinity;
+    for (const node of nodes) {
+      const column = columns.get(node.x) || { right: node.x, top: node.y, bottom: node.y };
+      column.right = Math.max(column.right, node.x + node.width);
+      column.top = Math.min(column.top, node.y); column.bottom = Math.max(column.bottom, node.y + node.height);
+      columns.set(node.x, column); top = Math.min(top, node.y); bottom = Math.max(bottom, node.y + node.height);
+    }
     if (large) for (const obstacle of obstacles) {
       for (let x = Math.floor(obstacle.x / cellSize); x <= Math.floor((obstacle.x + obstacle.width) / cellSize); x++) {
         for (let y = Math.floor(obstacle.y / cellSize); y <= Math.floor((obstacle.y + obstacle.height) / cellSize); y++) {
@@ -158,7 +191,7 @@
       }
       return false;
     };
-    return { obstacles, large, blocked };
+    return { obstacles, large, blocked, columns, top, bottom };
   }
 
   // Min heap keeps A* queue operations logarithmic rather than repeatedly sorting it.
@@ -203,16 +236,35 @@
     const valid = (points) => points.slice(1).every((point, index) => !blocked(points[index], point));
     const middle = rightward || leftward ? (a.x + b.x) / 2 + lane * 12 : Math.max(a.x, b.x) + 24 + lane * 16;
     let route = [a, { x: middle, y: a.y }, { x: middle, y: b.y }, b];
-    if (source.id === target.id && a.y === b.y) route = [a, { x: middle, y: a.y }, { x: middle, y: a.y - 42 }, { x: b.x, y: a.y - 42 }, b];
+    const selfLoop = source.id === target.id && a.y === b.y;
+    if (selfLoop) route = [a, { x: middle, y: a.y }, { x: middle, y: a.y - 42 }, { x: b.x, y: a.y - 42 }, b];
     if (large && !valid(route)) {
       const above = Math.min(source.y, target.y) - 24 - lane * 12, below = Math.max(source.y + source.height, target.y + target.height) + 24 + lane * 12;
-      const alternatives = [
+      const alternatives = selfLoop ? [] : [
         [a, { x: a.x, y: b.y }, b], [a, { x: b.x, y: a.y }, b],
         [a, { x: a.x, y: above }, { x: b.x, y: above }, b],
         [a, { x: a.x, y: below }, { x: b.x, y: below }, b]
       ];
       const clear = alternatives.find(valid);
       if (clear) route = clear;
+      else if (context.columns) {
+        // Narrow cards share a column with wider cards. Escape past the widest
+        // card before moving vertically, then use a clear column/outer gutter.
+        // Every candidate is checked, so moved cards retain obstacle avoidance.
+        const sourceColumn = context.columns.get(source.x) || { right: source.x + source.width, top: source.y, bottom: source.y + source.height };
+        const targetColumn = context.columns.get(target.x) || { right: target.x + target.width, top: target.y, bottom: target.y + target.height };
+        const s = { x: sourceRight ? sourceColumn.right + 24 : source.x - 24, y: a.y };
+        const t = { x: targetRight ? targetColumn.right + 24 : target.x - 24, y: b.y };
+        const gutter = 24 + Math.min(6, Math.abs(lane) * 2);
+        const gutters = [Math.min(source.y, target.y) - gutter, Math.max(source.y + source.height, target.y + target.height) + gutter, Math.min(sourceColumn.top, targetColumn.top) - gutter, Math.max(sourceColumn.bottom, targetColumn.bottom) + gutter, context.top - gutter, context.bottom + gutter];
+        const escapes = selfLoop ? gutters.map((y) => [a, s, { x: s.x + 24, y: s.y }, { x: s.x + 24, y }, { x: s.x, y }, t, b]) : [
+          [a, s, { x: s.x, y: t.y }, t, b], [a, s, { x: t.x, y: s.y }, t, b],
+          ...gutters.map((y) => [a, s, { x: s.x, y }, { x: t.x, y }, t, b])
+        ];
+        const distance = (points) => points.slice(1).reduce((sum, point, index) => sum + Math.abs(point.x - points[index].x) + Math.abs(point.y - points[index].y), 0);
+        const escape = escapes.filter(valid).sort((left, right) => distance(left) - distance(right))[0];
+        if (escape) route = escape;
+      }
     }
     if (!valid(route)) {
       // Manhattan A* over obstacle boundaries; short routes avoid this allocation entirely.

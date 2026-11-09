@@ -80,6 +80,13 @@ canvas. Large selections use bounded routing work and update the moved card and 
 incident links during dragging, without rebuilding every card. Pan and zoom keep the
 existing diagram. Long foreign-key chains do not depend on the browser's recursion limit.
 
+**Auto layout** folds large, stretched groups into compact columns and packs disconnected
+components using the workspace's proportions. This keeps thousands of tables from forming
+long sparse strips around an empty center. Card sizes still account for visible and expanded
+fields; all selected tables remain present. Small diagrams retain their relationship layers.
+Use **Fit schema** to fit existing positions without rearranging them, or **Auto layout**
+to discard manual positions and recompute the arrangement for the current window size.
+
 In dense selections, a link can cross an unrelated card when a clear detour would be
 expensive to find. Select its source or target to highlight the relationship, or hide
 unrelated tables in the picker for a clearer diagram. Smaller selections retain full

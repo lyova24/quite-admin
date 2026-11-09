@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.13 — 2026-11-09
+
+- Compact overcrowded database-schema layers and pack disconnected components to fit the workspace proportions. Avoid long sparse rows and columns when displaying thousands of tables; preserve small diagrams, expanded-card sizes, manual positioning and every selected table.
+- Route large-diagram connections through verified column gaps before bounded obstacle search, keeping links clear of cards with different widths and heights.
+
 ## 0.8.12 — 2026-11-08
 
 - Add Home with the configured logo, title and description, pinned and recent tables, and a complete grouped table catalog that works without JavaScript and reads only authorized metadata.
