@@ -19,6 +19,8 @@ const graph = () => {
 };
 
 test('all two thousand tables render and remain movable when initial selection is unrestricted', async ({page}) => {
+  // Budget the complete interaction sequence separately from the 5s initial-render check.
+  test.setTimeout(60000);
   await page.goto('/admin/login');
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password', {exact:true}).fill('browser-test-password');

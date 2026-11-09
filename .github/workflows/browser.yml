@@ -12,10 +12,13 @@ jobs:
         include:
           - browser: chromium
             os: ubuntu-latest
+            workers: 2
           - browser: firefox
             os: ubuntu-latest
+            workers: 2
           - browser: webkit
             os: macos-latest
+            workers: 1
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -30,7 +33,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx --no-install playwright install --with-deps ${{ matrix.browser }}
-      - run: npm run browser:test -- --project=${{ matrix.browser }}
+      - run: npm run browser:test -- --project=${{ matrix.browser }} --workers=${{ matrix.workers }}
         env:
           DEBUG: pw:webserver
       - uses: actions/upload-artifact@v4
