@@ -1,5 +1,7 @@
 # quite-admin
 
+![quite-admin — Fast to set up. Simple to use.](https://raw.githubusercontent.com/lyova24/quite-admin/master/docs/assets/banner.png)
+
 [![GitHub release](https://img.shields.io/github/v/release/lyova24/quite-admin?style=for-the-badge&label=release&labelColor=202020&color=3395fd)](https://github.com/lyova24/quite-admin/releases/latest)
 [![Tests](https://img.shields.io/github/actions/workflow/status/lyova24/quite-admin/ci.yml?branch=master&event=push&style=for-the-badge&label=tests&labelColor=202020)](https://github.com/lyova24/quite-admin/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/quite-admin?style=for-the-badge&label=PyPI&labelColor=202020&color=3395fd)](https://pypi.org/project/quite-admin/)

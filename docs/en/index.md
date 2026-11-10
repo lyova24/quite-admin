@@ -1,5 +1,7 @@
 # quite-admin
 
+![quite-admin — Fast to set up. Simple to use.](../assets/banner.png)
+
 **An admin panel for your existing FastAPI or Litestar models.**
 
 Automatically discover tables and forms without writing a separate admin class
