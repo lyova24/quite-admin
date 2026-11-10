@@ -1,5 +1,61 @@
 /* Home uses authorized catalog metadata; it never requests table records. */
 (() => {
+  function initView(home, shell) {
+    const controls = home.querySelector('[data-home-view-controls]');
+    const catalog = home.querySelector('[data-home-catalog]');
+    const shortcuts = home.querySelector('[data-home-shortcuts]');
+    const buttons = [...(controls?.querySelectorAll('[data-home-view-option]') || [])];
+    if (!controls || !catalog || !shortcuts || !['cards', 'list'].every(view => buttons.some(button => button.dataset.homeViewOption === view))) return () => {};
+    const storageKey = 'quite-admin:home-view:' + JSON.stringify([shell.dataset.storageKey || '/', shell.dataset.userKey || '']);
+    let view = 'cards', snapshot = null;
+    function select(next, persist = false) {
+      next = next === 'list' ? 'list' : 'cards';
+      if (next !== view) {
+        if (next === 'list') {
+          snapshot = [catalog, ...catalog.querySelectorAll('details.home-catalog-group[data-group]')].map(details => [details, details.open]);
+          for (const [details] of snapshot) details.open = true;
+        } else {
+          for (const [details, open] of snapshot || []) details.open = open;
+          snapshot = null;
+        }
+        view = next;
+      }
+      home.dataset.homeView = view;
+      catalog.hidden = view === 'cards';
+      shortcuts.hidden = view === 'list';
+      for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.homeViewOption === view));
+      if (persist) { try { localStorage.setItem(storageKey, view); } catch { /* View switching also works without storage. */ } }
+    }
+    function click(event) {
+      const button = event.target.closest('[data-home-view-option]');
+      if (!buttons.includes(button)) return;
+      event.preventDefault();
+      select(button.dataset.homeViewOption, true);
+    }
+    function groupClick(event) {
+      const summary = event.target.closest('summary');
+      // List expansion is temporary; keep the cards catalog's saved groups intact.
+      if (view === 'list' && summary?.parentElement.matches('details.home-catalog-group[data-group]')) event.stopPropagation();
+    }
+    function storage(event) {
+      if (event.key === storageKey || event.key === null) select(event.key === null ? 'cards' : event.newValue);
+    }
+    let saved = 'cards';
+    try { saved = localStorage.getItem(storageKey); } catch { /* Default view without browser storage. */ }
+    select(saved);
+    controls.hidden = false;
+    controls.addEventListener('click', click);
+    catalog.addEventListener('click', groupClick, true);
+    window.addEventListener('storage', storage);
+    return () => {
+      controls.removeEventListener('click', click);
+      catalog.removeEventListener('click', groupClick, true);
+      window.removeEventListener('storage', storage);
+      select('cards');
+      catalog.hidden = false;
+      controls.hidden = true;
+    };
+  }
   function init(root = document) {
     const home = root.querySelector('[data-dashboard]');
     const shell = home?.closest('[data-admin-shell]');
@@ -12,6 +68,7 @@
     const recent = home.querySelector('[data-home-recent]');
     if (!pinned || !recent) return () => {};
     const search = home.querySelector('[data-table-search]');
+    const cleanupView = initView(home, shell);
     const collections = [
       {target: pinned, items: () => tables.pins(), key: 'homeUnpin', selector: '[data-home-unpin]',
         className: 'home-unpin', mark: '★', label: messages.unpin || 'Unpin table: {name}', remove: id => tables.togglePin(id),
@@ -68,6 +125,7 @@
     shell.addEventListener('quite-admin:tables-change', render);
     render();
     const cleanup = () => {
+      cleanupView();
       home.removeEventListener('click', click);
       shell.removeEventListener('quite-admin:tables-change', render);
       delete home.quiteAdminDashboardCleanup;

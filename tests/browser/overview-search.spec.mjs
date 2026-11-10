@@ -109,6 +109,8 @@ test.describe('without JavaScript', () => {
     await login(page);
     await expect(page.locator('[data-table-search]:visible')).toHaveCount(0);
     const directory = page.locator('[data-home-catalog]');
+    await expect(page.locator('[data-home-view-controls]')).toBeHidden();
+    for (const star of await directory.locator('[data-table-pin]').all()) await expect(star).toBeHidden();
     await directory.locator(':scope > summary').press('Enter');
     const group = directory.locator('[data-group="Data"]');
     await group.locator('summary').press('Enter');

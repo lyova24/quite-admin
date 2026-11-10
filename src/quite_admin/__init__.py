@@ -21,7 +21,7 @@ from .storage import (
 )
 from .theme import Theme
 
-__version__ = "0.8.14"
+__version__ = "0.8.15"
 
 __all__ = [
     "ADAPTER_API_VERSION",

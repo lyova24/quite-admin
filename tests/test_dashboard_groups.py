@@ -130,6 +130,40 @@ async def test_home_has_configured_branding_and_a_native_authorized_table_catalo
         homes = document.with_attribute("data-dashboard")
         assert len(homes) == 1
         home = homes[0]
+        assert home["attrs"]["data-home-view"] == "cards"
+        controls = document.with_attribute("data-home-view-controls")
+        assert len(controls) == 1
+        switcher = controls[0]
+        assert home in switcher["parents"]
+        assert switcher["attrs"]["role"] == "group"
+        assert "hidden" in switcher["attrs"], "The view switcher needs JavaScript to operate."
+        view_labels = (
+            ("Home view", "Cards", "Table list")
+            if language == "en"
+            else ("Вид главной", "Карточки", "Список таблиц")
+        )
+        assert switcher["attrs"]["aria-label"] == view_labels[0]
+        view_options = document.with_attribute("data-home-view-option")
+        assert len(view_options) == 2
+        for option, value, label, pressed in zip(
+            view_options, ("cards", "list"), view_labels[1:], ("true", "false"), strict=True
+        ):
+            assert switcher in option["parents"]
+            assert option["tag"] == "button" and option["attrs"]["type"] == "button"
+            assert option["attrs"]["data-home-view-option"] == value
+            assert option["attrs"]["aria-pressed"] == pressed
+            assert "".join(option["text"]).strip() == label
+        shortcuts = document.with_attribute("data-home-shortcuts")
+        assert len(shortcuts) == 1
+        shortcut_container = shortcuts[0]
+        assert home in shortcut_container["parents"]
+        assert "hidden" not in shortcut_container["attrs"]
+        assert all(
+            shortcut_container in element["parents"]
+            for element in document.elements
+            if home in element["parents"]
+            and "home-section" in element["attrs"].get("class", "").split()
+        )
         assert admin.title in [
             "".join(element["text"]).strip()
             for element in document.elements
@@ -157,8 +191,24 @@ async def test_home_has_configured_branding_and_a_native_authorized_table_catalo
         assert "Service &lt;description&gt;" in response.text
         assert_fixed_rail(document)
         native, links = home_catalog(document)
+        assert shortcut_container not in native["parents"]
         assert [link["attrs"]["href"] for link in links] == ["/tools/admin/models/inventory/"]
         assert options.label in "".join(links[0]["text"])
+        catalog_pins = [
+            element
+            for element in document.with_attribute("data-table-pin")
+            if native in element["parents"]
+        ]
+        assert len(catalog_pins) == 1
+        pin = catalog_pins[0]
+        assert pin["tag"] == "button" and pin["attrs"]["type"] == "button"
+        assert pin["attrs"]["data-table-pin"] == "inventory"
+        assert "hidden" in pin["attrs"]
+        assert links[0] not in pin["parents"], "Pinning must not activate the table link."
+        assert any(
+            native in element["parents"] and element["attrs"].get("role") == "status"
+            for element in document.with_attribute("data-table-pin-notice")
+        )
         assert (group or admin.gettext("Other collections")) in "".join(native["text"])
         assert any(
             element["tag"] == "details" and native in element["parents"]
@@ -348,6 +398,11 @@ async def test_large_home_renders_native_authorized_catalog_without_record_queri
         assert "table_1993" not in response.text
         native, links = home_catalog(document)
         assert len(links) == 1993
+        assert {
+            element["attrs"]["data-table-pin"]
+            for element in document.with_attribute("data-table-pin")
+            if native in element["parents"]
+        } == {table["id"] for table in tables}
         assert {link["attrs"]["href"] for link in links} == {table["url"] for table in tables}
         assert (
             sum(

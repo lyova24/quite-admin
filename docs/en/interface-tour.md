@@ -14,29 +14,41 @@ Custom logos use the same alignment.
 
 [![Sign-in card with the logo beside the title](../assets/screenshots/login.png)](../assets/screenshots/login.png)
 
-**Home** shows the configured admin logo, title and description. It also brings together
-pinned and recently opened tables, plus shortcuts to the schema, activity history and
-custom pages. Opening Home uses authorized metadata without scanning table records.
+**Home** shows the configured admin logo, title and description. The **Cards** view is
+selected by default: it brings together pinned and recently opened tables, plus shortcuts
+to the schema, activity history and custom pages. The full table catalog is available
+in **Table list**, keeping Cards focused on shortcuts. Opening Home uses authorized
+metadata without scanning table records or querying record counts.
 
-Home cards use three equal-width columns on desktop. One or two cards keep the
+In this view, cards use three equal-width columns on desktop. One or two cards keep the
 same width instead of filling the row. Tablet screens use two columns and narrow
 screens use one.
+
+Choose **Table list** in the Home view switcher to browse all permitted tables in one
+compact list organized by group, similar to Django admin. Groups start expanded and
+can be collapsed individually; each table link shows its label and technical name.
+The browser remembers the selected view separately for your user and admin mount.
+Switching between views leaves pinned and recent tables unchanged.
+
+[![Home with the grouped Table list view](../assets/screenshots/home-table-list.png)](../assets/screenshots/home-table-list.png)
 
 Choose **Find a table** or press **Ctrl/⌘ K** on any authenticated page. The search
 opens with its input focused and matches table labels, technical names and groups.
 Use arrows and Enter to open a result; Escape closes search and returns focus.
-The SVG star beside each search result or beside a table's record-list heading
-adds it to the pinned tables on Home. Its filled state stays synchronized between
-search, the record list and Home; select it again to unpin. Up to 12 pinned and 8 recent table identifiers are
-stored per user and admin mount in this browser; permissions are checked again
-on every page. Search terms and record data are not stored.
+Stars in **Table list**, search results, record-list headings and pinned Home
+cards share the same pinned-table state. Select an unfilled star to pin a table on
+Home, or a filled star to unpin it. The star does not open the table. Up to 12 pinned
+and 8 recent table identifiers are stored per user and admin mount in this browser;
+permissions are checked again on every page. Search terms and record data are not stored.
 
 Use the × button on a recently opened table to remove it from that list. This
 leaves its pinned state unchanged. Opening the table again adds it back to recent tables.
 
-If you cannot remember a name, expand **All tables** on Home and browse the full
-catalog by group. Each link shows its label and technical name. This catalog also
-works with native keyboard navigation and without JavaScript.
+If you cannot remember a name, choose **Table list** and browse the full catalog by
+group. The catalog works with native keyboard navigation. Without JavaScript, the
+view switcher and catalog stars stay hidden, and the native **All tables** dropdown
+remains available on Home. If browser storage is unavailable, switching views still
+works for the current page.
 
 The left navigation is a permanent **3.5 rem icon rail** for Home, Database schema,
 Activity history and custom pages. It has no expandable table panel or resize handle.
@@ -104,8 +116,8 @@ directory; SQLite/PostgreSQL/MySQL storage is configurable.
 
 ## Navigate and export
 
-On Home, expand **All tables**, then a group to browse its tables. Explicit group
-choices are remembered for your user and admin mount in this browser. **Orders** illustrates cursor-style paging; its
+On Home, choose **Table list** and select a table from its group. Collapse groups you
+do not need to keep the list compact. **Orders** illustrates cursor-style paging; its
 real ASGI counterpart uses database keysets and signed cursors without exact counts.
 
 In **Products**, apply a filter, open **Export data**, select columns and download CSV.

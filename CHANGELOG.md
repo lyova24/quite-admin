@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.15 — 2026-11-10
+
+- Add a Home view switcher while keeping Cards as the default. Table list displays every permitted table in a compact grouped catalog with groups initially expanded; keep the full catalog out of Cards and retain the native All tables dropdown without JavaScript. Read only authorized metadata, without querying records or counts.
+- Remember the selected Home view per user and admin mount in this browser. Preserve pinned and recent tables when switching views; keep switching available on the current page when browser storage is unavailable.
+- Add pin/unpin stars beside Table list links, synchronized with search, record-list headings and Home cards through the existing browser storage and twelve-pin limit. Keep catalog stars hidden without JavaScript and preserve table permissions.
+
 ## 0.8.14 — 2026-11-10
 
 - Keep Home shortcuts in three equal-width desktop columns, including rows with only one or two cards. Share the grid across pinned tables, recently opened tables, workspace tools and custom pages; use two columns on tablets and one on narrow screens.

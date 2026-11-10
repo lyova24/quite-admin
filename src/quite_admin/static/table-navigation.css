@@ -12,6 +12,8 @@
 .home-catalog .home-catalog-group > summary { padding: var(--space-3) 0; color: var(--text); font-size: var(--text-sm); }
 .home-catalog .home-catalog-group > summary:hover { color: var(--accent); }
 .table-catalog-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); align-items: start; gap: var(--space-2) var(--space-4); min-width: 0; padding-bottom: var(--space-3); }
+.table-catalog-row { display: flex; align-items: center; min-width: 0; }
+.table-catalog-row > .table-catalog-link { flex: 1; }
 .table-catalog-link, .table-search-result > a { display: flex; flex-direction: column; gap: .125rem; min-width: 0; border-radius: var(--radius-control); }
 .table-catalog-link { padding: var(--space-2) var(--space-3); }
 .table-catalog-link:hover { background: var(--hover); color: var(--accent); }
