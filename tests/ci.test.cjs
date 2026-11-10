@@ -21,9 +21,10 @@ const successfulRun = {
 const ready = {name: 'CI ready', status: 'completed', conclusion: 'success'};
 const releaseReady = {name: 'Release ready', status: 'completed', conclusion: 'success'};
 const docs = {name: 'quite-admin-docs', expired: false};
+const distributions = {name: 'quite-admin-distributions', expired: false};
 const workflow = name => yaml.load(readFileSync(path.join(root, '.github/workflows', name), 'utf8'));
 
-function client({runs = [successfulRun], jobs = [ready, releaseReady], artifacts = [docs]} = {}) {
+function client({runs = [successfulRun], jobs = [ready, releaseReady], artifacts = [docs, distributions]} = {}) {
   const calls = [];
   const github = {
     rest: {actions: {
@@ -55,9 +56,9 @@ function client({runs = [successfulRun], jobs = [ready, releaseReady], artifacts
   return {github, calls};
 }
 
-test('the release accepts the exact master commit and uses documentation from that CI run', async () => {
+test('the release accepts the exact master commit and uses both artifacts from that CI run', async () => {
   const {github, calls} = client();
-  assert.equal(await checkCI({github, context, sha, docs: true}), successfulRun.id);
+  assert.equal(await checkCI({github, context, sha, docs: true, distributions: true}), successfulRun.id);
   assert.deepEqual(calls, ['runs', 'runs', 'jobs', 'artifacts']);
 });
 
@@ -107,17 +108,44 @@ test('a green workflow with no successful aggregate validation gate is rejected'
   }
 });
 
-test('missing or expired documentation blocks the release before any publishing job', async () => {
-  for (const artifacts of [[], [{...docs, expired: true}], [{name: 'unrelated', expired: false}]]) {
-    const {github} = client({artifacts});
-    await assert.rejects(checkCI({github, context, sha, docs: true}), /quite-admin-docs artifact/);
+test('missing or expired required artifacts block publication independently and together', async () => {
+  for (const options of [{docs: true}, {distributions: true}, {docs: true, distributions: true}]) {
+    const required = [options.docs && docs, options.distributions && distributions].filter(Boolean);
+    for (const artifact of required) {
+      for (const artifacts of [
+        [docs, distributions].filter(item => item !== artifact),
+        [docs, distributions].map(item => item === artifact ? {...item, expired: true} : item),
+      ]) {
+        const {github} = client({artifacts});
+        await assert.rejects(checkCI({github, context, sha, ...options}), new RegExp(artifact.name + ' artifact'));
+      }
+    }
+    for (const artifacts of [[], [{name: 'unrelated', expired: false}]]) {
+      const {github} = client({artifacts});
+      await assert.rejects(checkCI({github, context, sha, ...options}), new RegExp(required[0].name + ' artifact'));
+    }
   }
 });
 
-test('a PyPI retry validates CI without requiring an old documentation artifact', async () => {
-  const {github, calls} = client({artifacts: []});
-  assert.equal(await checkCI({github, context, sha}), successfulRun.id);
-  assert.deepEqual(calls, ['runs', 'runs', 'jobs']);
+test('a PyPI retry requires CI distributions without requiring an old documentation artifact', async () => {
+  const {github, calls} = client({artifacts: [distributions]});
+  assert.equal(await checkCI({github, context, sha, distributions: true}), successfulRun.id);
+  assert.deepEqual(calls, ['runs', 'runs', 'jobs', 'artifacts']);
+  await assert.rejects(checkCI({github: client({artifacts: [docs]}).github, context, sha, distributions: true}),
+    /quite-admin-distributions artifact/);
+});
+
+test('required artifacts cannot fall back to an older successful CI run', async () => {
+  for (const options of [{docs: true}, {distributions: true}, {docs: true, distributions: true}]) {
+    const {github} = client({runs: [{...successfulRun, id: 43}, successfulRun]});
+    const attempts = [];
+    github.rest.actions.listWorkflowRunArtifacts = async ({run_id}) => {
+      attempts.push(run_id);
+      return run_id === 43 ? [] : [docs, distributions];
+    };
+    await assert.rejects(checkCI({github, context, sha, ...options}), /has no available .* artifact/);
+    assert.deepEqual(attempts, [43]);
+  }
 });
 
 test('GitHub API errors fail closed', async () => {
@@ -134,13 +162,22 @@ test('release, Pages and PyPI workflow scripts execute the shared gate before pu
   const oldSha = process.env.RELEASE_SHA;
   process.env.RELEASE_SHA = sha;
   try {
-    for (const steps of [release.jobs.metadata.steps, pages.jobs.verify.steps, pypi.jobs.build.steps]) {
+    for (const [steps, required] of [
+      [release.jobs.metadata.steps, [docs, distributions]],
+      [pages.jobs.verify.steps, [docs]],
+      [pypi.jobs.build.steps, [distributions]],
+    ]) {
       const step = steps.find(step => step.with?.script?.includes('check-ci.cjs'));
       assert.ok(step, 'Publication must use the CI gate');
       const execute = new AsyncFunction('require', 'github', 'context', step.with.script);
       const requireFromRoot = createRequire(path.join(root, 'package.json'));
       await execute(requireFromRoot, client().github, context);
       await assert.rejects(execute(requireFromRoot, client({runs: []}).github, context), /master CI run/);
+      for (const artifact of required) {
+        const without = [docs, distributions].filter(item => item !== artifact);
+        await assert.rejects(execute(requireFromRoot, client({artifacts: without}).github, context),
+          new RegExp(artifact.name + ' artifact'));
+      }
     }
   } finally {
     if (oldSha === undefined) delete process.env.RELEASE_SHA;
@@ -151,9 +188,44 @@ test('release, Pages and PyPI workflow scripts execute the shared gate before pu
   assert.equal(release.jobs.publish.steps[0].with.ref, '${{ needs.metadata.outputs.sha }}');
   assert.ok(!Object.values(release.jobs).some(job => job.uses?.endsWith('/ci.yml')));
   const buildSteps = pypi.jobs.build.steps;
-  assert.ok(buildSteps.findIndex(step => step.with?.script?.includes('check-ci.cjs')) <
-    buildSteps.findIndex(step => step.run === 'uv build'));
+  const gate = buildSteps.findIndex(step => step.with?.script?.includes('check-ci.cjs'));
+  const downloadIndex = buildSteps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.ok(gate >= 0 && downloadIndex > gate, 'Validate CI before downloading its distributions');
+  assert.equal(buildSteps[gate].id, 'ci');
+  assert.match(buildSteps[gate].with.script, /return await check\(/);
+  const download = buildSteps[downloadIndex];
+  assert.equal(download.with.name, 'quite-admin-distributions');
+  assert.equal(download.with['run-id'], '${{ steps.ci.outputs.result }}');
+  assert.equal(download.with.path, 'dist');
+  assert.ok(download.with['github-token']);
+  const uploadIndex = buildSteps.findIndex(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.ok(uploadIndex > downloadIndex);
+  assert.equal(buildSteps[uploadIndex].with.name, 'pypi-distributions');
   assert.deepEqual(pypi.jobs.publish.needs, 'build');
+  for (const publication of [release, pages, pypi]) {
+    for (const job of Object.values(publication.jobs)) {
+      assert.ok(!job.uses?.endsWith('/distributions.yml'), 'Publication reuses existing CI distributions');
+      assert.ok(!(job.steps || []).some(step => /\buv build\b/.test(step.run || '')),
+        'Publication must not rebuild CI artifacts');
+    }
+  }
+});
+
+test('full CI builds one wheel and sdist pair, verifies clean installations and uploads both', () => {
+  const distributionsWorkflow = workflow('distributions.yml');
+  assert.ok(distributionsWorkflow.on.includes('workflow_call'));
+  const steps = distributionsWorkflow.jobs.distributions.steps;
+  const builds = steps.filter(step => step.run === 'uv build');
+  assert.equal(builds.length, 1);
+  const checkIndex = steps.findIndex(step => step.run?.includes('scripts/check_distributions.py'));
+  assert.ok(checkIndex > steps.indexOf(builds[0]));
+  assert.match(steps[checkIndex].run, /twine check --strict dist\/\*/);
+  assert.match(steps[checkIndex].run, /uv run --no-project python scripts\/check_distributions\.py/);
+  const uploadIndex = steps.findIndex(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.ok(uploadIndex > checkIndex);
+  assert.equal(steps[uploadIndex].with.name, 'quite-admin-distributions');
+  assert.deepEqual(steps[uploadIndex].with.path.trim().split('\n'), ['dist/*.whl', 'dist/*.tar.gz']);
+  assert.equal(steps[uploadIndex].with['if-no-files-found'], 'error');
 });
 
 test('Pages deploys the selected CI artifact without rebuilding or testing it', () => {
@@ -172,7 +244,7 @@ test('Pages deploys the selected CI artifact without rebuilding or testing it', 
   assert.deepEqual(pages.jobs.deploy.needs, 'prepare');
 
   const ci = workflow('ci.yml');
-  assert.deepEqual(ci.on.push.branches, ['master']);
+  assert.deepEqual(ci.on.push.branches, ['**']);
   assert.ok(!('workflow_call' in ci.on));
   const artifact = workflow('docs.yml').jobs.docs.steps
     .find(step => step.uses?.startsWith('actions/upload-artifact@'));
@@ -259,6 +331,7 @@ function results(plan) {
       plan: JSON.stringify(plan), full: String(Object.values(plan).every(Boolean)),
     }},
     metadata: {result: 'success'},
+    distributions: {result: Object.values(plan).every(Boolean) ? 'success' : 'skipped'},
     ...Object.fromEntries(groups.map(group => [group, {result: plan[group] ? 'success' : 'skipped'}])),
   };
 }
@@ -274,6 +347,22 @@ test('CI ready accepts planned skips but rejects selected skipped, failed or can
       }
     }
   }
+});
+
+test('CI ready requires verified distributions for full CI and a planned skip for selective PRs', () => {
+  for (const [plan, invalid] of [
+    [selectJobs([], {full: true}), ['skipped', 'failure', 'cancelled', undefined]],
+    [selectJobs(['README.md']), ['success', 'failure', 'cancelled', undefined]],
+  ]) {
+    for (const result of invalid) {
+      const needs = results(plan);
+      needs.distributions.result = result;
+      assert.throws(() => validateResults(needs), /Required checks.*distributions/);
+    }
+  }
+  const missing = results(selectJobs([], {full: true}));
+  delete missing.distributions;
+  assert.throws(() => validateResults(missing), /Required checks.*distributions/);
 });
 
 test('selection, metadata failures and incomplete/inconsistent plans fail closed', () => {
@@ -296,19 +385,72 @@ test('selection, metadata failures and incomplete/inconsistent plans fail closed
   assert.throws(() => validateResults(unexpected), /Required checks/);
 });
 
-test('manual runs, new branches and missing/invalid diff bases request full validation', () => {
+test('every branch push, manual or unknown event requests full validation without reading Git', () => {
   const unexpectedGit = () => { throw new Error('Git should not be called'); };
   for (const [event, data] of [
     ['workflow_dispatch', {}], ['schedule', {}], ['push', {}],
+    ['push', {ref: 'refs/heads/master', before: sha, after: 'b'.repeat(40)}],
+    ['push', {ref: 'refs/heads/feature/nested', before: sha, after: 'b'.repeat(40)}],
     ['push', {before: '0'.repeat(40), after: sha}],
-    ['push', {before: '--invalid', after: sha}], ['pull_request', {}],
-  ]) assert.equal(changedPaths(event, data, unexpectedGit), null);
-  assert.equal(changedPaths('push', {before: sha, after: sha}, () => {
-    throw new Error('Missing old commit after force push');
-  }), null);
+    ['push', {before: '--invalid', after: sha}],
+  ]) {
+    let reads = 0;
+    const paths = changedPaths(event, data, () => { reads++; return unexpectedGit(); });
+    assert.equal(reads, 0, event);
+    assert.equal(paths, null, event);
+    assert.ok(Object.values(selectJobs(paths || [], {full: paths === null})).every(Boolean), event);
+  }
 });
 
-test('real Git diffs cover multi-commit pushes, deletions, both rename paths and PR merge bases', () => {
+test('invalid or unavailable PR diffs fail safe to full validation', () => {
+  for (const data of [
+    {}, {pull_request: {base: {sha: '0'.repeat(40)}, head: {sha}}},
+    {pull_request: {base: {sha: '--invalid'}, head: {sha}}},
+  ]) {
+    let reads = 0;
+    assert.equal(changedPaths('pull_request', data, () => { reads++; return Buffer.from('README.md\0'); }), null);
+    assert.equal(reads, 0);
+  }
+  let reads = 0;
+  assert.equal(changedPaths('pull_request', {pull_request: {base: {sha}, head: {sha}}}, () => {
+    reads++;
+    throw new Error('Missing PR merge base');
+  }), null);
+  assert.equal(reads, 1);
+});
+
+test('selector CLI emits a full plan and both audits for branch pushes, manual runs and unknown events', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'quite-admin-ci-events-'));
+  try {
+    for (const [index, [name, data]] of [
+      ['push', {ref: 'refs/heads/master', before: sha, after: 'b'.repeat(40)}],
+      ['push', {ref: 'refs/heads/feature/nested', before: sha, after: 'b'.repeat(40)}],
+      ['push', {ref: 'refs/heads/new-branch', before: '0'.repeat(40), after: sha}],
+      ['workflow_dispatch', {}], ['schedule', {}], ['pull_request', {}],
+    ].entries()) {
+      const event = path.join(directory, `event-${index}.json`);
+      const output = path.join(directory, `output-${index}`);
+      const summary = path.join(directory, `summary-${index}`);
+      writeFileSync(event, JSON.stringify(data));
+      execFileSync(process.execPath, [path.join(root, 'scripts/select-ci.cjs')], {
+        cwd: directory, env: {...process.env, GITHUB_EVENT_NAME: name,
+          GITHUB_EVENT_PATH: event, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary},
+      });
+      const outputs = Object.fromEntries(readFileSync(output, 'utf8').trim().split('\n').map(line => {
+        const index = line.indexOf('=');
+        return [line.slice(0, index), line.slice(index + 1)];
+      }));
+      assert.equal(outputs.full, 'true', name);
+      assert.deepEqual(JSON.parse(outputs.plan), selectJobs([], {full: true}), name);
+      for (const group of [...groups, ...audits]) assert.equal(outputs[group], 'true', `${name}: ${group}`);
+      assert.match(readFileSync(summary, 'utf8'), /Full validation/);
+    }
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
+});
+
+test('real PR diffs remain selective across multiple commits, deletions, renames and merge bases', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'quite-admin-ci-'));
   const git = args => execFileSync('git', ['-C', directory,
     '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false',
@@ -327,7 +469,7 @@ test('real Git diffs cover multi-commit pushes, deletions, both rename paths and
     renameSync(path.join(directory, 'old-name.md'), path.join(directory, 'new name\nwith newline.py'));
     rmSync(path.join(directory, 'removed.py'));
     const head = commit();
-    const paths = changedPaths('push', {before: base, after: head}, git);
+    const paths = changedPaths('pull_request', {pull_request: {base: {sha: base}, head: {sha: head}}}, git);
     assert.deepEqual(paths.sort(), ['guide.md', 'old-name.md', 'removed.py', 'new name\nwith newline.py'].sort());
 
     git(['checkout', '-qb', 'feature', base]);
@@ -373,10 +515,16 @@ test('workflow routing matches the selection plan and release gate waits for all
   assert.equal(ci.jobs.changes.steps[0].with['fetch-depth'], 0);
   assert.equal(ci.jobs.ready.if, 'always()');
   assert.equal(ci.jobs.ready.steps.at(-1).run, 'node scripts/ci-ready.cjs');
+  assert.ok(ci.jobs.ready.needs.includes('distributions'));
+  assert.equal(ci.jobs.distributions.needs, 'changes');
+  assert.equal(ci.jobs.distributions.if, "needs.changes.outputs.full == 'true'");
+  assert.equal(ci.jobs.distributions.uses, './.github/workflows/distributions.yml');
   assert.equal(ci.jobs['release-ready'].name, 'Release ready');
   assert.deepEqual(ci.jobs['release-ready'].needs, ['changes', 'ready']);
   assert.match(ci.jobs['release-ready'].if, /always\(\).*outputs.full == 'true'.*ready.result == 'success'/);
   assert.ok(!('paths' in ci.on.push) && !('paths-ignore' in ci.on.push));
+  assert.ok(!('tags' in ci.on.push) && !('tags-ignore' in ci.on.push));
+  assert.deepEqual(workflow('release.yml').on.push.tags, ['v*']);
   assert.ok(ci.jobs.metadata.steps.some(step => step.run === 'python scripts/check_release.py'));
   assert.ok(workflow('javascript.yml').jobs.javascript.steps.some(step => step.run === 'node --test tests/ci.test.cjs'));
   assert.ok(workflow('docs.yml').jobs.docs.steps.some(step => step.run === 'npm run demo:build'));

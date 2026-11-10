@@ -23,8 +23,9 @@ GINO checks run separately with `--profile gino`. Version updates do not publish
 
 The supported range is **CPython 3.11–3.15**.
 CI runs the complete SQLite test suite for each version, without `continue-on-error`.
-Automatic CI selects checks affected by changed files; manual CI always runs the full
-suite. See [CI selection and release gates](releases.md#required-checks-and-artifacts).
+Every branch push runs the full CI suite, both dependency audits, the documentation
+build and distribution checks. Pull requests select checks affected by changed files;
+an optional manual CI run is also full. See [CI selection and release gates](releases.md#required-checks-and-artifacts).
 Python 3.14.7 and 3.15.2 have also been verified locally.
 Free-threaded builds and alternative Python implementations do not have a separate test matrix.
 
@@ -104,7 +105,8 @@ schema layout, junction expansion and form control precision.
 
 After a successful release, the separate `pages` workflow publishes the `quite-admin-docs`
 artifact from successful master CI for the exact tagged commit. It does not rebuild
-documentation or rerun demo tests; ordinary master pushes only build and validate the site.
+documentation or rerun demo tests. Branch pushes build and validate the site as part
+of full CI; deployment follows a successful release.
 The `workflow_run` trigger keeps deployment on the default branch, compatible with the
 `github-pages` environment's `master` restriction, while the artifact comes from the release SHA.
 In repository Settings → Pages, select **GitHub Actions** as the source.
@@ -125,10 +127,13 @@ Install the pinned browsers first with `npx playwright install --with-deps`.
 The fixture uses only fictional data in a temporary SQLite database. Browser jobs run
 Chromium, Firefox and WebKit in CI and retain failure screenshots/traces.
 
-Python matrix jobs test the source checkout without building distributions.
-The dedicated `pypi.yml` workflow builds one wheel/sdist pair after a validated GitHub
-release, checks Twine and installs both into clean environments. For local packaging
-checks, run `uv build`, then `uvx --from 'twine>=6,<7' twine check --strict dist/*` and
+Python matrix jobs test the source checkout without building distributions. A dedicated
+full-CI job builds one universal wheel/sdist pair, runs strict Twine checks and installs
+both into clean environments to verify packaged resources and FastAPI/Litestar mounting.
+It uploads the verified pair as `quite-admin-distributions`. After a validated GitHub
+release, `pypi.yml` downloads those exact files from CI and passes them to its isolated
+upload job without rebuilding them. For local packaging checks, run `uv build`, then
+`uvx --from 'twine>=6,<7' twine check --strict dist/*` and
 `uv run python scripts/check_distributions.py`. Package metadata must remain 2.4.
 GitHub release downloads remain source-code archives; see [publishing](releases.md).
 

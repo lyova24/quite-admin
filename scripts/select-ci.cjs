@@ -49,13 +49,14 @@ function selectJobs(paths, {full = false} = {}) {
 }
 
 function changedPaths(eventName, event, git = args => execFileSync('git', args, {maxBuffer: 16 * 1024 * 1024})) {
-  if (eventName === 'workflow_dispatch') return null;
-  const base = eventName === 'pull_request' ? event.pull_request?.base?.sha : event.before;
-  const head = eventName === 'pull_request' ? event.pull_request?.head?.sha : event.after;
+  // Branch pushes and manual runs always validate everything; only PRs select by diff.
+  if (eventName !== 'pull_request') return null;
+  const base = event.pull_request?.base?.sha;
+  const head = event.pull_request?.head?.sha;
   const valid = sha => /^[a-f0-9]{40,64}$/.test(sha || '') && !/^0+$/.test(sha);
-  if (!['push', 'pull_request'].includes(eventName) || !valid(base) || !valid(head)) return null;
+  if (!valid(base) || !valid(head)) return null;
   try {
-    const range = `${base}${eventName === 'pull_request' ? '...' : '..'}${head}`;
+    const range = `${base}...${head}`;
     // Disabling rename detection includes both the old and new path, including deletions.
     return git(['diff', '--name-only', '--no-renames', '-z', range, '--']).toString('utf8').split('\0').filter(Boolean);
   } catch {
@@ -72,7 +73,7 @@ if (require.main === module) {
   appendFileSync(process.env.GITHUB_OUTPUT,
     Object.entries({...plan, full, plan: JSON.stringify(plan)}).map(([key, value]) => `${key}=${value}\n`).join(''));
   appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `## CI selection\n\n${paths === null ? 'Full validation (manual run or unavailable diff).' : `${paths.length} changed paths.`}\n\n` +
+    `## CI selection\n\n${paths === null ? 'Full validation (only pull requests select checks by changed paths).' : `${paths.length} changed paths.`}\n\n` +
     '| Check | Selected |\n| --- | --- |\n' +
     Object.entries(plan).map(([name, selected]) => `| ${name} | ${selected ? 'yes' : 'no'} |\n`).join(''));
 }

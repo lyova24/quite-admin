@@ -1,7 +1,7 @@
 name: ci
 on:
   push:
-    branches: [master]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -70,10 +70,15 @@ jobs:
       python-audit: ${{ needs.changes.outputs.python-audit == 'true' }}
       node-audit: ${{ needs.changes.outputs.node-audit == 'true' }}
 
+  distributions:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
+    uses: ./.github/workflows/distributions.yml
+
   ready:
     name: CI ready
     if: always()
-    needs: [changes, metadata, tests, docs, javascript, browser, databases, compatibility, security]
+    needs: [changes, metadata, tests, docs, javascript, browser, databases, compatibility, security, distributions]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,4 +93,4 @@ jobs:
     if: always() && needs.changes.outputs.full == 'true' && needs.ready.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'All validation groups passed for this commit; release documentation is built.'
+      - run: echo 'All validation groups passed for this commit; release artifacts are built and verified.'

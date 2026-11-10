@@ -11,6 +11,9 @@ module.exports = function validateResults(needs) {
     throw new Error('Invalid CI selection plan.');
   }
   const failures = groups.filter(group => needs[group]?.result !== (plan[group] ? 'success' : 'skipped'));
+  if (needs.distributions?.result !== (needs.changes.outputs.full === 'true' ? 'success' : 'skipped')) {
+    failures.push('distributions');
+  }
   if (failures.length) throw new Error('Required checks did not pass as planned: ' + failures.join(', '));
 };
 

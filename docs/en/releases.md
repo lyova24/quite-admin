@@ -23,43 +23,50 @@ the documented tested matrix; dependency ranges are not proof of every combinati
 ## Release flow
 
 1. Finalize the version, changelog date and migration notes.
-2. Push the commit to `master` and wait for `ci.yml`. Automatic runs select checks
-   affected by the changed files. Before tagging, require **Release ready**: if it was
-   skipped, run **Actions → ci → Run workflow → master** (or
-   `gh workflow run ci.yml --ref master`) and wait for the full run on this exact commit.
+2. Push the commit to `master` and wait for its automatic full `ci.yml` run, including
+   **CI ready** and **Release ready**. Every branch push runs all validation groups,
+   both dependency audits, the documentation build and distribution checks.
 3. Run `python scripts/check_release.py --tag v<project.version>`.
 4. Push the version tag when authorized. `release.yml` requires successful full master CI
-   and its documentation artifact for that exact commit, then publishes the GitHub
-   release with the matching changelog and marks it Latest.
+   and its documentation and distribution artifacts for that exact commit, then publishes
+   the GitHub release with the matching changelog and marks it Latest.
 5. After that workflow succeeds, `pages.yml` deploys the existing CI documentation
-   artifact. In parallel, `pypi.yml` builds **one universal wheel and one sdist** on
-   Python 3.12, checks both with Twine and installs each into a clean environment.
+   artifact. In parallel, `pypi.yml` downloads the verified **one universal wheel and
+   one sdist** from the same full CI run, without rebuilding them.
 6. A separate job uploads the verified files to PyPI through Trusted Publishing; a final
    job installs the exact version from the public index and checks packaged resources.
 
-Releases never rerun the test matrix. The latest `ci.yml` run for the tagged SHA from
+Releases reuse CI artifacts without rerunning the test matrix or rebuilding packages.
+The latest `ci.yml` run for the tagged SHA from
 a push to `master` or a manual run on `master` must finish successfully, including
-**CI ready** and **Release ready**. A selective green run allows a merge but does not
-authorize publication. An older green run cannot hide a newer failed, cancelled,
-unfinished or selective run. PR runs and runs from other branches cannot authorize
-releases. Do the full run before tagging, while `master` still points to the release
-commit; any subsequent commit needs its own validation.
+**CI ready** and **Release ready**. PR checks remain selective for merges; publication
+requires the full result from `master`. An older green run cannot hide a newer failed,
+cancelled or unfinished run. PR runs and runs from other branches cannot authorize
+releases. Wait for the automatic full run before tagging, while `master` still points
+to the release commit; any subsequent commit needs its own validation. Manual full CI
+remains available for retries and is optional in the normal release flow.
 
-Missing or expired documentation artifacts also block the release; rerun the full CI
-to rebuild them. Pages publishes the tagged version even if `master` has advanced,
-using the documentation artifact from the same full run without rebuilding it or
-repeating demo tests. PyPI checks the same full-validation gate on automatic and manual
-uploads, without requiring the documentation artifact again.
+Missing or expired `quite-admin-docs` or `quite-admin-distributions` artifacts block
+the release. Retry the existing CI run for the release commit to regenerate them, or
+start full CI on `master` while it still points to that SHA. Pages publishes the tagged
+version even if `master` has advanced, using the documentation artifact from the same
+full run without rebuilding it or repeating demo tests. PyPI checks the same
+full-validation gate and distribution artifact on automatic and manual uploads,
+without requiring the documentation artifact again.
 
 Creating a release in GitHub's interface uses the same existing-CI gate before Pages
 and PyPI publication. The package workflow checks out the validated commit by SHA,
-checks master CI again for automatic and manual uploads, and verifies that the published
-version tag still points to that exact commit.
+checks master CI and its distribution artifact again for automatic and manual uploads,
+and verifies that the published version tag still points to that exact commit. It
+downloads `quite-admin-distributions` from that CI run and passes the same files as
+`pypi-distributions` to the isolated Trusted Publishing job.
 
 GitHub release downloads remain the automatic source-code ZIP/tar.gz archives.
-Wheel/sdist files go to PyPI, not GitHub release assets. Python test matrix jobs do not
-build packages. Both distributions explicitly use core metadata **2.4**; checks reject
-a different metadata version.
+Wheel/sdist files go to PyPI, not GitHub release assets. A dedicated full-CI job builds
+one pair, runs strict Twine checks and checks clean installations, packaged resources
+and FastAPI/Litestar mounting with `scripts/check_distributions.py`. Python test matrix
+jobs do not build packages. Both distributions explicitly use core metadata **2.4**;
+checks reject a different metadata version.
 
 ## One-time PyPI setup
 
@@ -86,8 +93,8 @@ The PyPI workflow is top-level rather than reusable, so the publisher always mat
 the tag still points to the validated source commit and the GitHub release is published.
 For a retry, run **publish to PyPI** manually from `master`, entering the existing tag,
 `v<project.version>`. Manual runs use the same latest-master-CI gate for the source
-commit. They do not need the documentation artifact again. Existing package files are
-skipped on retry; PyPI versions cannot
+commit and require its distribution artifact; they do not need the documentation
+artifact again. Existing package files are skipped on retry; PyPI versions cannot
 be overwritten. Never move a published tag to change an uploaded package.
 
 ## Install with a package manager
@@ -104,9 +111,10 @@ Installation from an unpacked source archive remains available.
 
 ## Dependency security
 
-`security.yml` runs Python `pip-audit` and documentation `npm audit` on master pushes, PRs,
-manual runs and weekly. Python checks cover all locked extras/dev groups; npm reports
-all severities and fails on high/critical findings. Public PRs also use
+`security.yml` runs Python `pip-audit` and documentation `npm audit` after every branch
+push, on full manual runs and weekly. PRs select audits for the affected dependency
+ecosystems. Python checks cover all locked extras/dev groups; npm reports all severities
+and fails on high/critical findings. Public PRs that select security checks also use
 [GitHub Dependency Review](https://github.com/actions/dependency-review-action).
 Network/advisory service errors fail checks. No blanket advisory ignores are configured.
 See `SECURITY.md` for private reporting and the early-release maintenance policy.
@@ -117,12 +125,14 @@ Strict EN/RU builds and fresh security audits validate that environment.
 
 ## Required checks and artifacts
 
-`ci.yml` first selects checks from the Git diff, then calls the reusable Python,
-documentation, JavaScript, browser, database, dependency-compatibility and security
-workflows. Every run checks release metadata without installing dependencies. Selection
-is reported in the run summary.
+`ci.yml` runs the complete Python, documentation, JavaScript, browser, database,
+dependency-compatibility, security and distribution workflows on every push to any
+branch. Optional manual runs also include all groups. Version-tag pushes use the publication workflows
+and do not duplicate CI. Every CI run checks release metadata without installing
+dependencies. For pull requests, checks are selected from the Git diff and reported
+in the run summary:
 
-| Changed files | Selected checks |
+| Changed files in a PR | Selected checks |
 | --- | --- |
 | Documentation, README, changelog or documentation build scripts | Strict EN/RU documentation and demo build |
 | Python sources, examples or demo export script | Python/lint/API checks, databases, compatibility, JavaScript, browsers and docs/demo |
@@ -134,11 +144,11 @@ is reported in the run summary.
 | `package.json` or `package-lock.json` | Documentation, JavaScript, browsers and the npm audit |
 | CI workflows, CI guard scripts/tests or unknown paths | Full validation |
 
-Mixed changes select the union of their checks. PRs compare the head to its merge base
-with the target branch; pushes compare the whole pushed range. Deleted files and both
-paths of a rename count. An unavailable comparison, including a missing force-push base,
-runs all checks. Manual `ci.yml` runs always run everything. Weekly security scans
-continue auditing both ecosystems even without dependency changes.
+Mixed PR changes select the union of their checks. PRs compare the head to its merge
+base with the target branch; deleted files and both paths of a rename count. An
+unavailable comparison runs all checks. Branch pushes always use full validation,
+regardless of the changed paths. Weekly security scans continue auditing both ecosystems
+even without dependency changes.
 
 **CI ready** always runs and requires every selected group to succeed. Only groups
 explicitly excluded by the selection plan may be skipped; failed selection, failed
@@ -152,8 +162,9 @@ CI exercises Chromium, Firefox and WebKit against a disposable fictional databas
 It checks filters and related-ID lookup, debounced search, CSV/XLSX downloads,
 inline toggles and stale writes, themed calendars, narrow layouts and the no-script
 fallback. Failed browser jobs retain screenshots and traces. Python matrix jobs test
-the source checkout without distribution builds or wheel/sdist checks. Documentation
-artifacts remain separate from release assets.
+the source checkout; the dedicated distribution job verifies the wheel/sdist pair.
+Both **CI ready** and full **Release ready** require its success when selected.
+Documentation and distribution artifacts remain separate from GitHub release assets.
 
 WebKit runs on macOS. Playwright's Linux WebKit build currently renders text attachments
 inline despite a valid Content-Disposition header

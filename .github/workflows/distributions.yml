@@ -1,0 +1,30 @@
+name: distributions
+on: [workflow_call, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  distributions:
+    name: Build and verify distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+      - name: Build one universal wheel and source distribution
+        run: uv build
+      - name: Check metadata and clean installations before releasing
+        run: |
+          uvx --from 'twine>=6,<7' twine check --strict dist/*
+          uv run --no-project python scripts/check_distributions.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quite-admin-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
