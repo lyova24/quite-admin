@@ -54,6 +54,18 @@ full run without rebuilding it or repeating demo tests. PyPI checks the same
 full-validation gate and distribution artifact on automatic and manual uploads,
 without requiring the documentation artifact again.
 
+Documentation-only updates do not require a package version bump, tag or release. Push them
+to `master` and wait for full CI: `pages.yml` also accepts a successful `ci` completion
+when that exact commit remains the master head. The deployment guard checks its full
+diff from the latest published release, including deleted files and both paths of
+renames. Only `docs/`, README, repository instructions and the explicitly listed
+screenshot and documentation-deployment tooling may differ. Runtime code, the demo,
+package metadata, dependencies or other tooling require the normal release flow.
+The commit must descend from the published tag; missing history or release metadata
+blocks deployment. Pages downloads the documentation artifact from the latest exact-SHA
+full master CI after **CI ready** and **Release ready** succeed. It does not rebuild
+the site, move the published tag or upload another package to PyPI.
+
 Creating a release in GitHub's interface uses the same existing-CI gate before Pages
 and PyPI publication. The package workflow checks out the validated commit by SHA,
 checks master CI and its distribution artifact again for automatic and manual uploads,
@@ -172,4 +184,6 @@ inline despite a valid Content-Disposition header
 suite assert real CSV and XLSX download events without replacing response headers.
 
 Pages deploys after the `release` workflow succeeds and rechecks full CI for the
-released SHA. Ordinary pushes, PRs and manual CI runs alone do not deploy the site.
+released SHA. Successful full master CI can also publish documentation-only changes
+under the guard above. PRs, other branches and commits containing unreleased package
+changes do not deploy the site through that route.

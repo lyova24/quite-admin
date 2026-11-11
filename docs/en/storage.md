@@ -129,7 +129,8 @@ fictional sample events and your local edits; the ASGI example exercises the dur
 [![Activity journal with persisted field comparisons](../assets/screenshots/activity-history.png)](../assets/screenshots/activity-history.png)
 
 
-Open **Activity history** in the sidebar. The toolbar reuses the table listing
+Open **Activity history** in the icon rail or the Home workspace shortcuts. The toolbar
+reuses the table listing
 filter editor: **Add filter** selects a user, table, action or success/failure
 result. Search values, edit active chips or remove an individual condition with ×.
 **Clear all** removes these conditions while preserving the separate period control

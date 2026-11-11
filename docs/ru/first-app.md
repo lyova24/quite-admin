@@ -25,7 +25,7 @@ QUITE_ADMIN_PASSWORD='local-demo-only' uv run --script quickstart.py
 Другой вариант — активировать своё виртуальное окружение Python и использовать pip:
 
 ```bash
-pip install 'quite-admin[sqlalchemy,fastapi]>=0.8.1,<0.9' 'uvicorn>=0.30,<1'
+pip install 'quite-admin[sqlalchemy,fastapi]>=0.8.17,<0.9' 'uvicorn>=0.30,<1'
 QUITE_ADMIN_PASSWORD='local-demo-only' python quickstart.py
 ```
 

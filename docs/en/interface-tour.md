@@ -1,8 +1,9 @@
 # Interface tour
 
-The screenshots show the local Python example with fictional records and the default charcoal-and-blue palette. Open the
+The screenshots show the [local Python example](quickstart.md#run-the-sample-application)
+with fictional records and the default charcoal-and-blue palette. You can also open the
 [browser demo](https://lyova24.github.io/quite-admin/demo/) with `admin` / `admin`.
-Use **Reset demo** for the initial fictional records. See [demo coverage](browser-demo.md)
+Use **Reset demo** for its initial fictional records. See [demo coverage](browser-demo.md)
 for the features that need the Python application.
 
 Select any screenshot to view it at full size.
@@ -24,6 +25,8 @@ In this view, cards use three equal-width columns on desktop. One or two cards k
 same width instead of filling the row. Tablet screens use two columns and narrow
 screens use one.
 
+[![Home Cards view with pinned tables, recent tables and workspace shortcuts](../assets/screenshots/overview.png)](../assets/screenshots/overview.png)
+
 Choose **Table list** in the Home view switcher to browse all permitted tables in one
 compact list organized by group, similar to Django admin. Groups start expanded and
 can be collapsed individually; each table link shows its label and technical name.
@@ -39,7 +42,8 @@ Stars in **Table list**, search results, record-list headings and pinned Home
 cards share the same pinned-table state. Select an unfilled star to pin a table on
 Home, or a filled star to unpin it. The star does not open the table. Up to 12 pinned
 and 8 recent table identifiers are stored per user and admin mount in this browser;
-permissions are checked again on every page. Search terms and record data are not stored.
+Home displays the six most recent tables. Permissions are checked again on every page.
+Search terms and record data are not stored.
 
 Use the × button on a recently opened table to remove it from that list. This
 leaves its pinned state unchanged. Opening the table again adds it back to recent tables.
@@ -95,7 +99,7 @@ cannot be persisted. **Approved** explicitly distinguishes NULL from true/false.
 
 [![JSON editor with formatting and syntax status](../assets/screenshots/json-editor.png)](../assets/screenshots/json-editor.png)
 
-In the Schedules list, choose **+ Add filter → Day → Between** for a two-endpoint calendar.
+In the Schedules list, choose **Add filter → Day → Between** for a two-endpoint calendar.
 DATETIME/TIME ranges include time. Filter Apply/Cancel operates on a draft; record calendars
 update their form field immediately. Details are in [field controls](configuration.md)
 and [list filters](filters.md).
@@ -103,13 +107,15 @@ and [list filters](filters.md).
 ## Find who changed a value
 
 Open **Activity history**. The default **Journal** groups events by day and shows field
-names with **Before / After** values. Your price and boolean changes appear alongside
-clearly identified fictional sample events. Expand one event or **Expand all changes**.
+names with **Before / After** values. Your saved price and boolean changes appear under
+your signed-in user; expand an event or **Expand all changes**. The browser demo also
+includes clearly identified fictional sample events.
 
 [![Activity journal with field comparisons](../assets/screenshots/activity-history.png)](../assets/screenshots/activity-history.png)
 
-Choose **+ Add filter → User** and select Demo Admin or Olivia Chen. Add **Table**,
-**Action** or **Result** through the same editor as list filters. The period sits in the
+Choose **Add filter → User** and select `admin` in the local Python example, or
+Demo Admin / Olivia Chen in the browser demo. Add **Table**, **Action** or **Result**
+through the same editor as list filters. The period sits in the
 same toolbar: use a quick preset, a **Specific day**, or a **Date range**. Both range
 endpoints include the entire UTC day. Switching to **Table** preserves these selections.
 

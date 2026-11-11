@@ -49,8 +49,8 @@ Only known library messages are translated; unknown error messages are displayed
 Submitted boolean values remain `true` / `false`, and stored data, URLs and log event names do not change.
 
 The interface calls registered models **tables** in both languages: navigation, Home,
-history filters and schema links use the same wording. To browse records, expand
-**All tables** on Home or use **Find a table**. Existing custom templates can continue
+history filters and schema links use the same wording. To browse records, choose
+**Table list** on Home or use **Find a table**. Existing custom templates can continue
 using message IDs such as `t('Collections')`, `t('Open collection')` and
 `tn('collection', 'collections', count)`; they render the current table wording.
 Python identifiers such as `Admin.configure(collection, ...)`, history fields and filter
@@ -87,7 +87,7 @@ is a separate repository asset and is not displayed on the sign-in page.
 | --- | --- | --- |
 | `primary` | `#3395fd` | Primary actions, selected navigation and active search/sort indicators |
 | `background` | `#181818` | Main page background |
-| `surface` | `#202020` | Sidebar, header, cards, inputs and panels |
+| `surface` | `#202020` | Icon rail, header, cards, inputs and panels |
 | `text` | `#fefefe` | Main text |
 | `muted` | `#b7b2bf` | Secondary text and hints |
 | `border` | `#3b3b45` | Separators and borders |

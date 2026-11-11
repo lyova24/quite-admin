@@ -1,4 +1,4 @@
-# Collections and fields
+# Tables and fields {#collections-and-fields}
 
 ## Admin settings
 
@@ -34,7 +34,7 @@ the table's options as a whole; include every setting you want to retain.
 Mount with `mount_fastapi(app, "/admin")`, `mount_litestar(app, "/admin")` or
 `litestar_route("/admin")`; see [integration](integration.md).
 
-## Register collections
+## Register tables {#register-collections}
 
 Auto-discovery is optional. Register only the existing models you want to expose:
 
@@ -62,8 +62,10 @@ admin.register(User, options=ModelOptions(
 Each existing record has one page for viewing and editing. Its fields become read-only when
 the user cannot edit; the server also rejects direct POST requests. `edit_fields` orders and
 selects writable form fields; other visible fields remain on that page as read-only values.
-Click a table row to open that page. Its link also supports keyboard navigation and opening a
-new tab. The only separate row action is deletion, which opens a confirmation page.
+Click a noninteractive part of a table row to open that page. Its record link also supports
+keyboard navigation and opening a new tab. Pencils, switches, selection checkboxes and
+related-record or other links keep their own actions. Deletion opens a confirmation page.
+Returning from a record preserves the source listing; see the [interface tour](interface-tour.md).
 Users without view/edit permission receive no record link; delete controls follow delete permission.
 With discovery enabled, `register()` overrides the settings for an existing model.
 For reflection, use `admin.configure("table_name", options=...)` without a model import.
@@ -87,7 +89,7 @@ For reflection, use `admin.configure("table_name", options=...)` without a model
 | `permission` | Sync/async `(request, identity, action)` callback; see [permissions](authentication.md) |
 | `expose_sensitive_fields` | Explicit exceptions to automatic secret-name hiding; `exclude` still wins |
 | `writable_protected_fields` | Explicit exceptions to automatic service/privilege-field protection |
-| `group` | Optional nonempty sidebar group label |
+| `group` | Optional nonempty group label for the Home catalog, table search and database schema |
 | `list_editable` | `None` enables eligible displayed fields, a tuple selects fields, `()` disables inline edits |
 | `pagination` | `"offset"` for totals/page numbers or `"cursor"` for count-free sorted traversal |
 | `input_fields` | Tuple of form-only `Field` definitions consumed by a handler/service |
@@ -253,23 +255,25 @@ stale-edit revisions remain authoritative. Built-in scripts use the existing per
 
 See [field controls and custom widgets](field-widgets.md) for a complete template/parser example.
 
-## Sidebar groups
+## Table groups {#sidebar-groups}
 
-Set `ModelOptions(group="Sales")` on each table to group its sidebar links.
-For SQL reflection use `admin.configure("orders", options=ModelOptions(group="Sales"))`.
-Groups start collapsed, follow first appearance, support keyboard collapse/expand and remember state per
-admin mount when browser storage is available. The current table's group opens
-automatically without saving that automatic opening as a preference. Explicitly opened
-groups remain open on later visits. Without browser storage or JavaScript, other groups
-still start collapsed. Ungrouped tables appear under Other tables when grouping is used.
-Permissions filter tables before grouping; empty or inaccessible groups are omitted.
+Set `ModelOptions(group="Sales")` on each table to group it in Home's **Table list**
+view, global table search and the database schema picker. For SQL reflection use
+`admin.configure("orders", options=ModelOptions(group="Sales"))`. Tables without a group
+use **Other tables** in the Home catalog and search. Permissions filter tables before
+grouping; empty or inaccessible groups are omitted.
 
-The Overview uses the same `group` labels and permission-filtered tables. Every group
-starts collapsed, including the fallback group for tables without a label. Expand a
-group with its heading or Enter/Space, then open a table. The badge counts tables in
-that group; cards show only the table name and link, without a field count. Overview
-expansion is independent of the sidebar and resets on a fresh visit. Native groups
-also work without JavaScript.
+On Home, choose **Table list** to see the full catalog with every group initially
+expanded. Collapse a group with its heading or Enter/Space. A badge counts its tables;
+each table link shows the display label and, when different, its technical name.
+The browser remembers the selected Home view per user and admin mount; group collapse
+in **Table list** applies to that visit. The **Cards** view shows pinned and recently
+opened tables, workspace tools and custom pages. **Find a table** (Ctrl/⌘ K) matches
+labels, technical names and group names from any authenticated page.
+
+Without JavaScript, Home provides the native **All tables** dropdown with collapsed
+groups; expand it and a group to open a table. The left icon rail provides workspace
+shortcuts. See the [interface tour](interface-tour.md) for both Home views and pinning.
 
 Boolean fields use keyboard-operable switches. Nullable booleans have an explicit None
 button, preserving the distinction between false and SQL NULL. Read-only values stay
@@ -278,7 +282,9 @@ read-only; without JavaScript the original select remains usable.
 ## Editing list cells
 
 Click the pencil of a writable displayed field to edit it without opening a record.
-Clicking the value or another part of the row opens the record page. Boolean switches save immediately.
+Clicking a noninteractive value or row area opens the record page. Related-record links,
+URL/copy controls, disclosures, pencils and switches keep their own actions.
+Boolean switches save immediately.
 `ModelOptions(list_editable=None)` (default) enables all eligible displayed fields;
 `list_editable=("name", "active")` selects a subset; `list_editable=()` disables it.
 Only list columns also allowed by `edit_fields` and field policies are eligible. Hidden,
@@ -297,7 +303,7 @@ the guarded inline endpoint; read-only switches are disabled. Nullable cells exp
 explicit ∅ button and None state. Failed/conflicting writes leave the displayed state
 unchanged and show an error; rapid repeated clicks are disabled during saving.
 
-## Large collections and query deadlines
+## Large tables and query deadlines {#large-collections-and-query-deadlines}
 
 For a large table, use `ModelOptions(pagination="cursor")`. Every built-in adapter
 supports this mode. It reads at most one extra record to show Next/Previous, without an

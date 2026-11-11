@@ -70,7 +70,7 @@ separate SQLAlchemy 1.3 environment and is not installed alongside SQLAlchemy 2.
 The host owns engines, pools, migrations and lifespan.
 Model discovery runs after startup, which matters for Tortoise raw foreign-key fields.
 Reflection caches metadata and replaces it atomically on `refresh()`.
-The dashboard does not execute `COUNT(*)` for every table; record queries start
+Home does not execute `COUNT(*)` for every table; record queries start
 when opening a list.
 
 ## Interactive screens

@@ -103,12 +103,15 @@ Run `npm run demo:test` after changing the browser demo or shared scripts; it re
 the fictional seed and checks relationship writes, stale edits, filter conditions,
 schema layout, junction expansion and form control precision.
 
-After a successful release, the separate `pages` workflow publishes the `quite-admin-docs`
-artifact from successful master CI for the exact tagged commit. It does not rebuild
-documentation or rerun demo tests. Branch pushes build and validate the site as part
-of full CI; deployment follows a successful release.
-The `workflow_run` trigger keeps deployment on the default branch, compatible with the
-`github-pages` environment's `master` restriction, while the artifact comes from the release SHA.
+The separate `pages` workflow publishes the `quite-admin-docs` artifact from successful
+full master CI after a release, or after a documentation-only update to the published
+version. Documentation-only deployment requires the checked commit to remain the master
+head and its complete diff from the published release to contain only documentation
+and explicitly allowed documentation tooling. Both routes require **CI ready** and
+**Release ready** and reuse the exact CI artifact. Updating documentation does not
+change the package version, move a tag or upload to PyPI. The `workflow_run` trigger
+keeps deployment on the default branch permitted by the `github-pages` environment.
+See [release policy](releases.md) for the complete deployment conditions.
 In repository Settings → Pages, select **GitHub Actions** as the source.
 Do not select the repository root or source `docs` folder for a Jekyll build: Liquid treats Jinja
 examples such as `{% extends %}` as its own tags. The generated artifact contains `.nojekyll`
@@ -117,6 +120,23 @@ Configuration lives in `docs/.yfm`; `package-lock.json` pins the CLI and its dep
 Add new pages to both language directories and both navigation files, and keep API
 examples synchronized between translations.
 
+## Refresh interface screenshots
+
+After installing the Python and npm development dependencies and Chromium with
+`npx playwright install chromium`, run from the repository root:
+
+```bash
+node scripts/capture_screenshots.mjs
+```
+
+The script replaces all 14 shared PNGs in `docs/assets/screenshots/` with captures
+of the current Python example at 1440 × 1000. It starts its own local server on
+port 8131, uses temporary SQLite databases with fictional records, and removes
+them after capture. It never connects to an existing application or its database.
+Set `QUITE_ADMIN_SCREENSHOT_PORT` to choose a free port and `QUITE_ADMIN_PYTHON`
+to use an interpreter other than `.venv/bin/python`. Inspect the resulting images,
+then run `npm run docs:build` to verify their published references.
+
 ## Browser and installed-package checks
 
 `npm run browser:test` builds the static demo, starts disposable local servers and
@@ -124,8 +144,11 @@ runs the browser suite. Demo preparation finishes before the server-readiness ti
 start. CI allows up to 120 seconds for each server to become ready and logs their
 startup output and HTTP readiness probes; local runs retain a 30-second limit.
 Install the pinned browsers first with `npx playwright install --with-deps`.
-The fixture uses only fictional data in a temporary SQLite database. Browser jobs run
-Chromium, Firefox and WebKit in CI and retain failure screenshots/traces.
+The fixture uses only fictional data in a temporary SQLite database. Linux CI runs
+Chromium and Firefox in the official Playwright container matching `@playwright/test`,
+with browser binaries and system libraries included. The container home directory is
+owned by the process user so Firefox can start. WebKit runs natively on macOS.
+All browser jobs retain failure screenshots and traces.
 
 Python matrix jobs test the source checkout without building distributions. A dedicated
 full-CI job builds one universal wheel/sdist pair, runs strict Twine checks and installs

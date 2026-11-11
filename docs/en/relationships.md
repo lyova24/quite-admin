@@ -1,7 +1,7 @@
 # Relationships
 
-Relationships appear inside the record's create form and unified record page and share the **Save** button
-with scalar fields. One-to-one and many-to-one relations use a single selector; one-to-many
+Relationships appear inside the record's create form and unified record page. They save
+with scalar fields through **Create record** or **Save changes**. One-to-one and many-to-one relations use a single selector; one-to-many
 and many-to-many relations allow multiple selections. Targets must already exist.
 The record page displays values and allows editing immediately when permitted. Users with only
 view permission see the same page with read-only fields and relationships.

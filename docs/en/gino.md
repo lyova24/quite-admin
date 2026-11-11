@@ -9,8 +9,8 @@ Litestar use the same adapter.
 Install the legacy extra in a separate virtual environment:
 
 ```bash
-pip install 'quite-admin[gino-legacy,fastapi]==0.6.1'
-# Or: pip install 'quite-admin[gino-legacy,litestar]==0.6.1'
+pip install 'quite-admin[gino-legacy,fastapi]==0.8.17'
+# Or: pip install 'quite-admin[gino-legacy,litestar]==0.8.17'
 ```
 
 GINO 1.x requires SQLAlchemy 1.3, while the SQL reflection and SQLAlchemy adapters

@@ -12,7 +12,7 @@ opening or rearranging the diagram does not read or modify record values.
 The schema uses the available page height below the header. The wider table picker
 provides more room for labels and group controls; on short screens its contents
 scroll while the diagram remains usable. The picker belongs to the schema workspace;
-the complete table catalog for opening record lists is under **All tables** on Home.
+the complete table catalog for opening record lists is in the **Table list** view on Home.
 This layout preserves the initial manual-selection guard for more than 100 permitted tables.
 
 ## Explore the diagram
@@ -21,7 +21,7 @@ This layout preserves the initial manual-selection guard for more than 100 permi
   to choose visible tables, or select **Show all** / **Hide all**. Search narrows the
   picker choices without changing the diagram. Clicking a table name centers it.
 - A group checkbox selects or clears all its tables at once. Groups follow
-  `ModelOptions(group="Sales")`, as in Home's **All tables** catalog. A mixed checkbox means only
+  `ModelOptions(group="Sales")`, as in Home's **Table list** view. A mixed checkbox means only
   some tables in the group are selected; its count always covers the whole group.
   Searching hides nonmatching choices, but a group checkbox still changes every table
   in that group, including those hidden by search. Searching for a group name shows

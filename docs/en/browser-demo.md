@@ -2,7 +2,6 @@
 
 [Open the demo](https://lyova24.github.io/quite-admin/demo/), then use `admin` / `admin`.
 The documentation site workflow builds and deploys it at `/demo/`.
-The overview's **Explore the interface** links take you directly to the new examples.
 Follow the [interface tour](interface-tour.md) for screenshots and a complete walkthrough.
 
 ## What to try
@@ -17,7 +16,8 @@ Follow the [interface tour](interface-tour.md) for screenshots and a complete wa
 | Export data | Select scalar columns and download CSV for all matching records, including other pages |
 | Customers / Customer Profiles / Orders | Searchable 1:1 and 1:N relationship editors with atomic local saves |
 | Products / Tags | Searchable M:N editors; concurrent form changes produce a stale-edit conflict |
-| Sidebar / Database schema | Collapsible remembered groups, table visibility, expanded fields, M:N junctions, drag and Auto layout |
+| Home / Navigation | Cards and grouped Table list views, pinned/recent tables, global table search and the fixed icon rail |
+| Database schema | Table visibility, expanded fields, M:N junctions, drag and Auto layout |
 | Store report | Custom page populated from the local demo data |
 
 Switch **Language** to see the same controls in English and Russian. Changes and the
@@ -45,7 +45,7 @@ durable auditing or database compatibility. No real session cookies, passwords,
 production secrets or application records are exported.
 
 For those features, run the [local ASGI example](quickstart.md#run-the-sample-application).
-It includes the same Schedules fields, grouped sidebar and cursor-mode Orders, plus real
+It includes the same Schedules fields, Home views, table search and cursor-mode Orders, plus real
 activity storage and CSV/XLSX exports. See [storage](storage.md), [configuration](configuration.md)
 and [exports](exports.md) for setup and guarantees. Raw SQL editing and a dashboard builder
 are not implemented features.

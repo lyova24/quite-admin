@@ -9,8 +9,8 @@
 Установите legacy-extra в отдельном виртуальном окружении:
 
 ```bash
-pip install 'quite-admin[gino-legacy,fastapi]==0.6.1'
-# Или: pip install 'quite-admin[gino-legacy,litestar]==0.6.1'
+pip install 'quite-admin[gino-legacy,fastapi]==0.8.17'
+# Или: pip install 'quite-admin[gino-legacy,litestar]==0.8.17'
 ```
 
 GINO 1.x требует SQLAlchemy 1.3, а адаптеры SQL reflection и SQLAlchemy — SQLAlchemy 2.x.

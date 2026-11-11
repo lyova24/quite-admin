@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync} = require('node:fs');
+const {mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync} = require('node:fs');
 const {execFileSync} = require('node:child_process');
 const {tmpdir} = require('node:os');
 const {createRequire} = require('node:module');
@@ -7,6 +7,7 @@ const path = require('node:path');
 const {test} = require('node:test');
 const yaml = require('js-yaml');
 const checkCI = require('../scripts/check-ci.cjs');
+const checkDocsDeployment = require('../scripts/check-docs-deployment.cjs');
 const validateResults = require('../scripts/ci-ready.cjs');
 const {groups, audits, selectJobs, changedPaths} = require('../scripts/select-ci.cjs');
 
@@ -230,11 +231,20 @@ test('full CI builds one wheel and sdist pair, verifies clean installations and 
 
 test('Pages deploys the selected CI artifact without rebuilding or testing it', () => {
   const pages = workflow('pages.yml');
-  assert.deepEqual(pages.on.workflow_run, {workflows: ['release'], types: ['completed']});
+  assert.deepEqual(pages.on.workflow_run, {workflows: ['release', 'ci'], types: ['completed']});
   assert.match(pages.jobs.verify.if, /conclusion == 'success'/);
   assert.match(pages.jobs.verify.if, /head_repository.full_name == github.repository/);
+  assert.match(pages.jobs.verify.if, /head_branch == 'master'/);
+  assert.match(pages.jobs.verify.if, /name == 'release'/);
+  assert.match(pages.jobs.verify.if, /name == 'ci'/);
   assert.equal(pages.jobs.verify.steps[0].with.ref, '${{ github.event.workflow_run.head_sha }}');
+  assert.equal(pages.jobs.verify.steps[0].with['fetch-depth'], 0);
+  const target = pages.jobs.verify.steps.find(step => step.id === 'target');
+  assert.match(target.with.script, /check-docs-deployment\.cjs/);
+  const gate = pages.jobs.verify.steps.find(step => step.id === 'ci');
+  assert.equal(gate.if, "steps.target.outputs.result == 'true'");
   assert.deepEqual(pages.jobs.prepare.needs, 'verify');
+  assert.equal(pages.jobs.prepare.if, "needs.verify.outputs.deploy == 'true'");
   const steps = pages.jobs.prepare.steps;
   const download = steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
   assert.equal(download.with.name, 'quite-admin-docs');
@@ -249,6 +259,141 @@ test('Pages deploys the selected CI artifact without rebuilding or testing it', 
   const artifact = workflow('docs.yml').jobs.docs.steps
     .find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(artifact.with['include-hidden-files'], true, 'Keep .nojekyll in the CI artifact');
+});
+
+function docsDeploymentClient({master = sha, paths = ['docs/en/interface.md'], ancestor = true,
+  release = {tag_name: 'v0.8.17', published_at: '2026-11-11T00:00:00Z', draft: false, prerelease: false}} = {}) {
+  const base = 'b'.repeat(40);
+  const calls = [];
+  return {
+    calls,
+    github: {rest: {
+      git: {getRef: async params => {
+        assert.deepEqual(params, {...context.repo, ref: 'heads/master'});
+        calls.push('master');
+        return {data: {object: {sha: master}}};
+      }},
+      repos: {getLatestRelease: async params => {
+        assert.deepEqual(params, context.repo);
+        calls.push('release');
+        return {data: release};
+      }},
+    }},
+    git: args => {
+      calls.push(args);
+      if (args[0] === 'rev-parse') {
+        assert.deepEqual(args, ['rev-parse', '--verify', `refs/tags/${release.tag_name}^{commit}`]);
+        return Buffer.from(base + '\n');
+      }
+      if (args[0] === 'merge-base') {
+        assert.deepEqual(args, ['merge-base', '--is-ancestor', base, sha]);
+        if (!ancestor) throw Object.assign(new Error('Not an ancestor'), {status: 1});
+        return Buffer.from('');
+      }
+      assert.deepEqual(args, ['diff', '--name-only', '--no-renames', '-z', base, sha, '--']);
+      return Buffer.from(paths.map(path => path + '\0').join(''));
+    },
+  };
+}
+
+test('docs-only master updates can publish without changing the package or its tag', async () => {
+  const paths = ['docs/en/interface.md', 'docs/ru/interface.md', 'docs/assets/screenshots/overview.png',
+    'docs/assets/walkthrough.gif', 'README.md', 'AGENTS.md', '.github/workflows/pages.yml',
+    'scripts/check-docs-deployment.cjs', 'scripts/capture_screenshots.mjs',
+    'scripts/screenshot_app.py', 'tests/ci.test.cjs'];
+  const options = docsDeploymentClient({paths});
+  assert.equal(await checkDocsDeployment({...options, context, sha}), true);
+});
+
+test('runtime, demo, package and unrelated tooling changes require the release route', async () => {
+  for (const path of ['src/quite_admin/admin.py', 'demo/app.js', 'pyproject.toml', 'uv.lock',
+    'package.json', 'package-lock.json', 'scripts/build_demo.py', 'scripts/other.py',
+    'tests/test_admin.py', '.github/workflows/release.yml', '.github/workflows/pypi.yml']) {
+    const options = docsDeploymentClient({paths: ['docs/en/interface.md', path]});
+    assert.equal(await checkDocsDeployment({...options, context, sha}), false, path);
+  }
+  assert.equal(await checkDocsDeployment({...docsDeploymentClient({paths: []}), context, sha}), false);
+});
+
+test('stale master completions and commits outside the released history cannot deploy docs', async () => {
+  const stale = docsDeploymentClient({master: 'c'.repeat(40)});
+  assert.equal(await checkDocsDeployment({...stale, context, sha}), false);
+  assert.deepEqual(stale.calls, ['master']);
+  const unrelated = docsDeploymentClient({ancestor: false});
+  assert.equal(await checkDocsDeployment({...unrelated, context, sha}), false);
+  assert.ok(!unrelated.calls.some(call => Array.isArray(call) && call[0] === 'diff'));
+});
+
+test('unpublished releases, missing history and API errors fail closed for documentation', async () => {
+  for (const change of [{draft: true}, {prerelease: true}, {published_at: null},
+    {tag_name: 'master'}, {tag_name: 'v0.8.17^{tree}'}]) {
+    const options = docsDeploymentClient();
+    options.github.rest.repos.getLatestRelease = async () => ({data: {
+      tag_name: 'v0.8.17', published_at: '2026-11-11T00:00:00Z', ...change,
+    }});
+    await assert.rejects(checkDocsDeployment({...options, context, sha}), /finalized published version tag/);
+  }
+  for (const failure of ['master API unavailable', 'release API unavailable', 'release tag missing']) {
+    const options = docsDeploymentClient();
+    const fail = () => { throw new Error(failure); };
+    if (failure.startsWith('master')) options.github.rest.git.getRef = fail;
+    else if (failure.startsWith('release API')) options.github.rest.repos.getLatestRelease = fail;
+    else options.git = fail;
+    await assert.rejects(checkDocsDeployment({...options, context, sha}), new RegExp(failure));
+  }
+  await assert.rejects(checkDocsDeployment({...docsDeploymentClient(), context, sha: 'master'}), /full commit SHA/);
+});
+
+test('Pages rejects an older CI completion even when the latest exact-SHA master run is green', async () => {
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const step = workflow('pages.yml').jobs.verify.steps.find(step => step.id === 'ci');
+  const execute = new AsyncFunction('require', 'github', 'context', step.with.script);
+  const requireFromRoot = createRequire(path.join(root, 'package.json'));
+  const oldSha = process.env.RELEASE_SHA;
+  process.env.RELEASE_SHA = sha;
+  try {
+    const event = id => ({...context, payload: {workflow_run: {name: 'ci', id}}});
+    assert.equal(await execute(requireFromRoot, client().github, event(42)), 42);
+    await assert.rejects(execute(requireFromRoot, client().github, event(41)), /latest successful master CI/);
+  } finally {
+    if (oldSha === undefined) delete process.env.RELEASE_SHA;
+    else process.env.RELEASE_SHA = oldSha;
+  }
+});
+
+test('local release-to-head diff checks every file and both sides of a runtime rename', async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'quite-admin-docs-deployment-'));
+  const git = args => execFileSync('git', args, {cwd: directory, maxBuffer: 16 * 1024 * 1024});
+  try {
+    git(['init', '--quiet']);
+    git(['config', 'user.email', 'docs-tests@example.invalid']);
+    git(['config', 'user.name', 'Documentation checks']);
+    mkdirSync(path.join(directory, 'src'));
+    mkdirSync(path.join(directory, 'docs'));
+    writeFileSync(path.join(directory, 'src/runtime.py'), 'runtime = True\n');
+    writeFileSync(path.join(directory, 'docs/old.png'), 'old screenshot\n');
+    git(['add', '.']);
+    git(['commit', '--quiet', '-m', 'release']);
+    git(['tag', 'v0.8.17']);
+    rmSync(path.join(directory, 'docs/old.png'));
+    for (let index = 0; index < 350; index++) {
+      writeFileSync(path.join(directory, `docs/page-${index}.md`), '# Documentation\n');
+    }
+    git(['add', '-A']);
+    git(['commit', '--quiet', '-m', 'refresh documentation']);
+    const docsSha = git(['rev-parse', 'HEAD']).toString().trim();
+    assert.equal(await checkDocsDeployment({
+      ...docsDeploymentClient({master: docsSha}), git, context, sha: docsSha,
+    }), true);
+    git(['mv', 'src/runtime.py', 'docs/runtime.py']);
+    git(['commit', '--quiet', '-m', 'move a runtime file into docs']);
+    const renamedSha = git(['rev-parse', 'HEAD']).toString().trim();
+    assert.equal(await checkDocsDeployment({
+      ...docsDeploymentClient({master: renamedSha}), git, context, sha: renamedSha,
+    }), false);
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
 });
 
 test('selective green CI cannot authorize a release, even with a documentation artifact', async () => {

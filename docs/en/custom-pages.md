@@ -48,9 +48,9 @@ For example, `templates/quite_admin/list.html` overrides the default list screen
 User templates take precedence over packaged templates.
 
 No frontend build or external CDN is required for the admin interface.
-Authenticated pages permit the built-in navigation script for sidebar preferences and
-group controls. Built-in filter editors, relationship pickers and the database schema use narrowly
-scoped SHA-256 hashes and SRI on the pages that need them; inline scripts and arbitrary
+Authenticated pages permit the built-in navigation scripts for the profile menu,
+global table search and pinned/recent tables. Built-in filter editors, relationship
+pickers and the database schema use narrowly scoped SHA-256 hashes and SRI on the pages that need them; inline scripts and arbitrary
 same-origin scripts remain blocked. Custom pages do not inherit field/filter/schema script permissions.
 
 The source checkout includes `examples/templates/report.html` and its context callback

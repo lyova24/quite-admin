@@ -4,13 +4,11 @@ Use `Theme` for the palette, CSS tokens for proportions and density, and templat
 overrides for structure. These settings apply to one `Admin` instance and work with
 all adapters. No frontend build is required.
 
-Drag the right edge of the left navigation to change its width on desktop. You can
-also focus that divider and use Left/Right (Shift for larger steps), Home for the
-minimum or End for the maximum. Double-click the divider to restore the theme's
-default width. The choice is stored in this browser separately for each admin mount;
-resizing still works if browser storage is disabled. On narrow screens navigation
-fills the available width and scrolls vertically within a bounded height, with long
-table and group names wrapping onto new lines.
+The left navigation is a fixed 3.5 rem icon rail on desktop and narrow screens.
+It provides Home, Database schema, Activity history and custom-page shortcuts, with
+the profile menu at the bottom. Browse tables through Home's **Table list** view or
+**Find a table** (Ctrl/⌘ K). See the [interface tour](interface-tour.md) for navigation,
+pinned tables and the two Home views.
 
 ## Palette and identity
 

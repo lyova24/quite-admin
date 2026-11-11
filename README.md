@@ -10,7 +10,7 @@
 
 **An admin panel for your existing FastAPI or Litestar models.**
 
-Automatically discover collections and forms without writing a separate admin class
+Automatically discover tables and forms without writing a separate admin class
 for every model. Edit related records, inspect before/after history and export data
 from the same interface. No additional Pydantic schemas or DTOs are required.
 
@@ -86,10 +86,10 @@ Its fictional data stays in your browser; **Reset demo** restores it.
 - Inline cell editing and atomic one-to-one, one-to-many and many-to-many relationship editing.
 - CSV/XLSX export with column selection, filters and related-table data.
 - [Activity history](https://lyova24.github.io/quite-admin/en/storage.html) with before/after
-  field values, user and collection filters, configurable recording levels and storage.
+  field values, user and table filters, configurable recording levels and storage.
 - Automatic stale-edit detection, field permissions and server-side write validation.
 - Count-free cursor pagination, SQL read deadlines and configurable read concurrency.
-- Interactive database schema, grouped navigation and English/Russian UI.
+- Interactive database schema, grouped table catalog, global table search and English/Russian UI.
 - Type-aware date/time, JSON, multiline text and nullable boolean controls.
 - Custom pages, Jinja2 templates, field controls, write hooks, record actions and bulk commands.
 - Optional per-model application services, form-only inputs and Pydantic validation.
@@ -149,5 +149,5 @@ uv run ruff format --check src tests examples scripts
 CI checks CPython 3.11–3.15, with dedicated PostgreSQL/MySQL contracts and isolated
 minimum/latest dependency profiles. Tagged releases reuse successful CI for the exact
 commit, publish source archives and deploy its documentation artifact; the separate PyPI
-workflow builds and validates one wheel/sdist pair before Trusted Publishing.
+workflow publishes the same validated wheel/sdist pair from CI through Trusted Publishing.
 [Development](https://lyova24.github.io/quite-admin/en/development.html) · [Release policy](https://lyova24.github.io/quite-admin/en/releases.html).
