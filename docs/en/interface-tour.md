@@ -62,7 +62,9 @@ or record for context. Home keeps its branding in the main content.
 Open **Products**, click the pencil beside **Price**, enter `19.50` and **Save changes**.
 The cell updates in place. **Cancel** or Escape discards an unsaved value. The **Active**
 switch saves immediately. Open **Schedules** to try a nullable **Approved** switch;
-∅ sets it to NULL, distinct from false. Open a full record by its Id/row link.
+∅ sets it to NULL, distinct from false. Click any noninteractive area of a row to open
+the full record. Pencils, switches, bulk-selection controls and links to related records
+or other destinations keep their own actions without opening the row's record.
 
 [![Inline edit in the Products list](../assets/screenshots/inline-edit.png)](../assets/screenshots/inline-edit.png)
 

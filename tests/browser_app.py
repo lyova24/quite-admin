@@ -240,3 +240,28 @@ editing_admin.configure(
     ),
 )
 editing_admin.mount_fastapi(app, "/editing")
+
+# Exercise the stretched row link when its first cell also owns an interactive control.
+for first_field in ("name", "active", "customer_id"):
+    row_admin = Admin(
+        auth=PasswordAuth.single_user("admin", "browser-test-password"),
+        secret_key="browser-row-fixture-only-" * 3,
+        secure_cookies=False,
+        session_cookie=f"row_{first_field}_session",
+        storage=f"{_storage.name}/row-{first_field}-state.sqlite3",
+        adapters=[SQLAdapter(engine, include_tables=("entries", "customers"))],
+    )
+    row_admin.configure(
+        "entries",
+        options=ModelOptions(
+            list_fields=(first_field,)
+            + tuple(
+                field
+                for field in ("name", "active", "customer_id", "count")
+                if field != first_field
+            ),
+            list_editable=("name", "active"),
+            fields={"customer_id": FieldOptions(relation_label="caption")},
+        ),
+    )
+    row_admin.mount_fastapi(app, f"/rows-{first_field}")

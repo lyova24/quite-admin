@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.16 — 2026-11-11
+
+- Open a record from any noninteractive area of its listing row. Keep inline-edit pencils, boolean switches, bulk-selection controls and links to related records or other destinations independent of row navigation.
+
 ## 0.8.15 — 2026-11-10
 
 - Add a Home view switcher while keeping Cards as the default. Table list displays every permitted table in a compact grouped catalog with groups initially expanded; keep the full catalog out of Cards and retain the native All tables dropdown without JavaScript. Read only authorized metadata, without querying records or counts.

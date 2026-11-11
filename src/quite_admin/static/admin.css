@@ -725,7 +725,7 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .cell-edit:hover { color: var(--accent); }
 .cell-edit-mark { color: var(--muted); opacity: .35; font-size: var(--text-xs); }
 .cell-edit:hover .cell-edit-mark, .cell-edit:focus-visible .cell-edit-mark { opacity: 1; }
-.cell-open { position: relative; z-index: 2; display: inline-block; margin-inline-end: var(--space-2); color: var(--muted); }
+.cell-open { display: inline-block; margin-inline-end: var(--space-2); color: var(--muted); }
 .inline-dialog { width: min(35rem, calc(100vw - 2rem)); overflow: visible; padding: var(--space-5); border: var(--border); border-radius: var(--radius); background: var(--paper); color: var(--text); }
 .inline-dialog::backdrop, .filter-dialog::backdrop { background: color-mix(in srgb, var(--text) 25%, transparent); }
 .inline-dialog h2 { margin-bottom: var(--space-3); }
@@ -790,7 +790,8 @@ a.filter-chip:hover { border-color: var(--accent-border); }
 .selection-col input { width:0.75rem; height:0.75rem; margin:0; }
 .bulk-confirmation { padding:0.9375rem; }
 .bulk-confirmation ul { max-height:18rem; overflow:auto; padding-left:1.125rem; }
-.field-display { position:relative; z-index:2; display:flex; align-items:flex-start; gap:0.375rem; max-width:100%; min-width:0; }
+.field-display { position:relative; display:flex; align-items:flex-start; gap:0.375rem; max-width:100%; min-width:0; }
+.record-row .field-display :is(a, button, summary, .value-details[open] .value-pre) { position:relative; z-index:2; }
 .field-display .value-content { min-width:0; flex:1; }
 .field-display .value-url { display:block; }
 .value-url { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
