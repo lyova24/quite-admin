@@ -28,6 +28,10 @@ jobs:
             container: ''
     steps:
       - uses: actions/checkout@v4
+      - name: Match the container home owner to the process user
+        if: runner.os == 'Linux'
+        # Firefox refuses to launch when HOME belongs to another user.
+        run: chown "$(id -u):$(id -g)" "$HOME"
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.13.6'
