@@ -6,6 +6,9 @@ permissions:
 jobs:
   browser:
     runs-on: ${{ matrix.os }}
+    container:
+      image: ${{ matrix.container }}
+      options: --ipc=host
     strategy:
       fail-fast: false
       matrix:
@@ -13,12 +16,16 @@ jobs:
           - browser: chromium
             os: ubuntu-latest
             workers: 2
+            # Match @playwright/test; bundled system dependencies avoid apt downloads.
+            container: mcr.microsoft.com/playwright:v1.64.1-noble
           - browser: firefox
             os: ubuntu-latest
             workers: 2
+            container: mcr.microsoft.com/playwright:v1.64.1-noble
           - browser: webkit
             os: macos-latest
             workers: 1
+            container: ''
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -32,7 +39,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npx --no-install playwright install --with-deps ${{ matrix.browser }}
+      - if: runner.os == 'macOS'
+        run: npx --no-install playwright install --with-deps ${{ matrix.browser }}
       - run: npm run browser:test -- --project=${{ matrix.browser }} --workers=${{ matrix.workers }}
         env:
           DEBUG: pw:webserver
