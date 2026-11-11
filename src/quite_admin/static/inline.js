@@ -25,7 +25,7 @@
         const cell=result.cells[td.dataset.listField]; if(!cell)continue;
         const foreign=td.querySelector('[data-fk-value]');
         if(foreign){
-          if(cell.related){const link=document.createElement('a');link.className='relation-value';link.href=cell.related.href;link.title=cell.related.text;link.textContent=cell.related.text.length>90?cell.related.text.slice(0,87)+'…':cell.related.text;foreign.replaceChildren(link);}
+          if(cell.related){const link=document.createElement('a');link.className='relation-value';link.href=cell.related.href;const returnTo=row.closest('[data-list-return]')?.dataset.listReturn;if(returnTo){const target=new URL(link.href);target.searchParams.set('return_to',returnTo);link.href=target.href;}link.title=cell.related.text;link.textContent=cell.related.text.length>90?cell.related.text.slice(0,87)+'…':cell.related.text;foreign.replaceChildren(link);}
           else foreign.textContent=cell.text;
           continue;
         }

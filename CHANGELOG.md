@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.17 — 2026-11-11
+
+- Return from records and related records to the originating listing with its search, filters, sort order and pagination preserved. Carry this context through record forms, saves, actions and deletion; accept only authorized listing targets within the current admin mount and fall back to the record's own table when the target is invalid or no longer permitted.
+
 ## 0.8.16 — 2026-11-11
 
 - Open a record from any noninteractive area of its listing row. Keep inline-edit pencils, boolean switches, bulk-selection controls and links to related records or other destinations independent of row navigation.

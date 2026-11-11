@@ -182,6 +182,75 @@ test('foreign-key labels link to the related record above the row target', async
   await expect(page.locator('input[name=caption]')).toHaveValue('Alex Johnson');
 });
 
+test('related-record return links preserve the source listing after inline refresh', async ({page})=>{
+  const prefix='return-'+crypto.randomUUID();
+  const created=[];
+  try {
+    const createCustomer=await page.request.get('/admin/models/customers/new');
+    const customerToken=(await createCustomer.text()).match(/name="__csrf" value="([^"]+)"/)[1];
+    const customer=await page.request.post('/admin/models/customers/new',{
+      form:{__csrf:customerToken,caption:prefix},
+    });
+    expect(customer.ok()).toBeTruthy();
+    const customerPath=new URL(customer.url()).pathname;
+    created.push(customerPath);
+    const customerKey=customerPath.split('/').at(-1);
+    const create=await page.request.get(listing+'new');
+    const token=(await create.text()).match(/name="__csrf" value="([^"]+)"/)[1];
+    for(const suffix of ['a','b','c']){
+      const response=await page.request.post(listing+'new',{form:{
+        __csrf:token,name:prefix+'-'+suffix,active:'true',day:'2026-11-01',
+        __relation__to_customers_by_customer_id:customerKey,
+        __relation_present__to_customers_by_customer_id:'true',
+      }});
+      expect(response.ok()).toBeTruthy();
+      created.push(new URL(response.url()).pathname);
+    }
+    const source=listing+'?'+new URLSearchParams({q:prefix,'f.name.icontains':prefix,
+      sort:'name',direction:'desc',page:'2',limit:'1'});
+    const absolute=new URL(source,page.url()).href;
+    await page.goto(source);
+    const related=page.locator('tbody .relation-value');
+    const expectOrigin=async()=>{
+      const target=new URL(await related.getAttribute('href'),page.url());
+      expect(target.pathname).toBe(customerPath);
+      expect(target.searchParams.get('return_to')).toBe(source);
+    };
+    await expectOrigin();
+    await related.click();
+    await expect(page.locator('.back-link')).toHaveAttribute('href',source);
+    await page.locator('.back-link').click();
+    await expect(page).toHaveURL(absolute);
+    await related.click();
+    await page.locator('.form-footer a').click();
+    await expect(page).toHaveURL(absolute);
+    await related.click();
+    await page.locator('.breadcrumbs a').filter({hasText:'Entries'}).click();
+    await expect(page).toHaveURL(absolute);
+
+    const toggle=page.locator('[data-list-switch]');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked','false');
+    await expectOrigin();
+    await page.locator('[data-inline-endpoint$="/day"]').click();
+    await page.locator('#inline-value').fill('2026-11-02');
+    await page.locator('[data-inline-save]').click();
+    await expect(page.locator('[data-inline-dialog]')).not.toBeVisible();
+    await expectOrigin();
+    await related.click();
+    await page.locator('.back-link').click();
+    await expect(page).toHaveURL(absolute);
+    await expect(page.locator('td[data-list-field=day]')).toContainText('2026-11-02');
+  } finally {
+    for(const path of created.reverse()){
+      const confirmation=await page.request.get(path+'/delete');
+      const token=(await confirmation.text()).match(/name="__csrf" value="([^"]+)"/)[1];
+      const deleted=await page.request.post(path+'/delete',{form:{__csrf:token}});
+      expect(deleted.ok()).toBeTruthy();
+    }
+  }
+});
+
 
 test('cursor column headers sort timestamps, traverse pages and reset boundaries', async ({page})=>{
   await login(page,'/cursor');

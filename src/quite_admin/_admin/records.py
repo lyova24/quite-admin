@@ -14,7 +14,7 @@ from itsdangerous import BadData
 from starlette.datastructures import FormData
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, RedirectResponse, Response
 
 from .._display import display_kind, display_value
 from .._validation import validate_payload
@@ -96,7 +96,10 @@ class RecordViews:
         visible = resource.options.visible_fields(resource.schema)
         listed = resource.options.list_fields or tuple(item.name for item in visible[:6])
         related = await self._foreign_key_cells(
-            request, resource, [item for item in visible if item.name in listed], [record]
+            request,
+            resource,
+            [item for item in visible if item.name in listed],
+            [record],
         )
         return JSONResponse(
             {
@@ -173,7 +176,14 @@ class RecordViews:
         resource = await self._resource(request, "edit")
         if request.method == "POST":
             return await self._edit_form(request, resource, creating=False)
-        return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
+        navigation = await self._return_context(request)
+        return self._redirect(
+            request,
+            self._with_return(
+                f"/models/{resource.slug}/{request.path_params['key']}",
+                navigation[0] if navigation else None,
+            ),
+        )
 
     def _fingerprint(self, value):
         return hmac.new(
@@ -226,6 +236,8 @@ class RecordViews:
     async def _edit_form(
         self, request: Request, resource: Resource, *, creating: bool, editable: bool = True
     ) -> Response:
+        navigation = await self._return_context(request)
+        return_to = navigation[0] if navigation else None
         record = {} if creating else await self._record(resource, request.path_params["key"])
         editors = await self._relation_editors(
             request, resource, record, creating=creating, allow_edit=editable
@@ -337,8 +349,14 @@ class RecordViews:
                     request, resource, "edit"
                 ):
                     return self._redirect(
-                        request, f"/models/{resource.slug}/" + resource.schema.record_key(saved)
+                        request,
+                        self._with_return(
+                            f"/models/{resource.slug}/" + resource.schema.record_key(saved),
+                            return_to,
+                        ),
                     )
+                if return_to:
+                    return RedirectResponse(return_to, status_code=303)
                 return self._redirect(request, f"/models/{resource.slug}/")
             except ValidationError as exc:
                 await self._logging.emit(
@@ -379,6 +397,9 @@ class RecordViews:
             form_messages=self._form_messages(),
             status=status,
             resource=resource,
+            return_to=return_to,
+            back_url=return_to or self._url(request, f"/models/{resource.slug}/"),
+            back_label=navigation[1] if navigation else resource.label,
             fields=fields,
             values=values,
             errors=errors,
@@ -392,11 +413,12 @@ class RecordViews:
             editable=editable,
             record=record,
             can_delete=not creating and await self._allowed(request, resource, "delete"),
-            form_action=self._url(
+            form_action=self._navigation_url(
                 request,
                 f"/models/{resource.slug}/new"
                 if creating
                 else f"/models/{resource.slug}/{resource.schema.record_key(record)}",
+                return_to,
             ),
             record_actions=[]
             if creating
@@ -557,10 +579,19 @@ class RecordViews:
             operation=action.slug,
             status_code=303,
         )
-        return self._redirect(request, f"/models/{resource.slug}/{request.path_params['key']}")
+        navigation = await self._return_context(request)
+        return self._redirect(
+            request,
+            self._with_return(
+                f"/models/{resource.slug}/{request.path_params['key']}",
+                navigation[0] if navigation else None,
+            ),
+        )
 
     async def _delete(self, request: Request) -> Response:
         resource = await self._resource(request, "delete")
+        navigation = await self._return_context(request)
+        return_to = navigation[0] if navigation else None
         token = request.path_params["key"]
         record = await self._record(resource, token)
         if request.method == "POST":
@@ -579,7 +610,15 @@ class RecordViews:
             await self._logging.emit(
                 "info", "quite_admin.record_deleted", collection=resource.slug, status_code=303
             )
-            return self._redirect(request, f"/models/{resource.slug}/")
+            return RedirectResponse(
+                return_to or self._url(request, f"/models/{resource.slug}/"), status_code=303
+            )
         return await self._render(
-            request, "quite_admin/delete.html", resource=resource, record=record
+            request,
+            "quite_admin/delete.html",
+            resource=resource,
+            record=record,
+            return_to=return_to,
+            back_url=return_to or self._url(request, f"/models/{resource.slug}/"),
+            back_label=navigation[1] if navigation else resource.label,
         )

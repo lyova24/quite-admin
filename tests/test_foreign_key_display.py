@@ -1,5 +1,6 @@
 import re
 from dataclasses import replace
+from urllib.parse import urlencode
 
 import pytest
 from fastapi import FastAPI
@@ -48,7 +49,8 @@ async def test_fk_ids_labels_links_permissions_and_raw_storage(auth, related_bac
         target = "/nested/admin/models/people/" + adapter.describe(models["parents"]).record_key(
             parent
         )
-        assert f'href="{target}"' in cell(page, fk)
+        listing_target = target + "?" + urlencode({"return_to": url})
+        assert f'href="{listing_target}"' in cell(page, fk)
         assert f">{parent['id']}</a>" in cell(page, fk)
         assert "User &lt;username&gt;" not in cell(page, fk)
         assert "record-row-link cell-open" in page.text  # no nested anchors
@@ -58,7 +60,7 @@ async def test_fk_ids_labels_links_permissions_and_raw_storage(auth, related_bac
         )
         page = await client.get(url)
         assert "User &lt;username&gt;" in cell(page, fk)
-        assert f'href="{target}"' in cell(page, fk)
+        assert f'href="{listing_target}"' in cell(page, fk)
         assert (await adapter.get(models["children"], {"id": child["id"]}))[fk] == parent["id"]
         export = await client.get(url, params={"export": "csv", "columns": fk})
         assert "username" not in export.text
@@ -80,7 +82,7 @@ async def test_fk_ids_labels_links_permissions_and_raw_storage(auth, related_bac
             "parents",
             options=ModelOptions(slug="people", permission=lambda r, i, a: a in {"list", "edit"}),
         )
-        assert f'href="{target}"' in cell(await client.get(url), fk)
+        assert f'href="{listing_target}"' in cell(await client.get(url), fk)
         await adapter.update(models["children"], {"id": child["id"]}, {fk: None})
         assert 'class="relation-value"' not in cell(await client.get(url), fk)
 

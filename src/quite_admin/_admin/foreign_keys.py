@@ -9,7 +9,7 @@ from ..schema import Filter, Query
 
 
 class ForeignKeyViews:
-    async def _foreign_key_cells(self, request, resource, columns, records):
+    async def _foreign_key_cells(self, request, resource, columns, records, *, return_to=None):
         fields = [item for item in columns if item.foreign_key]
         if not fields or not records:
             return {}
@@ -95,8 +95,8 @@ class ForeignKeyViews:
                 )
                 cells.setdefault(resource.schema.record_key(record), {})[field.name] = {
                     "text": text,
-                    "href": self._url(
-                        request, f"/models/{target.slug}/{target.schema.record_key(row)}"
+                    "href": self._navigation_url(
+                        request, f"/models/{target.slug}/{target.schema.record_key(row)}", return_to
                     ),
                 }
         return cells

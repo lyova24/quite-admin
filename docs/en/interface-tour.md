@@ -66,6 +66,12 @@ switch saves immediately. Open **Schedules** to try a nullable **Approved** swit
 the full record. Pencils, switches, bulk-selection controls and links to related records
 or other destinations keep their own actions without opening the row's record.
 
+When you open a record or a related record from a listing, the return link leads back
+to that original list with its search, filters, sort order and page preserved. Saving
+or running a record action keeps this return context; deleting returns to the original
+list. If that target is invalid or you no longer have access, return links use the
+record's own table instead.
+
 [![Inline edit in the Products list](../assets/screenshots/inline-edit.png)](../assets/screenshots/inline-edit.png)
 
 These use the same field controls as record forms. Concurrent changes are checked before

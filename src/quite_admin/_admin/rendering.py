@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode, urlsplit
 
 from starlette.requests import Request
 from starlette.responses import Response
@@ -38,6 +39,40 @@ def _navigation_context(resources, url, gettext):
 
 
 class Rendering:
+    @staticmethod
+    def _with_return(path, return_to):
+        return (
+            path + ("&" if "?" in path else "?") + urlencode({"return_to": return_to})
+            if return_to
+            else path
+        )
+
+    def _navigation_url(self, request, path, return_to=None):
+        return self._with_return(self._url(request, path), return_to)
+
+    async def _return_context(self, request):
+        """Accept only an authorized listing inside this admin mount as a return target."""
+        values = request.query_params.getlist("return_to")
+        if len(values) != 1 or not values[0] or len(values[0]) > 65536:
+            return None
+        target = values[0]
+        if not target.startswith("/") or target.startswith("//") or target != target.strip():
+            return None
+        if any(ord(char) < 32 or ord(char) == 127 for char in target):
+            return None
+        try:
+            parsed = urlsplit(target)
+        except ValueError:
+            return None
+        if parsed.scheme or parsed.netloc or parsed.fragment:
+            return None
+        for resource in (await self.resources()).values():
+            if parsed.path == self._url(request, f"/models/{resource.slug}/"):
+                if await self._allowed(request, resource, "list"):
+                    return target, resource.label
+                break
+        return None
+
     async def _render(
         self,
         request: Request,
@@ -107,6 +142,9 @@ class Rendering:
             "display_fields": display_fields,
             "display_value": display_value,
             "url": lambda path="/": self._url(request, path),
+            "navigation_url": lambda path: self._navigation_url(
+                request, path, context.get("return_to")
+            ),
             "breadcrumbs": self._breadcrumbs(request, template, context),
         }
         return self.templates.TemplateResponse(
@@ -118,15 +156,20 @@ class Rendering:
         resource = context.get("resource")
         if resource is not None:
             items.append(
-                {"label": resource.label, "url": self._url(request, f"/models/{resource.slug}/")}
+                {
+                    "label": context.get("back_label", resource.label),
+                    "url": context.get("back_url", self._url(request, f"/models/{resource.slug}/")),
+                }
             )
             record = context.get("record")
             if record:
                 items.append(
                     {
                         "label": resource.record_label(record),
-                        "url": self._url(
-                            request, f"/models/{resource.slug}/{resource.schema.record_key(record)}"
+                        "url": self._navigation_url(
+                            request,
+                            f"/models/{resource.slug}/{resource.schema.record_key(record)}",
+                            context.get("return_to"),
                         ),
                     }
                 )

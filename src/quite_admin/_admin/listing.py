@@ -140,6 +140,7 @@ class ListingViews:
             for action in ("view", "create", "edit", "delete")
         }
         base = self._url(request, f"/models/{resource.slug}/")
+        return_to = base + ("?" + str(request.query_params) if request.query_params else "")
 
         def query_url(**updates: Any) -> str:
             if cursor_mode and any(name not in {"after", "before", "page"} for name in updates):
@@ -170,9 +171,10 @@ class ListingViews:
             request,
             "quite_admin/list.html",
             listing_page=True,
+            return_to=return_to,
             inline_fields=inline_fields,
             foreign_key_cells=await self._foreign_key_cells(
-                request, resource, columns, result.records
+                request, resource, columns, result.records, return_to=return_to
             ),
             bulk_actions=bulk_actions,
             inline_endpoint=lambda record, name: self._url(

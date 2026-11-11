@@ -1,3 +1,4 @@
+import html
 import importlib
 import re
 import sqlite3
@@ -98,10 +99,8 @@ async def test_standalone_quickstart_crud_relationships_and_persistence(monkeypa
         )
         assert updated.status_code == 303, updated.text
 
-        order_url = next(
-            match[1]
-            for match in re.finditer(r'href="(/admin/models/orders/[^/?"]+)"', orders.text)
-            if not match[1].endswith("/new")
+        order_url = html.unescape(
+            re.search(r'<a class="record-row-link[^\"]*" href="([^\"]+)"', orders.text)[1]
         )
         form = await client.get(order_url)
         customer_select = re.search(

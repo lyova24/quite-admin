@@ -30,7 +30,7 @@
           <details class="sidebar-profile" data-sidebar-profile>
             <summary class="profile-trigger" data-profile-toggle aria-label="{{ t('Profile') }}" title="{{ t('Profile') }}" aria-controls="admin-profile-menu"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span></summary>
             <div class="profile-popover" id="admin-profile-menu" data-profile-popover>
-              <div class="profile-identity"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><strong>{{ identity.display_name or identity.subject }}</strong></div><p class="profile-version">Quite Admin <span>v0.8.16</span></p>
+              <div class="profile-identity"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><strong>{{ identity.display_name or identity.subject }}</strong></div><p class="profile-version">Quite Admin <span>v0.8.17</span></p>
               <form method="post" action="{{ url('/logout') }}">{{ csrf_input() }}<button class="profile-signout" type="submit">{{ shell_icon('logout') }}{{ t('Sign out') }}</button></form>
             </div>
           </details>
