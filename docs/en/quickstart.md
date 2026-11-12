@@ -94,15 +94,25 @@ Open [localhost:8000/admin/](http://localhost:8000/admin/) and sign in with
 `QUITE_ADMIN_DEMO_DB` can select a different path. Use uv 0.13.6+ to download stable
 Python 3.15. The Python package does not need Node.js; only documentation builds do.
 
+Use **Table list** on Home or **Find a table** to open Schedules, Field samples,
+Folders, Regional prices, Price alerts, Reference rates and Demo accounts. These
+fictional tables cover field types, all four relationship cardinalities, composite keys,
+read-only data, actions and Python account services; Demo accounts are separate from
+admin sign-in. This sample opts into an optional walkthrough after sign-in; choose
+**Start tour** to begin or **Not now** to decline. Existing sample databases gain the new
+tables without replacing original records. See the [interface tour](interface-tour.md) for the scenarios and
+[browser demo coverage](browser-demo.md) for server-only features.
+
 ## Storage and deployment
 
 Use the [deployment guide](deployment.md) when moving beyond local development.
 
 The admin initializes its own `.quite-admin/state.sqlite3` service store. Use a persistent,
 writable directory or configure `storage` / `QUITE_ADMIN_STORAGE_URL` for containers and
-replicas. History defaults to committed writes (`history_level="changes"`); choose
-`"audit"` or `"all"` for more events, or `history_enabled=False` to disable it.
-See [storage, backups and recording levels](storage.md).
+replicas. The library's history defaults to committed writes (`history_level="changes"`);
+choose `"audit"` or `"all"` for more events, or `history_enabled=False` to disable it.
+The sample application explicitly selects `"audit"`, so you can also inspect authentication,
+exports and failed writes. See [storage, backups and recording levels](storage.md).
 
 For HTTPS deployment, keep `secure_cookies=True`, share a stable secret across workers,
 review discovered tables and permissions, and keep the host's database startup/shutdown.

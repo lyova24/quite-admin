@@ -5,3 +5,8 @@
 {% macro field_attributes(descriptions='', invalid=false) -%}
 {% if descriptions|trim %} aria-describedby="{{ descriptions|trim }}"{% endif %}{% if invalid %} aria-invalid="true"{% endif %}
 {%- endmacro %}
+
+{% macro field_placeholder(field) -%}
+{%- set hints = {'integer': 'e.g. 42', 'number': 'e.g. 19.50', 'uuid': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', 'json': 'Enter valid JSON', 'password': 'Enter a password'} -%}
+{% if field.kind in hints %} placeholder="{{ t(hints[field.kind]) }}"{% endif -%}
+{%- endmacro %}

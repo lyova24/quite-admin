@@ -105,6 +105,7 @@ async def test_type_specific_controls_submit_and_preserve_invalid_values(
         page = await client.get("/admin/models/entries/new")
         assert '<textarea id="field-body"' in page.text
         assert 'name="short"' in page.text and 'maxlength="20"' in page.text
+        assert 'class="record-editor"' in page.text
         assert 'data-temporal="datetime"' in page.text and 'data-temporal="time"' in page.text
         assert 'type="date"' in page.text
         assert "forms.js" in page.text and "sha256-" in page.headers["content-security-policy"]
@@ -124,6 +125,7 @@ async def test_type_specific_controls_submit_and_preserve_invalid_values(
         }
         if "payload" in schema.by_name:
             assert "data-json-editor" in page.text
+            assert 'placeholder="Enter valid JSON"' in page.text
             data["payload"] = '{"large":9007199254740993,"text":"</textarea><script>bad</script>"}'
             invalid = await client.post(
                 "/admin/models/entries/new", data={**data, "payload": '{"broken":'}

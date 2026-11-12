@@ -248,6 +248,10 @@ class Rendering:
                 "True",
                 "False",
                 "None",
+                "e.g. 42",
+                "e.g. 19.50",
+                "Enter valid JSON",
+                "Enter a password",
                 "Choose date",
                 "Choose date and time",
                 "Choose time",
@@ -288,6 +292,9 @@ class Rendering:
             name: self.gettext(text)
             for name, text in {
                 "choose": "Choose records",
+                "chooseOne": "Choose a record",
+                "change": "Change selection",
+                "clear": "Clear selection",
                 "search": "Search related records",
                 "remove": "Remove",
                 "previous": "Previous",

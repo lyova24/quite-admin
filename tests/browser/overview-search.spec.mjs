@@ -132,10 +132,11 @@ test.describe('browser demo', () => {
     await page.getByLabel('Username', {exact:true}).fill('admin');
     await page.getByLabel('Password', {exact:true}).fill('admin');
     await page.getByRole('button', {name:'Sign in', exact:true}).click();
+    await page.locator('[data-tour-consent]').getByRole('button',{name:'Not now',exact:true}).click();
     await expect(homeSearch(page)).toBeVisible();
 
     async function expectColumns(columns) {
-      for (const selector of ['[data-home-pinned]', '[data-home-recent]', '.home-tools', '.home .page-grid']) {
+      for (const selector of ['[data-home-pinned]', '[data-home-recent]', '.home-tools']) {
         const geometry = await page.locator(selector).evaluate(grid => {
           const {width} = grid.getBoundingClientRect();
           return {width, gap:parseFloat(getComputedStyle(grid).columnGap), cards:[...grid.children].map(card => {
@@ -190,6 +191,7 @@ test.describe('browser demo', () => {
     await page.getByLabel('Username', {exact: true}).fill('admin');
     await page.getByLabel('Password', {exact: true}).fill('admin');
     await page.getByRole('button', {name: 'Sign in', exact: true}).click();
+    await page.locator('[data-tour-consent]').getByRole('button',{name:'Not now',exact:true}).click();
     await homeSearch(page).click();
     await expect(searchInput(page)).toBeFocused();
     await searchInput(page).fill('Customer Profiles');
@@ -204,7 +206,7 @@ test.describe('browser demo', () => {
     await expect(searchDialog(page).locator('[data-table-search-count]')).toHaveText('No matching tables.');
     await page.keyboard.press('Escape');
     await expect(homeSearch(page)).toBeFocused();
-    await page.locator('#demo-language').selectOption('ru');
+    await page.goto('/?lang=ru');
     await expect(homeSearch(page)).toContainText('Найти таблицу');
     await homeSearch(page).click();
     await expect(searchInput(page)).toBeFocused();

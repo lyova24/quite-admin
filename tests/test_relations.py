@@ -46,7 +46,7 @@ async def related_backend(request, tmp_path):
             name = mapped_column(String(100))
             children = relationship("Child", back_populates="parent")
             profile = relationship("Profile", uselist=False)
-            strict_children = relationship("StrictChild")
+            strict_children = relationship("StrictChild", back_populates="parent")
             tags = relationship("Tag", secondary=junction)
 
         class Child(Base):
@@ -69,6 +69,7 @@ async def related_backend(request, tmp_path):
             id = mapped_column(Integer, primary_key=True)
             name = mapped_column(String(100))
             parent_id = mapped_column(ForeignKey("parents.id"), nullable=False)
+            parent = relationship(Parent, back_populates="strict_children")
 
         class Tag(Base):
             __tablename__ = "tags"
@@ -305,6 +306,31 @@ async def test_relationship_contract_and_atomic_rollback(related_backend):
         assert (await adapter.related(model, relation.name, parent_key, Query())).total == 0
     assert await adapter.get(models["children"], key(adapter, models["children"], child))
     assert await adapter.get(models["tags"], key(adapter, models["tags"], tags[0]))
+
+
+async def test_required_forward_relation_can_be_reassigned_but_not_cleared(related_backend):
+    adapter, models = related_backend
+    parent_model, child_model = models["parents"], models["strict_children"]
+    first = await adapter.create(parent_model, {"name": "Original parent"})
+    second = await adapter.create(parent_model, {"name": "Replacement parent"})
+    foreign = next(field for field in adapter.describe(child_model).fields if field.foreign_key)
+    child = await adapter.create(child_model, {"name": "Required child", foreign.name: first["id"]})
+    child_key = key(adapter, child_model, child)
+    relation = relation_to(adapter, child_model, parent_model, "many_to_one")
+    assert not relation.can_detach
+    saved = await adapter.save_relations(
+        child_model,
+        {"name": "Moved child"},
+        {relation.name: [key(adapter, parent_model, second)]},
+        key=child_key,
+    )
+    assert saved[foreign.name] == second["id"] and saved["name"] == "Moved child"
+    with pytest.raises(Conflict):
+        await adapter.save_relations(
+            child_model, {"name": "Must roll back"}, {relation.name: []}, key=child_key
+        )
+    saved = await adapter.get(child_model, child_key)
+    assert saved[foreign.name] == second["id"] and saved["name"] == "Moved child"
 
 
 async def test_create_with_forward_and_collection_relationships(related_backend):

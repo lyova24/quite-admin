@@ -205,11 +205,12 @@ test.describe('browser demo', () => {
     await page.getByLabel('Username', {exact:true}).fill('admin');
     await page.getByLabel('Password', {exact:true}).fill('admin');
     await page.getByRole('button', {name:'Sign in', exact:true}).click();
+    await page.locator('[data-tour-consent]').getByRole('button',{name:'Not now',exact:true}).click();
     await expect(home(page)).toHaveAttribute('data-home-view', 'cards');
     await option(page, 'list').click();
     const count = await catalog(page).locator('a[data-table-link]').count();
     expect(count).toBeGreaterThan(2);
-    await page.locator('#demo-language').selectOption('ru');
+    await page.goto('/?lang=ru');
     await expect(home(page)).toHaveAttribute('data-home-view', 'list');
     await expect(home(page).getByRole('group', {name:'Вид главной',exact:true})).toBeVisible();
     await expect(option(page, 'cards')).toHaveText('Карточки');

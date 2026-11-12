@@ -1,6 +1,8 @@
 import { Store } from "./store.mjs";
 import { activityPage } from "./activity.mjs";
-import { inlineDialog, listCell, csv, matchingRows, listWindow } from "./listing.mjs";
+import { inlineDialog, listCell, csv, exportColumns, matchingRows, listWindow } from "./listing.mjs";
+import {renderValue, valueModel} from './values.mjs';
+import {bulkCommands, bulkPanel, bulkPage, runBulk, runRecordAction} from './actions.mjs';
 
 const seed = await (await fetch("./seed.json")).json();
 const read = (kind, key) => {
@@ -20,27 +22,26 @@ const write = (kind, key, value) => {
 let signedIn = read("sessionStorage", "quite-admin-demo-login") === "true";
 const storageKey = `quite-admin-browser-demo-${seed.version}`;
 let store;
+let pendingBulk = null, bulkResults = null;
 try {
   store = new Store(seed, JSON.parse(read("localStorage", storageKey)));
 } catch {
   store = new Store(seed);
 }
-let language = read("localStorage", "quite-admin-demo-language") || "en";
+const requestedLanguage = new URLSearchParams(location.search).get("lang");
+const savedLanguage = read("localStorage", "quite-admin-demo-language");
+const language = ["en", "ru"].includes(requestedLanguage) ? requestedLanguage
+  : ["en", "ru"].includes(savedLanguage) ? savedLanguage
+  : navigator.language.toLowerCase().startsWith("ru") ? "ru" : "en";
 const extra = {
-  "Browser demo · changes stay in this browser":
-    "Демо в браузере · изменения сохраняются только здесь",
-  "Reset demo": "Сбросить демо",
-  "Use admin / admin": "Используйте admin / admin",
-  "Explore the interface": "Знакомство с интерфейсом",
-  "Edit a list cell": "Измените ячейку списка",
-  "Dates, time and JSON": "Даты, время и JSON",
-  "Inspect field changes": "Посмотрите изменения полей",
-  "Groups, relations and schema": "Группы, связи и схема",
-  "Fictional sample events and your local actions. Reset demo restores both.": "Вымышленные примеры событий и ваши локальные действия. Сброс демо восстанавливает и данные, и историю.",
   "Catalog": "Каталог", "Sales": "Продажи", "Workspace": "Рабочее пространство",
   "CSV download": "Скачать CSV",
   "Naive local time; microseconds are preserved.": "Время без часового пояса; микросекунды сохраняются.",
   "None means this event is awaiting review.": "None означает, что событие ожидает согласования.",
+  "Select records from a table to continue.": "Выберите записи в таблице, чтобы продолжить.",
+  "Unknown action.": "Неизвестное действие.",
+  "Select between 1 and 100 records.": "Выберите от 1 до 100 записей.",
+  "Publish": "Опубликовать", "Archive": "В архив", "Deactivate products": "Деактивировать товары",
 };
 const t = (text, values = {}) => {
   text = seed.messageAliases?.[text] || text;
@@ -67,20 +68,38 @@ const href = (slug, key = "", suffix = "") =>
   `#/models/${encodeURIComponent(slug)}/${key ? encodeURIComponent(key) + suffix : ""}`;
 const persist = () =>
   write("localStorage", storageKey, JSON.stringify(store.snapshot()));
-const notice = () =>
-  `<div class="demo-notice"><span>${e(t("Browser demo · changes stay in this browser"))}</span><select aria-label="Language" id="demo-language"><option value="en" ${language === "en" ? "selected" : ""}>English</option><option value="ru" ${language === "ru" ? "selected" : ""}>Русский</option></select><button class="link-button" id="demo-reset">${e(t("Reset demo"))}</button></div>`;
 const button = (path, text, cls = "secondary") =>
   `<a class="button ${cls}" href="${e(path)}">${e(t(text))}</a>`;
-const input = (field, value) => window.QuiteAdmin.createFieldControl(
-  {...field, max_length: field.maxLength},
-  {id: 'field-' + field.name, value, t, rows: 6},
-).outerHTML;
+const input = (field, value) => {
+  const control = window.QuiteAdmin.createFieldControl(
+    {...field, max_length: field.maxLength}, {id:'field-' + field.name, value, t, rows:6});
+  if (field.control === 'ticket') control.setAttribute('list','ticket-suggestions');
+  return control.outerHTML;
+};
 
 function login() {
-  return `${notice()}<main class="shell-login"><div class="content"><section class="login-card"><div class="login-brand"><span class="brand-mark large" aria-hidden="true"></span><h1>${e(seed.title)}</h1></div><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="field-help">${e(t("Use admin / admin"))}</p><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;
+  return `<main class="shell-login"><div class="content"><section class="login-card"><div class="login-brand"><span class="brand-mark large" aria-hidden="true"></span><h1>${e(seed.title)}</h1></div><form id="demo-login" class="stack"><div><label for="username">${e(t("Username"))}</label><input id="username" name="username" autocomplete="username" required></div><div><label for="password">${e(t("Password"))}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div><p class="demo-error" role="alert" id="login-error"></p><button class="button primary">${e(t("Sign in"))}</button></form></section></div></main>`;
 }
 function dashboard() {
-  return seed.homePages[language] + `<div class="demo-tour"><h2>${e(t("Explore the interface"))}</h2><div class="button-group">${button(href("products"),"Edit a list cell")}${button(href("schedules",store.collection("schedules").records[0]?.key||"new"),"Dates, time and JSON")}${button("#/history","Inspect field changes")}${button("#/schema","Groups, relations and schema")}</div></div>`;
+  return seed.homePages[language];
+}
+
+function relationLabel(relation, row) {
+  return String(row.values[relation.labelField] ?? store.label(relation.target,row));
+}
+
+function relationOptions(relation, term, page) {
+  const target = store.collection(relation.target);
+  const searchFields = [...new Set([...(target.searchFields ?? target.fields.filter(field => field.kind === 'string').map(field => field.name)), relation.labelField].filter(Boolean))];
+  const keys = target.fields.filter(field => field.primaryKey);
+  let objectKey;
+  try { objectKey = JSON.parse(term); } catch (_) { /* Ordinary text search. */ }
+  const rows = target.records.filter(row => !term || searchFields.some(name => String(row.values[name] ?? '').toLowerCase().includes(term.toLowerCase()))
+    || keys.length === 1 && row.values[keys[0].name] === term
+    || objectKey && typeof objectKey === 'object' && keys.length && keys.every(field => String(objectKey[field.name]) === row.values[field.name]));
+  return {items:rows.slice((page - 1) * 25,page * 25).map(row => ({key:row.key,label:relationLabel(relation,row),
+    identity:keys.map(field => row.values[field.name]).join(' · '),
+    description:searchFields.map(name => row.values[name]).filter(Boolean).join(' · ')})), total:rows.length,has_next:page * 25 < rows.length};
 }
 
 function demoFilters(slug, query, queryUrl) {
@@ -133,43 +152,54 @@ function listing(slug, query) {
   const page = Math.max(1, Number(query.get("page")) || 1), limit = 5;
   const total = allRows.length;
   const {rows,hasPrevious,hasNext} = listWindow(allRows,query,cursor,limit);
+  const selectable = rows.length > 0 && bulkCommands(c).length > 0;
+  const columns = exportColumns(c, store);
   return `<div class="page-heading list-heading"><div class="heading-with-count"><h1>${e(c.label)}</h1>${seed.tablePins[language][slug]}<span class="record-count">${e(cursor?t("{count} on this page",{count:rows.length}):records(total))}</span></div></div>
-  ${inlineDialog(t,e)}<section class="record-list"><div class="list-tools"><form id="demo-search" class="list-query-form" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"></div>${filters.add}</div>${filters.panel}</form><div class="list-actions"><details class="export-panel"><summary class="button secondary" aria-label="${e(t('Export data'))}">↓ CSV</summary><form id="demo-export" class="export-form"><p class="field-help">${e(t('Exports all matching records using the current search, filters and sorting. Apply filters before exporting.'))}</p><fieldset><legend>${e(t('Columns'))}</legend><div class="export-columns">${c.fields.map(field=>`<label class="checkbox-label"><input type="checkbox" name="columns" value="${e(field.name)}" ${c.columns.includes(field.name)?'checked':''}> ${e(field.label)}</label>`).join('')}</div></fieldset><button class="button secondary" type="submit">${e(t('CSV download'))}</button></form></details>${button(href(slug, "new"), "+ " + t("Create record"), "primary list-create")}</div></div>${filters.active}
+  ${inlineDialog(t,e)}<section class="record-list"><div class="list-tools"><form id="demo-search" class="list-query-form" ${filters.attributes}><div class="toolbar list-toolbar"><div class="search-form" role="search"><input name="q" aria-label="${e(t("Search records"))}" placeholder="${e(t("Search records…"))}" value="${e(search)}"></div>${filters.add}</div>${filters.panel}</form><div class="list-actions"><details class="export-panel"><summary class="button secondary" aria-label="${e(t('Export data'))}">↓ CSV</summary><form id="demo-export" class="export-form"><p class="field-help">${e(t('Exports all matching records using the current search, filters and sorting. Apply filters before exporting.'))}</p><fieldset><legend>${e(t('Columns'))}</legend><div class="export-columns">${columns.map(field=>`<label class="checkbox-label"><input type="checkbox" name="columns" value="${e(field.name)}" ${c.columns.includes(field.name)?'checked':''}> ${e(field.label)}</label>`).join('')}</div></fieldset><button class="button secondary" type="submit">${e(t('CSV download'))}</button></form></details>${selectable ? bulkPanel(c,{t,e}) : ""}${c.canCreate !== false ? button(href(slug, "new"), "+ " + t("Create record"), "primary list-create") : ""}</div></div>${filters.active}
   ${search ? `<div class="active-filters"><span class="filter-chip">${e(t("Search"))}: ${e(search)}</span><a class="link-button" href="${e(queryUrl({ q: "", page: 1 }))}">${e(t("Clear"))}</a></div>` : ""}
-  <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${c.columns.map((name) => {
+  <div class="table-scroll list-table-scroll"><table aria-label="${e(c.label)}"><thead><tr>${selectable ? `<th class="selection-col" scope="col"><input type="checkbox" data-bulk-all disabled aria-label="${e(t("Select all records on this page"))}"></th>` : ""}${c.columns.map((name) => {
     const field = c.fields.find((field) => field.name === name), active = sort.name === name;
     return `<th scope="col" class="${["integer", "number"].includes(field.kind) ? "numeric" : ""}" ${active ? `aria-sort="${descending ? "descending" : "ascending"}"` : ""}><a href="${e(queryUrl({ sort: name, direction: active && !descending ? "desc" : "asc", page: 1,after:null,before:null }))}">${e(field.label)}<span class="sort-icon" aria-hidden="true">${active ? descending ? "↓" : "↑" : "↕"}</span></a></th>`;
-  }).join("")}<th scope="col" class="delete-col"><span class="sr-only">${e(t("Delete"))}</span></th></tr></thead><tbody>${rows.map((row) => `<tr class="record-row record-row-clickable">${c.columns.map((name, index) => {
+  }).join("")}${c.canDelete !== false ? `<th scope="col" class="delete-col"><span class="sr-only">${e(t("Delete"))}</span></th>` : ""}</tr></thead><tbody>${rows.map((row) => `<tr class="record-row record-row-clickable">${selectable ? `<td class="selection-col"><input type="checkbox" name="keys" value="${e(row.key)}" form="bulk-actions" data-bulk-key aria-label="${e(t("Select record") + ": " + store.label(slug,row))}"></td>` : ""}${c.columns.map((name, index) => {
     const field = c.fields.find((field) => field.name === name), value = row.values[name];
-    const content = listCell({slug,row,field,editable:c.inline.includes(name),t,e});
-    return `<td data-list-field="${e(name)}" class="${["integer", "number"].includes(field.kind) ? "numeric" : field.name === primaryName ? "cell-primary" : ""}">${index === 0 ? `<a class="record-row-link" href="${href(slug, row.key)}" aria-label="${e(t("Open record") + ": " + store.label(slug, row))}">${c.inline.includes(name)||field.kind==="boolean"?"↗":content}</a>${c.inline.includes(name)||field.kind==="boolean"?content:""}` : content}</td>`;
-  }).join("")}<td class="delete-col"><a class="button small danger-outline delete-action" href="${href(slug, row.key, "/delete")}" title="${e(t("Delete record") + ": " + store.label(slug, row))}"><span class="sr-only">${e(t("Delete"))}</span><svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></a></td></tr>`).join("") || `<tr><td colspan="${c.columns.length + 1}"><div class="empty-state"><h2>${e(t(search ? "No matching records" : "No records"))}</h2><p>${e(t(search ? "Try a different search." : "This collection has no records yet."))}</p>${button(search ? queryUrl({ q: "", page: 1 }) : href(slug, "new"), search ? "Clear" : "Create record")}</div></td></tr>`}</tbody></table></div>
+    const relation = c.relations.find(relation => relation.sourceFields.includes(name));
+    const linked = relation && row.links[relation.name]?.[0] && store.record(relation.target, row.links[relation.name][0]);
+    const content = linked ? `<a class="relation-value" href="${href(relation.target,linked.key)}">${e(store.label(relation.target,linked))}</a>` : listCell({slug,row,field,editable:c.canEdit !== false && c.inline.includes(name),t,e});
+    const independent = c.inline.includes(name) || field.kind === "boolean" || field.display || field.urlTemplate || relation;
+    return `<td data-list-field="${e(name)}" class="${["integer", "number"].includes(field.kind) ? "numeric" : field.name === primaryName ? "cell-primary" : ""}">${index === 0 ? `<a class="record-row-link" href="${href(slug, row.key)}" aria-label="${e(t("Open record") + ": " + store.label(slug, row))}">${independent?"↗":content}</a>${independent?content:""}` : content}</td>`;
+  }).join("")}${c.canDelete !== false ? `<td class="delete-col"><a class="button small danger-outline delete-action" href="${href(slug, row.key, "/delete")}" title="${e(t("Delete record") + ": " + store.label(slug, row))}"><span class="sr-only">${e(t("Delete"))}</span><svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></a></td>` : ""}</tr>`).join("") || `<tr><td colspan="${c.columns.length + (c.canDelete !== false ? 1 : 0) + (selectable ? 1 : 0)}"><div class="empty-state"><h2>${e(t(search ? "No matching records" : "No records"))}</h2><p>${e(t(search ? "Try a different search." : "This collection has no records yet."))}</p>${search || c.canCreate !== false ? button(search ? queryUrl({ q: "", page: 1 }) : href(slug, "new"), search ? "Clear" : "Create record") : ""}</div></td></tr>`}</tbody></table></div>
   <footer class="pagination"><span>${e(cursor?t("Browse records"):t("Page {number}",{number:page}))}<span class="pagination-divider">·</span>${e(t("{count} per page").replace("{count}", limit))}</span><div>${hasPrevious ? button(queryUrl(cursor?{before:rows[0].key,after:null}:{page:page-1}), "Previous", "secondary small") : ""}${hasNext ? button(queryUrl(cursor?{after:rows.at(-1).key,before:null}:{page:page+1}), "Next", "secondary small") : ""}</div></footer></section>`;
 }
 function recordPage(slug, key) {
   const c = store.collection(slug), creating = key === "new";
+  if (creating && c.canCreate === false) throw new Error("This table is read only.");
   const row = creating ? { values: {}, links: {} } : store.record(slug, key);
   const managed = c.relations.flatMap((relation) => relation.sourceFields);
-  const writable = c.writable[creating ? "create" : "edit"];
-  const fields = c.fields.filter((field) => !managed.includes(field.name) && (!creating || !field.generated));
+  const editable = creating ? c.canCreate !== false : c.canEdit !== false;
+  const writable = editable ? c.writable[creating ? "create" : "edit"] : [];
+  const fields = c.fields.filter((field) => !managed.includes(field.name) && (!creating || !field.generated))
+    .map(field => slug === 'schedules' && ['date','datetime','time'].includes(field.kind)
+      ? {...field,label:t(field.label)} : field);
   const renderField = (field) => {
     const editable = writable.includes(field.name), value = row.values[field.name] ?? "";
-    return `<div class="form-field ${field.kind === "json" || field.multiline ? "wide" : ""}"><label id="label-${e(field.name)}" for="field-${e(field.name)}">${e(field.label)} ${editable ? field.nullable ? `<span class="optional-label">${e(t("optional"))}</span>` : "" : `<span class="field-tag">${e(t("Read only"))}</span>`}</label>${editable ? input(field, value) : `<div class="readonly-value" id="field-${e(field.name)}">${e(display(c, field.name, row))}</div>`}${field.help?`<p class="field-help">${e(t(field.help))}</p>`:""}${creating && editable && field.hasDefault ? `<label class="checkbox-label"><input type="checkbox" name="__default__${e(field.name)}" checked>${e(t("Use model / database default"))}</label>` : ""}</div>`;
+    return `<div class="form-field ${field.kind === "json" || field.multiline ? "wide" : ""}${editable ? "" : " is-readonly"}"><label id="label-${e(field.name)}" for="field-${e(field.name)}">${e(field.label)} ${editable ? field.nullable ? `<span class="optional-label">${e(t("optional"))}</span>` : "" : `<span class="field-tag">${e(t("Read only"))}</span>`}</label>${editable ? (field.control === "ticket" ? `<div class="demo-ticket-control">${input(field,value)}<datalist id="ticket-suggestions"><option value="DEMO-42"></option><option value="DEMO-73"></option><option value="DEMO-108"></option></datalist></div>` : input(field, value)) : `<div class="readonly-value" id="field-${e(field.name)}" aria-labelledby="label-${e(field.name)}">${field.display || field.urlTemplate ? renderValue(field,value,{t,e}) : e(display(c, field.name, row))}</div>`}${editable && (field.display === "url" || field.urlTemplate) && value ? `<div class="field-url-preview">${renderValue(field,value,{t,e})}</div>` : ""}${field.help?`<p class="field-help">${e(t(field.help))}</p>`:""}${creating && editable && field.hasDefault ? `<label class="checkbox-label"><input type="checkbox" name="__default__${e(field.name)}" checked>${e(t("Use model / database default"))}</label>` : ""}</div>`;
   };
-  const section = (title, content, id) => content ? `<section class="form-section" aria-labelledby="${id}"><h2 id="${id}">${e(t(title))}</h2><div class="form-grid">${content}</div></section>` : "";
+  const section = (title, content, id) => content ? `<section class="form-section${id === "section-readonly" ? " form-section-readonly" : ""}" aria-labelledby="${id}"><h2 id="${id}">${e(t(title))}</h2><div class="form-grid">${content}</div></section>` : "";
   const groups = [
     ["Record fields", fields.filter((f) => writable.includes(f.name) && f.kind !== "json")],
     ["Structured data", fields.filter((f) => writable.includes(f.name) && f.kind === "json")],
-    ["Read-only fields", fields.filter((f) => !writable.includes(f.name))],
   ];
-  const pickerMessages = Object.fromEntries(Object.entries({ choose: "Choose records", search: "Search related records", remove: "Remove", previous: "Previous", next: "Next", loading: "Loading…", empty: "No matching records.", failed: "Could not load records. Try again.", retry: "Retry", selected: "Selected", results: "Results", limit: "Select up to 1000 records." }).map(([key, value]) => [key, t(value)]));
+  const pickerMessages = Object.fromEntries(Object.entries({ choose: "Choose records", chooseOne: "Choose a record", change: "Change selection", clear: "Clear selection", search: "Search related records", remove: "Remove", previous: "Previous", next: "Next", loading: "Loading…", empty: "No matching records.", failed: "Could not load records. Try again.", retry: "Retry", selected: "Selected", results: "Results", limit: "Select up to 1000 records." }).map(([key, value]) => [key, t(value)]));
   const relations = c.relations.map((relation) => {
     const selected = row.links[relation.name] || [], multiple = ["one_to_many", "many_to_many"].includes(relation.kind);
-    return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><div class="relation-picker" data-relation-picker data-endpoint="./" data-relation="${e(relation.name)}" data-messages="${e(JSON.stringify(pickerMessages))}"><select class="picker-native" id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" ${multiple ? `multiple size="6" aria-describedby="relation-help-${e(relation.name)}"` : ""}>${multiple ? "" : '<option value="">—</option>'}${store.collection(relation.target).records.map((other) => `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(store.label(relation.target, other))}</option>`).join("")}</select></div></div>`;
+    if (!editable || relation.readonly || c.readonlyRelations?.includes(relation.name))
+      return `<div class="form-field wide is-readonly"><label>${e(relation.label)} <span class="field-tag">${e(t("Read only"))}</span></label><div class="readonly-value">${selected.map(key => `<a href="${href(relation.target,key)}">${e(store.label(relation.target,store.record(relation.target,key)))}</a>`).join(", ") || "—"}</div></div>`;
+    return `<div class="form-field wide"><label for="relation-${e(relation.name)}">${e(relation.label)}</label><div class="relation-picker" data-relation-picker data-endpoint="./" data-relation="${e(relation.name)}" data-messages="${e(JSON.stringify(pickerMessages))}"><select class="picker-native" id="relation-${e(relation.name)}" name="__relation__${e(relation.name)}" aria-describedby="relation-help-${e(relation.name)}" ${multiple ? `multiple size="6"` : ""}>${multiple ? "" : '<option value="">—</option>'}${store.collection(relation.target).records.map((other) => `<option value="${e(other.key)}" ${selected.includes(other.key) ? "selected" : ""}>${e(relationLabel(relation,other))}</option>`).join("")}</select></div><p class="field-help" id="relation-help-${e(relation.name)}">${e(t(multiple ? "Select one or more related records." : "Select one related record."))}</p></div>`;
   }).join("");
-  return `<a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading"><div><p class="eyebrow">${e(c.label)}</p><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1></div>${creating ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form">${creating ? "" : `<input type="hidden" name="__revision" value="${e(store.revision(slug, key))}">`}<div class="alert" role="alert" id="form-error" hidden></div><button id="demo-reload" class="button secondary conflict-reload" type="button" hidden>${e(t("Reload record"))}</button>${groups.map(([heading, fields], index) => section(heading, fields.map(renderField).join(""), `section-${index}`)).join("")}${section("Relationships", relations, "section-relations")}<div class="form-footer"><div class="button-group">${button(href(slug), "Cancel")}<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button></div></div></form>`;
+  return `<div class="record-editor"><a class="back-link" href="${href(slug)}">← ${e(c.label)}</a><div class="page-heading record-heading"><div><p class="eyebrow">${e(c.label)}</p><h1>${e(creating ? t("Create record") : store.label(slug, row))}</h1></div>${creating || c.canDelete === false ? "" : button(href(slug, key, "/delete"), "Delete record", "danger-outline")}</div><form id="demo-record" class="panel record-form">${creating ? "" : `<input type="hidden" name="__revision" value="${e(store.revision(slug, key))}">`}<div class="alert" role="alert" id="form-error" hidden></div><button id="demo-reload" class="button secondary conflict-reload" type="button" hidden>${e(t("Reload record"))}</button>${groups.map(([heading, fields], index) => section(heading, fields.map(renderField).join(""), `section-${index}`)).join("")}${section("Relationships", relations, "section-relations")}${section("Read-only fields", fields.filter(f => !writable.includes(f.name)).map(renderField).join(""), "section-readonly")}<div class="form-footer"><div class="button-group">${button(href(slug), editable ? "Cancel" : "Back")}${editable ? `<button class="button primary">${e(t(creating ? "Create record" : "Save changes"))}</button>` : ""}</div></div></form>${!creating && editable && c.actions?.length ? `<section class="record-actions"><h2>${e(t("Actions"))}</h2><div class="button-group">${c.actions.map(action => `<form data-demo-action="${e(action.slug)}" data-revision="${e(store.revision(slug,key))}"><button class="button secondary" type="submit">${e(t(action.label))}</button></form>`).join("")}</div></section>` : ""}</div>`;
 }
 function deletion(slug, key) {
+  if (store.collection(slug).canDelete === false) throw new Error("This table is read only.");
   const row = store.record(slug, key);
   return `<div class="page-heading"><h1>${e(t("Delete this record?"))}</h1></div><div class="panel delete-panel"><p>${e(store.label(slug, row))}</p><div class="alert" id="form-error" role="alert" hidden></div><form id="demo-delete"><div class="button-group">${button(href(slug, key), "Keep record")}<button class="button danger">${e(t("Delete permanently"))}</button></div></form></div>`;
 }
@@ -184,11 +214,10 @@ function shell(content, slug, key) {
   shell.dataset.storageKey = 'quite-admin-browser-demo';
   shell.dataset.currentTable = slug || '';
   shell.querySelector('.content').innerHTML = content;
-  shell.querySelector('.main').insertAdjacentHTML('afterbegin', notice());
   const section = location.hash.split('?')[0] || '#/';
   for (const link of shell.querySelectorAll('a[aria-current]')) link.removeAttribute('aria-current');
   for (const link of shell.querySelectorAll('.active')) link.classList.remove('active');
-  const activePath = slug ? href(slug) : section;
+  const activePath = slug ? href(slug) : section.replace('#/pages/','#/');
   for (const link of shell.querySelectorAll('.sidebar a')) {
     if (link.getAttribute('href') === activePath) {
       link.classList.add('active'); link.setAttribute('aria-current','page');
@@ -207,7 +236,6 @@ function shell(content, slug, key) {
   const logout = shell.querySelector('[data-profile-popover] form');
   logout.querySelector('button').id = 'demo-logout';
   logout.removeAttribute('action');
-  shell.querySelector('a[href="#/pages/report"]').setAttribute('href','#/report');
   return shell.outerHTML;
 }
 
@@ -225,14 +253,14 @@ async function inlineRequest(endpoint, options = {}) {
   const respond = (data,status=200) => new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json"}});
   const operation = () => {
     const c = store.collection(slug), row = store.record(slug,key), field = c.fields.find(field=>field.name===name);
-    if(!c.inline.includes(name)) return respond({},403);
+    if(c.canEdit === false || !c.inline.includes(name)) return respond({},403);
     if(options.method !== "POST") return respond({name,label:field.label,kind:field.kind,multiline:field.multiline,nullable:field.nullable,choices:field.choices,max_length:field.maxLength,value:row.values[name]??"",raw_boolean:row.values[name]==null?null:row.values[name]==="true",csrf:"browser-demo",revision:store.revision(slug,key)});
     const data = options.body;
     try {
       store.save(slug,key,{[name]:data.get(name)===""&&field.nullable?null:data.get(name)},{},data.get("__revision"),"inline_edit");
       persist();
       const latest = store.record(slug,key);
-      return respond({label_record:t("Open record")+": "+store.label(slug,latest),cells:Object.fromEntries(c.fields.map(field=>[field.name,{text:latest.values[field.name]??"—",null:latest.values[field.name]==null,boolean:latest.values[field.name]==="true"}]))});
+      return respond({label_record:t("Open record")+": "+store.label(slug,latest),cells:Object.fromEntries(c.fields.map(field=>[field.name,{text:latest.values[field.name]??"—",null:latest.values[field.name]==null,boolean:latest.values[field.name]==="true",...(field.display || field.urlTemplate ? {display:valueModel(field,latest.values[field.name],{compact:true})} : {})}]))});
     } catch(error) {
       const status=error.message.startsWith("This record changed")?409:422;
       store.log(slug,"inline_edit",key,[],"failure",status);persist();
@@ -292,7 +320,10 @@ function render() {
   let slug, key, content;
   try {
     if (!loggedIn) content = login();
-    else if (parts[0] === "models") {
+    else if (parts[0] === "bulk") {
+      slug = parts[1];
+      content = shell(bulkPage(pendingBulk?.slug === slug ? pendingBulk : null, bulkResults, {t,e}), slug);
+    } else if (parts[0] === "models") {
       slug = parts[1];
       key = parts[2];
       content = shell(
@@ -306,10 +337,6 @@ function render() {
       );
     } else if (parts[0] === "history") content = shell(activityPage({store,seed,language,t,e,href,query}));
     else if (parts[0] === "schema") content = shell(seed.schemaPages[language]);
-    else if (parts[0] === "report")
-      content = shell(
-        `<div class="page-heading"><h1>Store report</h1></div><div class="collection-grid">${["customers", "orders"].map((name) => `<div class="collection-card"><h2>${e(store.collection(name).label)}</h2><p class="report-value">${store.collection(name).records.length}</p><div class="card-footer"><a href="${href(name)}">${e(t("Open collection"))} →</a></div></div>`).join("")}</div>`,
-      );
     else content = shell(dashboard());
   } catch (error) {
     content = shell(`<h1>${e(t("Not Found"))}</h1>${button("#/", "Home")}`);
@@ -324,6 +351,7 @@ function render() {
   window.quiteAdminInitTables(document);
   window.quiteAdminNavigation(document);
   window.quiteAdminDashboard(document);
+  window.quiteAdminEnhanceValues(document);
   const formMessages = document.createElement("div"); formMessages.hidden = true;
   formMessages.setAttribute("data-form-messages", ""); formMessages.dataset.messages = JSON.stringify(seed.formMessages[language]);
   document.querySelector("#app").prepend(formMessages);
@@ -331,17 +359,15 @@ function render() {
   window.QuiteAdmin.initSchemas();
   cleanupInline = window.quiteAdminEnhanceInline(document, inlineRequest);
   initActivity(query);
-  document.querySelector("#demo-language").onchange = (event) => {
-    language = event.target.value;
-    write("localStorage", "quite-admin-demo-language", language);
-    render();
-  };
-  document.querySelector("#demo-reset").onclick = () => {
-    store = new Store(seed);
-    persist();
-    location.hash = "#/";
-    render();
-  };
+  if (loggedIn) {
+    const marker = document.createElement("div");
+    marker.hidden = true;
+    marker.setAttribute("data-admin-tour", "");
+    marker.dataset.config = JSON.stringify({...seed.tourConfigs[language],
+      storageKey: `quite-admin-browser-demo-tour:${location.pathname}:admin`});
+    document.querySelector("#app").append(marker);
+  }
+  window.quiteAdminTour.init(document);
   if (!loggedIn) {
     document.querySelector("#demo-login").onsubmit = (event) => {
       event.preventDefault();
@@ -377,9 +403,7 @@ function render() {
     };
     search.loadOptions = async (field, {search: term, page}) => {
       const relation = store.collection(slug).relations.find((item) => "r." + item.name === field.id);
-      const target = store.collection(relation.target);
-      const rows = target.records.filter(row => target.fields.some(f => f.kind === 'string' && String(row.values[f.name] || '').toLowerCase().includes(term.toLowerCase())) || target.fields.filter(f=>f.primaryKey).every(f=>String(row.values[f.name])===term));
-      return {items: rows.slice((page - 1) * 25, page * 25).map((row) => ({key:row.key,label:store.label(relation.target,row),identity:target.fields.filter(f=>f.primaryKey).map(f=>row.values[f.name]).join(" · "),description:target.fields.filter(f=>f.kind==='string').map(f=>row.values[f.name]).filter(Boolean).join(" · ")})), total:rows.length,has_next:page * 25 < rows.length};
+      return relationOptions(relation,term,page);
     };
     window.QuiteAdmin.initFilters();
   }
@@ -396,23 +420,61 @@ function render() {
     document.querySelectorAll("[data-relation-picker]").forEach((root) => {
       const relation = store.collection(slug).relations.find((item) => item.name === root.dataset.relation);
       root.loadOptions = async ({search, page}) => {
-        const rows = store.collection(relation.target).records.filter((row) => store.label(relation.target, row).toLowerCase().includes(search.toLowerCase()));
-        return {items: rows.slice((page - 1) * 25, page * 25).map((row) => ({key: row.key, label: store.label(relation.target, row)})), total: rows.length, has_next: page * 25 < rows.length};
+        return relationOptions(relation,search,page);
       };
     });
     window.QuiteAdmin.initRelationPickers();
   }
   cleanupListing = window.quiteAdminEnhanceListing(document, location.pathname + "#/models/" + slug);
+  const bulk = document.querySelector('[data-bulk-form]');
+  if (bulk) bulk.onsubmit = event => {
+    event.preventDefault();
+    const data = new FormData(bulk), keys = [...new Set(data.getAll('keys'))];
+    if (!keys.length || keys.length > 100) return;
+    const command = bulkCommands(store.collection(slug)).find(action => action.slug === data.get('action'));
+    if (!command) return;
+    pendingBulk = {slug, keys, action:command.slug, label:command.label, back:location.hash,
+      labels:Object.fromEntries(keys.map(key => [key,store.label(slug,store.record(slug,key))])),
+      revisions:Object.fromEntries(keys.map(key => [key,store.revision(slug,key)]))};
+    bulkResults = null;
+    location.hash = '#/bulk/' + encodeURIComponent(slug);
+  };
+  const confirmation = document.querySelector('#demo-bulk-confirm');
+  if (confirmation) confirmation.onsubmit = async event => {
+    event.preventDefault();
+    const button = confirmation.querySelector('button[type=submit]');
+    button.disabled = true;
+    await withStoreLock(() => {bulkResults = runBulk(store,pendingBulk); persist();});
+    render();
+  };
+  for (const action of document.querySelectorAll('[data-demo-action]')) action.onsubmit = async event => {
+    event.preventDefault();
+    try {
+      await withStoreLock(() => {
+        runRecordAction(store,slug,key,action.dataset.demoAction,action.dataset.revision);
+        persist();
+      });
+      render();
+    } catch (error) {
+      const alert = document.querySelector('#form-error');
+      alert.hidden = false; alert.textContent = t(error.message);
+    }
+  };
   const exportForm = document.querySelector("#demo-export");
-  if(exportForm) exportForm.onsubmit = event => {
+  if(exportForm) exportForm.onsubmit = async event => {
     event.preventDefault();
     const data = new FormData(exportForm), columns = data.getAll("columns");
     if(!columns.length)return;
-    const exportQuery = new URLSearchParams(query); exportQuery.set("q",data.get("q")||"");
-    const blob = new Blob([csv(store.collection(slug),matchingRows(store,slug,exportQuery),columns)],{type:"text/csv;charset=utf-8"});
+    const exportQuery = new URLSearchParams(query);
+    exportQuery.set("q",data.get("q") ?? document.querySelector('#demo-search [name=q]')?.value ?? query.get('q') ?? '');
+    const content = await withStoreLock(() => {
+      const content = csv(store.collection(slug),matchingRows(store,slug,exportQuery),columns,store);
+      store.log(slug,"export");persist();
+      return content;
+    });
+    const blob = new Blob([content],{type:"text/csv;charset=utf-8"});
     const url = URL.createObjectURL(blob), link = document.createElement("a");
     link.href=url;link.download=slug+".csv";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-    store.log(slug,"export");persist();
   };
   const form = document.querySelector("#demo-record");
   if (form)
@@ -428,8 +490,8 @@ function render() {
             values[field.name] =
               data.get(field.name) === "" && field.nullable
                 ? null
-                : data.get(field.name);
-        for (const relation of c.relations)
+                : field.control === "ticket" ? data.get(field.name).trim().toUpperCase() : data.get(field.name);
+        for (const relation of c.relations.filter(relation => form.elements.namedItem("__relation__" + relation.name)))
           selections[relation.name] = data
             .getAll("__relation__" + relation.name)
             .filter(Boolean);
@@ -471,7 +533,7 @@ function render() {
     };
 }
 window.addEventListener("hashchange", () => {
-  render();
   window.scrollTo(0, 0);
+  render();
 });
 render();

@@ -327,8 +327,10 @@ class SQLAlchemyRelations:
                             if current is not None
                             else []
                         )
-                        if not relation.can_detach and any(
-                            item not in targets for item in previous
+                        if (
+                            relation.mutates_target
+                            and not relation.can_detach
+                            and any(item not in targets for item in previous)
                         ):
                             raise Conflict("This relationship cannot be detached.")
                         if (

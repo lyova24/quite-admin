@@ -24,15 +24,13 @@ from sqlalchemy import (
     func,
     select,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
+from sqlalchemy.orm import Mapped, mapped_column, relationship, sessionmaker
 
-from quite_admin import Admin, FieldOptions, ModelOptions, Page, PasswordAuth, RecordAction
+from examples.base import Base
+from examples.showcase import configure_showcase, seed_showcase
+from examples.tour import DemoAdmin
+from quite_admin import FieldOptions, ModelOptions, PasswordAuth, RecordAction
 from quite_admin.adapters.sqlalchemy import SQLAlchemyAdapter
-
-
-class Base(DeclarativeBase):
-    pass
-
 
 product_tags = Table(
     "product_tags",
@@ -115,13 +113,14 @@ def make_demo():
     sessions = sessionmaker(engine)
     adapter = SQLAlchemyAdapter(sessions, base=Base)
     password = os.environ["QUITE_ADMIN_PASSWORD"]
-    admin = Admin(
+    admin = DemoAdmin(
         auth=PasswordAuth.single_user("admin", password),
         secret_key=os.getenv("QUITE_ADMIN_SECRET", secrets.token_urlsafe(48)),
         adapters=[adapter],
         templates_dir=Path(__file__).parent / "templates",
         title=os.getenv("QUITE_ADMIN_TITLE", "Quite Admin"),
         language=os.getenv("QUITE_ADMIN_LANGUAGE", "en"),
+        history_level="audit",
         secure_cookies=False,  # This example runs over localhost HTTP.
     )
     admin.register(Customer, options=ModelOptions(group="Sales", readonly_fields=("joined_at",)))
@@ -151,33 +150,25 @@ def make_demo():
             group="Workspace",
             list_fields=("id", "title", "day", "starts_at", "reminder_at", "approved"),
             fields={
+                "day": FieldOptions(label="Дата" if admin.language == "ru" else "Date"),
                 "starts_at": FieldOptions(
-                    help_text="Naive local time; microseconds are preserved."
+                    label="Дата и время" if admin.language == "ru" else "Date and time",
+                    help_text="Naive local time; microseconds are preserved.",
                 ),
+                "reminder_at": FieldOptions(label="Время" if admin.language == "ru" else "Time"),
                 "approved": FieldOptions(help_text="None means this event is awaiting review."),
             },
         ),
     )
+    configure_showcase(admin, adapter)
 
-    async def report(request):
-        from anyio import to_thread
-
-        def counts():
-            with sessions() as session:
-                return {
-                    "customer_count": session.scalar(select(func.count()).select_from(Customer)),
-                    "order_count": session.scalar(select(func.count()).select_from(Order)),
-                }
-
-        return await to_thread.run_sync(counts)
-
-    admin.add_page(Page("report", "Store report", "report.html", context=report))
     return admin, engine, sessions
 
 
 def seed(engine, sessions):
     Base.metadata.create_all(engine)
     with sessions.begin() as session:
+        seed_showcase(session)
         if not session.scalar(select(func.count()).select_from(Schedule)):
             today = datetime.now(UTC).date()
             for index, title in enumerate(

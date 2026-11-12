@@ -68,7 +68,8 @@ and history continue to use raw IDs.
 
 ## Search and selection
 
-Use **Choose records** to open a picker. Search uses the target table's visible
+Use **Choose a record** for a single relationship or **Choose records** for multiple
+relationships to open a picker. Search uses the target table's visible
 `search_fields` (visible strings by default). If the source field sets `relation_label`
 to a permitted string field, the picker also searches that field, even when it is
 absent from the target's `search_fields` or that setting is empty. An exact ID search
@@ -78,9 +79,19 @@ primary-key order. Previous/Next reaches the complete candidate set. Enter a
 complete JSON object for a composite key. Hidden keys do not enable the ID shortcut. The options endpoint
 returns keys, permitted labels, visible identity and searchable-field descriptions;
 [list filters](filters.md#related-records) display the additional context.
-Selected chips stay selected across search queries and pages; × removes a selection.
-The picker supports Tab, Space/Enter and Escape. Searching never submits the record form.
+Selected records appear separately from search results, with a count. They remain
+selected across search queries and pages; × removes one selection and **Clear selection**
+clears the current selection. Single relationships use radio buttons; multiple relationships
+use checkboxes, and the picker stays open while adding records. The picker supports
+Tab, arrow keys, Space/Enter and Escape. Searching never submits the record form.
 Selections are committed together with scalar fields by **Save changes**.
+
+The compact search panel has a limited width rather than spanning the whole form.
+It opens over the form without shifting its fields; when there is more room above
+the selector, it opens upward. Click anywhere on a result row, including its text,
+to select a single record or toggle a record in a multiple selection. **Change selection**
+reopens the panel for an existing single selection. Click outside the picker, press
+Escape or Tab out of it to close the panel; the current selection is preserved.
 
 Up to 1000 records can be selected in one relationship. Larger existing memberships
 are read-only to prevent partial updates. Without JavaScript, the native selector

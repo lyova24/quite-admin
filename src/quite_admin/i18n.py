@@ -51,6 +51,15 @@ class Message(str):
 
 
 RUSSIAN = {
+    "e.g. 42": "Например, 42",
+    "e.g. 19.50": "Например, 19.50",
+    "Enter valid JSON": "Введите корректный JSON",
+    "Enter a password": "Введите пароль",
+    "Choose a record": "Выбрать запись",
+    "Change selection": "Изменить выбор",
+    "Clear selection": "Очистить выбор",
+    "Select one related record.": "Выберите одну связанную запись.",
+    "Select one or more related records.": "Выберите одну или несколько связанных записей.",
     "Show only related tables": "Показать только связанные таблицы",
     "Restore previous tables": "Вернуть прежний набор таблиц",
     "Remove from recently opened: {name}": "Убрать из недавно открытых: {name}",

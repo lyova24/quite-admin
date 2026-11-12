@@ -77,10 +77,15 @@ test('browser demo uses the same schema groups in both languages', async ({page}
   await page.getByLabel('Password', {exact:true}).fill('admin');
   await page.getByRole('button', {name:'Sign in', exact:true}).click();
   const root = page.locator('[data-schema-workspace]');
-  await expect(root.locator('[data-schema-group]')).toHaveCount(3);
+  const seed = await (await page.request.get('http://127.0.0.1:8128/seed.json')).json();
+  const groups = new Set(Object.values(seed.collections).map(collection => collection.group));
+  await expect(root.locator('[data-schema-group]')).toHaveCount(groups.size);
   await root.locator('[data-schema-hide-all]').click();
   await root.getByRole('checkbox', {name:'Show group: Sales', exact:true}).check();
   await expect(root.locator('[data-node]')).toHaveCount(3);
-  await page.locator('#demo-language').selectOption('ru');
+  await page.goto('http://127.0.0.1:8128/?lang=ru#/schema');
+  await root.locator('[data-schema-hide-all]').click();
+  await root.getByRole('checkbox', {name:'Показать группу: Sales', exact:true}).check();
+  await expect(root.locator('[data-node]')).toHaveCount(3);
   await expect(root.getByRole('checkbox', {name:'Показать группу: Sales', exact:true})).toBeChecked();
 });

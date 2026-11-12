@@ -80,6 +80,8 @@
       control.setAttribute('value', value);
     }
     control.id = id; control.name = field.name; control.value = value;
+    const hints = {integer:'e.g. 42', number:'e.g. 19.50', uuid:'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', json:'Enter valid JSON', password:'Enter a password'};
+    if (hints[field.kind]) control.placeholder = t(hints[field.kind]);
     if (field.max_length) control.maxLength = field.max_length;
     return control;
   }

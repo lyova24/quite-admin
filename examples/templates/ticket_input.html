@@ -1,0 +1,7 @@
+{# A custom field template can add native suggestions while keeping validation/accessibility. #}
+<input class="showcase-ticket-input" id="field-{{ field.name }}" name="{{ field.name }}" value="{{ values[field.name] }}" type="text" list="showcase-issue-suggestions" maxlength="{{ field.max_length }}" placeholder="DEMO-42"{{ field_attributes(descriptions, errors.get(field.name)) }}>
+<datalist id="showcase-issue-suggestions">
+  <option value="DEMO-42">Catalog review</option>
+  <option value="DEMO-73">Shipping checklist</option>
+  <option value="DEMO-108">Customer workshop</option>
+</datalist>

@@ -5,8 +5,9 @@
 {% from "quite_admin/_fields.html" import render_field with context %}
 {% from "quite_admin/_controls.html" import field_attributes with context %}
 
+<div class="record-editor">
 <a class="back-link" href="{{ back_url }}">← {{ back_label }}</a>
-<div class="page-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record') if creating else resource.record_label(record) }}</h1></div>{% if can_delete %}<a class="button danger-outline" href="{{ navigation_url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/delete') }}">{{ t('Delete record') }}</a>{% endif %}</div>
+<div class="page-heading record-heading"><div><p class="eyebrow">{{ resource.label }}</p><h1>{{ t('Create record') if creating else resource.record_label(record) }}</h1></div>{% if can_delete %}<a class="button danger-outline" href="{{ navigation_url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/delete') }}">{{ t('Delete record') }}</a>{% endif %}</div>
 <form method="post" action="{{ form_action }}" class="panel record-form">
   {{ csrf_input() }}
   {% if revision_token %}<input type="hidden" name="__revision" value="{{ revision_token }}">{% endif %}
@@ -16,8 +17,7 @@
   {% set readonly_fields = fields|rejectattr('name', 'in', writable)|list %}
   {% for heading, group_fields in [
     ('Record fields', writable_fields|rejectattr('kind', 'equalto', 'json')|list),
-    ('Structured data', writable_fields|selectattr('kind', 'equalto', 'json')|list),
-    ('Read-only fields' if editable else 'Record fields', readonly_fields)
+    ('Structured data', writable_fields|selectattr('kind', 'equalto', 'json')|list)
   ] %}
   {% if group_fields %}<section class="form-section" aria-labelledby="section-{{ loop.index }}">
     <h2 id="section-{{ loop.index }}">{{ t(heading) }}</h2>
@@ -32,14 +32,15 @@
     <label for="relation-{{ relation.name }}">{{ relation.label }}{% if not editor.editable %} <span class="field-tag">{{ t('Read only') }}</span>{% endif %}</label>
     {% if editor.editable %}
     <input type="hidden" name="__relation_present__{{ relation.name }}" value="true">
-    {% set relation_descriptions %}{% if editor.multiple %}relation-help-{{ relation.name }} {% endif %}{% if editor.truncated %}relation-limit-{{ relation.name }} {% endif %}{% if errors.get('__relation__' ~ relation.name) %}relation-error-{{ relation.name }}{% endif %}{% endset %}
+    {% set relation_descriptions %}relation-help-{{ relation.name }} {% if editor.truncated %}relation-limit-{{ relation.name }} {% endif %}{% if errors.get('__relation__' ~ relation.name) %}relation-error-{{ relation.name }}{% endif %}{% endset %}
     <div class="relation-picker" data-relation-picker data-endpoint="{{ editor.endpoint }}" data-messages='{{ picker_messages|tojson }}'>
     <select class="picker-native" id="relation-{{ relation.name }}" name="__relation__{{ relation.name }}"{{ field_attributes(relation_descriptions, errors.get('__relation__' ~ relation.name)) }} {% if editor.multiple %}multiple size="6"{% endif %}>
       {% if not editor.multiple %}<option value="">— {{ t('None') }} —</option>{% endif %}
       {% for key, label in editor.choices %}<option value="{{ key }}" {% if key in editor.selected %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
-    <p class="field-help picker-native" id="relation-help-{{ relation.name }}">{{ t('Enable JavaScript to search all related records.') }}</p>
+    <p class="field-help picker-native">{{ t('Enable JavaScript to search all related records.') }}</p>
     </div>
+    <p class="field-help" id="relation-help-{{ relation.name }}">{{ t('Select one or more related records.' if editor.multiple else 'Select one related record.') }}</p>
     {% else %}<div class="readonly-value">{% for key, label in editor.choices if key in editor.selected %}<a href="{{ navigation_url('/models/' ~ editor.target.slug ~ '/' ~ key) }}">{{ label }}</a>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</div>{% endif %}
     {% if editor.truncated %}<p class="field-help" id="relation-limit-{{ relation.name }}">{{ t('More than 1000 linked records. Editing is disabled to preserve the complete selection.') }}</p>{% endif %}
     {% if errors.get('__relation__' ~ relation.name) %}<p class="field-error" id="relation-error-{{ relation.name }}">{{ t(errors['__relation__' ~ relation.name]) }}</p>{% endif %}
@@ -47,7 +48,12 @@
   {% endfor %}
   </div>
   </section>{% endif %}
+  {% if readonly_fields %}<section class="form-section form-section-readonly" aria-labelledby="section-readonly">
+    <h2 id="section-readonly">{{ t('Read-only fields' if editable else 'Record fields') }}</h2>
+    <div class="form-grid">{% for field in readonly_fields %}{{ render_field(field) }}{% endfor %}</div>
+  </section>{% endif %}
   <div class="form-footer"><div class="button-group"><a class="button secondary" href="{{ back_url }}">{{ t('Cancel') if editable else t('Back') }}</a>{% if editable %}<button class="button primary" type="submit">{{ t('Create record' if creating else 'Save changes') }}</button>{% endif %}</div></div>
 </form>
 {% if record_actions %}<section class="record-actions" aria-labelledby="record-actions-title"><h2 id="record-actions-title">{{ t('Actions') }}</h2><div class="button-group">{% for action in record_actions %}<form method="post" action="{{ navigation_url('/models/' ~ resource.slug ~ '/' ~ resource.schema.record_key(record) ~ '/actions/' ~ action.slug) }}">{{ csrf_input() }}<button class="button secondary" type="submit">{{ action.label }}</button></form>{% endfor %}</div></section>{% endif %}
+</div>
 {% endblock %}

@@ -6,7 +6,7 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/lyova24/quite-admin/ci.yml?branch=master&event=push&style=for-the-badge&label=tests&labelColor=202020)](https://github.com/lyova24/quite-admin/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/quite-admin?style=for-the-badge&label=PyPI&labelColor=202020&color=3395fd)](https://pypi.org/project/quite-admin/)
 
-**Version: 0.8.17** · [Changelog](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md)
+**Version: 0.8.18** · [Changelog](https://github.com/lyova24/quite-admin/blob/master/CHANGELOG.md)
 
 **An admin panel for your existing FastAPI or Litestar models.**
 
@@ -77,7 +77,7 @@ No repository checkout or Node.js is needed.
 
 To explore without running Python, open the
 [browser demo](https://lyova24.github.io/quite-admin/demo/) with `admin` / `admin`.
-Its fictional data stays in your browser; **Reset demo** restores it.
+Its fictional data stays in your browser.
 [See the interface tour](https://lyova24.github.io/quite-admin/en/interface-tour.html).
 
 ## What you get

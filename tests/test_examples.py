@@ -12,7 +12,7 @@ from .helpers import confirmation, csrf, login, revision
 
 
 @pytest.mark.parametrize("module_name", ["examples.fastapi_app", "examples.litestar_app"])
-async def test_example_lifespan_and_custom_report(module_name, monkeypatch, tmp_path):
+async def test_example_lifespan_and_native_admin_pages(module_name, monkeypatch, tmp_path):
     monkeypatch.setenv("QUITE_ADMIN_PASSWORD", "example-password")
     monkeypatch.setenv("QUITE_ADMIN_DEMO_DB", f"sqlite:///{tmp_path}/demo.db")
     module = importlib.import_module(module_name)
@@ -58,8 +58,10 @@ async def test_example_lifespan_and_custom_report(module_name, monkeypatch, tmp_
             row = await resource.adapter.get(resource.model, resource.schema.parse_key(key))
             assert row["active"] is False
         report = await client.get("/admin/pages/report")
-        assert report.status_code == 200, report.text
-        assert "Customers in your workspace" in report.text
+        assert report.status_code == 404
+        home = await client.get("/admin/")
+        assert "/pages/report" not in home.text and "/pages/showcase" not in home.text
+        assert "data-dashboard" in home.text and "data-admin-tour" in home.text
 
 
 async def test_standalone_quickstart_crud_relationships_and_persistence(monkeypatch, tmp_path):

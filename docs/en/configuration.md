@@ -200,6 +200,16 @@ See [list filters](filters.md) for `filter_fields` and related-record filtering.
 
 ## Database type controls
 
+Record headings, form sections and actions share one centered, responsive container.
+Short fields use two columns when space permits; multiline text, JSON and relationship
+editors use the full width. Labels remain visible above controls, with help text and
+validation errors beside the corresponding field. Empty numeric, UUID, JSON and
+password controls show type-specific placeholders; these hints do not set values or
+replace labels. Read-only values appear in their own section. The save/cancel footer
+stays available while scrolling long forms.
+See [relationships](relationships.md#search-and-selection) for single and multiple
+record selection; the existing date/time calendar is described below.
+
 | Database/model type | Built-in control |
 |---|---|
 | CHAR / VARCHAR, bounded strings | Single-line input with discovered `maxlength` |

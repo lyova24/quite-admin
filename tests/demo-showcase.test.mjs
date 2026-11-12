@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Store} from '../demo/store.mjs';
 import {filterActivity, activityPage} from '../demo/activity.mjs';
-import {csv, matchingRows, listWindow} from '../demo/listing.mjs';
+import {csv, matchingRows, listWindow, exportColumns, listCell} from '../demo/listing.mjs';
+import {recordKey} from '../demo/store.mjs';
+import {valueModel, renderValue, escapeHTML} from '../demo/values.mjs';
 const seed = JSON.parse(await readFile(new URL('../build/docs/demo/seed.json',import.meta.url)));
 
 test('history dates include both complete UTC endpoints and preserve other conditions',()=>{
@@ -70,4 +72,124 @@ test('cursor collections sort non-key columns before paginating',()=>{
   query.set('after',first.rows.at(-1).key);
   const second=listWindow(rows,query,true);
   assert.deepEqual([...first.rows,...second.rows],rows);
+});
+
+test('showcase metadata exports permitted policies, rich displays and allowlisted actions without secrets',()=>{
+  const samples=seed.collections.field_samples, accounts=seed.collections.demo_accounts;
+  assert.equal(samples.recordLabel,'title');
+  assert.equal(samples.fields.find(field=>field.name==='website').display,'url');
+  assert.equal(samples.fields.find(field=>field.name==='ticket').urlTemplate,'https://example.com/issues/{value}');
+  assert.equal(samples.fields.find(field=>field.name==='quantity').minimum,0);
+  assert.deepEqual(samples.actions.map(action=>action.effect),[{status:'archived'},{status:'published'}]);
+  assert.deepEqual(seed.collections.products.bulkActions.map(action=>action.effect),[{active:'false'}]);
+  for(const collection of Object.values(seed.collections)) {
+    assert.ok(!collection.fields.some(field=>['api_key','password_hash'].includes(field.name)));
+    assert.ok(collection.records.every(row=>!('api_key' in row.values)&&!('password_hash' in row.values)));
+    assert.ok(!collection.actions.some(action=>'handler' in action));
+  }
+  assert.equal(accounts.serverOnlyWrites,true);
+  assert.equal(accounts.canCreate,false);
+  assert.equal(accounts.canEdit,false);
+  assert.deepEqual(accounts.inline,[]);
+  assert.deepEqual(seed.collections.reference_rates.inline,[]);
+  const password=accounts.inputFields.find(field=>field.kind==='password');
+  assert.ok(password);
+  assert.equal(password.default,null);
+  assert.ok(!('value' in password));
+});
+
+test('manual composite identities are computed after inputs, preserve UTF-8 and reject duplicates atomically',()=>{
+  const store=new Store(seed), collection=store.collection('regional_prices');
+  const values={region:'Ев🌍',sku:'SKU/42',price:'12.50',currency:'EUR'};
+  const key=store.save('regional_prices',null,values,{});
+  const encoded=key.replaceAll('-','+').replaceAll('_','/');
+  const decoded=new TextDecoder().decode(Uint8Array.from(atob(encoded),char=>char.charCodeAt(0)));
+  assert.deepEqual(JSON.parse(decoded),['Ев🌍','SKU/42']);
+  assert.equal(key,recordKey(collection,values));
+  assert.equal(store.label('regional_prices',store.record('regional_prices',key)),'Ев🌍 · SKU/42');
+  store.collection('regional_prices').recordLabel='sku';
+  assert.equal(store.label('regional_prices',store.record('regional_prices',key)),'SKU/42');
+  const before=structuredClone(store.snapshot());
+  assert.throws(()=>store.save('regional_prices',null,values,{}),/constraint/);
+  assert.deepEqual(store.snapshot(),before);
+  assert.throws(()=>store.save('regional_prices',null,{sku:'missing region',price:'1',currency:'USD'},{}),/primary key/);
+  assert.deepEqual(store.snapshot(),before);
+});
+
+test('UUID defaults and enum defaults stay canonical, with validation rollback for UUIDs and hook bounds',()=>{
+  const store=new Store(seed);
+  const key=store.save('field_samples',null,{title:'New sample'},{});
+  const row=store.record('field_samples',key);
+  assert.match(row.values.public_id,/^[a-f0-9-]{36}$/);
+  assert.equal(row.values.status,'draft');
+  assert.equal(row.values.quantity,'1');
+  assert.equal(row.values.ratio,'1.0');
+  store.save('field_samples',key,{public_id:'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA'},{});
+  assert.equal(store.record('field_samples',key).values.public_id,'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  const before=structuredClone(store.snapshot());
+  for(const values of [{public_id:'invalid'},{quantity:'-1'},{ratio:'-0.1'},{status:'other'}]) {
+    assert.throws(()=>store.save('field_samples',key,values,{}));
+    assert.deepEqual(store.snapshot(),before);
+  }
+});
+
+test('read-only model and relationship policies protect direct local writes',()=>{
+  const store=new Store(seed), rate=store.collection('reference_rates').records[0];
+  const folder=store.collection('folders').records.find(row=>row.links.samples?.length);
+  const before=structuredClone(store.snapshot());
+  assert.throws(()=>store.save('reference_rates',rate.key,{value:'999'},{}),/not permitted/);
+  assert.throws(()=>store.delete('reference_rates',rate.key),/not permitted/);
+  assert.throws(()=>store.save('reference_rates',null,{code:'OTHER',value:'1'},{}),/not permitted/);
+  assert.throws(()=>store.save('folders',folder.key,{name:'unsaved'},{samples:[]}),/read-only/);
+  assert.deepEqual(store.snapshot(),before);
+});
+
+test('required composite relationships replace both foreign keys and roll back invalid changes',()=>{
+  const store=new Store(seed), row=store.collection('price_alerts').records[0];
+  const relation=store.collection('price_alerts').relations.find(relation=>relation.name==='regional_price');
+  assert.deepEqual(relation.sourceReferences,{region:'region',sku:'sku'});
+  relation.sourceFields.reverse(); // Mapping follows column names, not incidental metadata order.
+  const target=store.collection('regional_prices').records.find(candidate=>!row.links.regional_price.includes(candidate.key));
+  store.save('price_alerts',row.key,{threshold:'16.00'},{regional_price:[target.key]});
+  const saved=store.record('price_alerts',row.key);
+  assert.equal(saved.values.region,target.values.region);
+  assert.equal(saved.values.sku,target.values.sku);
+  const before=structuredClone(store.snapshot());
+  assert.throws(()=>store.save('price_alerts',row.key,{threshold:'20.00'},{regional_price:[]}),/required/);
+  assert.throws(()=>store.save('price_alerts',row.key,{threshold:'-1'},{}));
+  assert.deepEqual(store.snapshot(),before);
+});
+
+test('rich displays escape markup, restrict URL schemes and preserve large JSON integers',()=>{
+  assert.equal(valueModel({display:'url'},'javascript:alert(1)').href,null);
+  assert.equal(valueModel({display:'url'},'https:example.com').href,null);
+  assert.equal(valueModel({display:'url'},'https:////example.com').href,null);
+  assert.equal(valueModel({display:'url'},'https://example.com/\\evil').href,null);
+  assert.equal(valueModel({display:'url'},' https://example.com/').href,null);
+  const url=valueModel({urlTemplate:'https://example.com/issues/{value}'},"abc/42!'");
+  assert.equal(url.href,'https://example.com/issues/abc%2F42%21%27');
+  const json=valueModel({display:'json'},'{"n":9007199254740993,"text":"</pre><script>bad</script>"}');
+  assert.ok(json.text.includes('9007199254740993'));
+  assert.ok(!json.text.includes('9007199254740992'));
+  const html=renderValue({label:'Data',display:'json'},json.text,{compact:true});
+  assert.ok(html.includes('&lt;script&gt;'));
+  assert.ok(!html.includes('<script>'));
+  assert.ok(html.includes('value-details'));
+  assert.ok(html.includes('data-copy-value'));
+  const cell=listCell({slug:'test',row:{key:'1',values:{url:'https://example.com/'}},
+    field:{name:'url',label:'URL',display:'url'},editable:true,t:text=>text,e:escapeHTML});
+  assert.ok(cell.includes('rel="noopener noreferrer"'));
+  assert.ok(!cell.includes('data-inline-endpoint'));
+});
+
+test('related CSV uses stable aligned one-hop values and preserves one row per source',()=>{
+  const store=new Store(seed), collection=store.collection('products');
+  const row=collection.records.find(row=>row.links.tags.length>1);
+  const expected=[...row.links.tags].sort().map(key=>store.record('tags',key).values.name).join('\n');
+  assert.ok(exportColumns(collection,store).some(column=>column.name==='tags.name'));
+  const result=csv(collection,[row],['name','tags.name','tags.id'],store);
+  assert.ok(result.startsWith('\uFEFF"Name","Tags · Name","Tags · Id"\r\n'));
+  assert.ok(result.includes('"'+expected+'"'));
+  assert.throws(()=>csv(collection,[row],['api_key'],store),/valid export columns/);
+  assert.throws(()=>csv(collection,[row],['tags.api_key'],store),/valid export columns/);
 });

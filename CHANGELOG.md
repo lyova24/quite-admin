@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.18 — 2026-11-13
+
+- Allow replacing a required forward SQLAlchemy relationship with another existing record, including composite foreign keys. Continue rejecting empty selections and detaching required children; keep scalar and relationship changes atomic.
+- Align record headings, forms and actions within one responsive container. Improve field spacing, input presentation, format hints and read-only values while retaining the existing date/time calendar and native controls.
+- Clarify single and multiple relationship selection with separate selected records, a count and clear/remove controls. Keep choices across searches and pages, support keyboard navigation and make the whole result row selectable. Open search in a compact overlay above or below the selector without shifting the form; closing preserves the selection.
+- Expand the fictional FastAPI/Litestar examples with enum/UUID and rich value displays, a custom issue control, defaults, nullable self-relations with paginated candidates, read-only relations/data, composite keys and required composite-key selectors, record actions, pre-write validation and Pydantic-backed account services with form-only password input. Enable audit history in the example and initialize separate new tables without replacing existing sample records.
+- Extend the browser demo with matching fields/relationships, local record and bulk actions with confirmation/results, view-only policies and related CSV columns. Keep account writes and Python authentication, CSRF, services, hooks, database transactions and XLSX in the ASGI example.
+- Keep both examples on ordinary admin Home, list and record pages. Offer an optional walkthrough after sign-in, starting navigation and highlighting only after explicit acceptance. Remember dismissal and completion, return Home after Finish and allow manual restart from the profile menu; the keyboard-accessible walkthrough visits real pages without writing records. Frame the active control with a thin rounded spotlight and dim its surroundings, tracking scroll/resize while keeping page controls interactive. Highlight the table-and-relationship diagram in the schema step.
+- Label the Schedules controls Date, Date and time and Time so the editable calendar fields are easy to identify.
+
 ## 0.8.17 — 2026-11-11
 
 - Return from records and related records to the originating listing with its search, filters, sort order and pagination preserved. Carry this context through record forms, saves, actions and deletion; accept only authorized listing targets within the current admin mount and fall back to the record's own table when the target is invalid or no longer permitted.

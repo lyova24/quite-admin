@@ -1,12 +1,39 @@
 // Browser-only fictional data. This module is not part of the Python library's backend.
 import { changesFor, initialActivity } from "./activity.mjs";
+
+export function recordKey(collection, values) {
+  const keys = collection.fields.filter(field => field.primaryKey).map(field => values[field.name]);
+  if (!keys.length || keys.some(value => value == null || value === ""))
+    throw new Error("A complete, non-null primary key is required.");
+  const bytes = new TextEncoder().encode(JSON.stringify(keys.map(String)));
+  return btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(""))
+    .replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function fieldDefault(field) {
+  if (field.default != null) return field.default;
+  if (!field.hasDefault) return null;
+  if (field.kind === "uuid") return globalThis.crypto.randomUUID();
+  if (field.kind === "datetime") return new Date().toISOString();
+  return {integer: "0", number: "0", boolean: "true", json: "{}"}[field.kind]
+    ?? field.choices?.[0] ?? null;
+}
+
 export class Store {
   constructor(seed, restored = null) {
     // Refresh exported metadata and add new showcase collections without losing local edits.
     const previous = restored?.collections || restored;
     this.state = Object.fromEntries(Object.entries(seed.collections).map(([slug, collection]) => {
       const copy = structuredClone(collection);
-      if (previous?.[slug]?.records) copy.records = structuredClone(previous[slug].records);
+      if (previous?.[slug]?.records) copy.records = previous[slug].records.map(row => {
+        const current = collection.records.find(item => item.key === row.key);
+        return {key: row.key,
+          values: Object.fromEntries(collection.fields.map(field => [field.name,
+            Object.hasOwn(row.values, field.name) ? row.values[field.name]
+              : current?.values[field.name] ?? fieldDefault(field)])),
+          links: Object.fromEntries(collection.relations.map(relation => [relation.name,
+            structuredClone(row.links?.[relation.name] ?? current?.links[relation.name] ?? [])]))};
+      });
       return [slug, copy];
     }));
     this.activity = structuredClone(restored?.activity || initialActivity(seed));
@@ -33,11 +60,17 @@ export class Store {
     return record;
   }
   label(slug, row) {
+    const collection = this.collection(slug);
     return (
+      (collection.recordLabel && row.values[collection.recordLabel]) ||
       row.values.name ||
       row.values.title ||
+      row.values.label ||
+      row.values.display_name ||
+      row.values.username ||
       row.values.id ||
-      this.collection(slug).label
+      collection.fields.filter(field => field.primaryKey).map(field => row.values[field.name]).join(" · ") ||
+      collection.label
     );
   }
   syncForeignKeys(state) {
@@ -55,23 +88,19 @@ export class Store {
             ).fields.filter((field) => field.primaryKey);
             relation.sourceFields.forEach(
               (name, index) =>
-                (row.values[name] = target?.values[fields[index].name] ?? null),
+                (row.values[name] = target?.values[relation.sourceReferences?.[name] ?? fields[index].name] ?? null),
             );
           }
       }
   }
   setRelation(state, slug, row, relation, selected) {
+    const source = this.collection(slug, state);
+    if (relation.readonly || source.readonlyRelations?.includes(relation.name))
+      throw new Error("This relationship is read-only.");
     const multiple = ["one_to_many", "many_to_many"].includes(relation.kind);
     if (!multiple && selected.length > 1)
       throw new Error("Choose a single related record.");
     const previous = row.links[relation.name] || [];
-    if (
-      !relation.canDetach &&
-      previous.some((key) => !selected.includes(key)) &&
-      (multiple || !selected.length)
-    ) {
-      throw new Error("This relationship cannot be detached.");
-    }
     if (
       !multiple &&
       relation.sourceFields.length &&
@@ -79,6 +108,13 @@ export class Store {
       !selected.length
     ) {
       throw new Error("A related record is required.");
+    }
+    if (
+      !relation.canDetach &&
+      previous.some((key) => !selected.includes(key)) &&
+      (multiple || !selected.length)
+    ) {
+      throw new Error("This relationship cannot be detached.");
     }
     selected.forEach((key) => this.record(relation.target, key, state));
     const target = this.collection(relation.target, state);
@@ -117,7 +153,7 @@ export class Store {
         for (const field of collection.fields) {
           const value = row.values[field.name];
           if (value == null) {
-            if (!field.nullable && !field.generated)
+            if (!field.nullable && !field.generated && !field.readOnly)
               throw new Error("A value is required.");
             continue;
           }
@@ -126,8 +162,8 @@ export class Store {
           if (
             field.kind === "integer" &&
             (!/^-?\d+$/.test(value) ||
-              BigInt(value) < -(2n ** 63n) ||
-              BigInt(value) > 2n ** 63n - 1n)
+              BigInt(value) < BigInt(field.minimum ?? -(2n ** 63n)) ||
+              BigInt(value) > BigInt(field.maximum ?? 2n ** 63n - 1n))
           )
             throw new Error("Enter a valid integer.");
           if (
@@ -135,10 +171,16 @@ export class Store {
             (!value.trim() || !Number.isFinite(Number(value)))
           )
             throw new Error("Enter a finite number.");
+          if (["integer", "number"].includes(field.kind) && (
+            (field.minimum != null && Number(value) < Number(field.minimum)) ||
+            (field.maximum != null && Number(value) > Number(field.maximum))))
+            throw new Error("The value is outside the allowed range.");
+          if (field.kind === "uuid" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))
+            throw new Error("Enter a valid uuid.");
           if (field.kind === "boolean" && !["true", "false"].includes(value))
             throw new Error("Choose true or false.");
           if (field.kind === "json") { try { JSON.parse(value); } catch { throw new Error("Invalid JSON"); } }
-          if (field.choices.length && !field.choices.includes(value))
+          if (field.choices?.length && !field.choices.includes(value))
             throw new Error("Choose one of the available values.");
         }
         for (const field of collection.unique)
@@ -155,6 +197,11 @@ export class Store {
             );
           }
       }
+    for (const collection of Object.values(state)) {
+      const keys = collection.records.map(row => row.key);
+      if (new Set(keys).size !== keys.length)
+        throw new Error("The operation conflicts with a database constraint.");
+    }
   }
   filter(slug, params) {
     const collection = this.collection(slug);
@@ -196,13 +243,16 @@ export class Store {
     const state = structuredClone(this.state);
     const collection = this.collection(slug, state);
     const creating = key == null;
+    if (collection.serverOnlyWrites || (creating ? collection.canCreate : collection.canEdit) === false)
+      throw new Error("This operation is not permitted.");
     const managed = collection.relations.flatMap(
       (relation) => relation.sourceFields,
     );
     const writable = collection.writable[creating ? "create" : "edit"].filter(
       (name) => !managed.includes(name),
     );
-    if (Object.keys(values).some((name) => !writable.includes(name)))
+    if (Object.keys(values).some((name) => !writable.includes(name)
+      || (!creating && collection.fields.find(field => field.name === name)?.primaryKey)))
       throw new Error("This field is not writable.");
     const row = creating
       ? { values: {}, links: {} }
@@ -219,29 +269,20 @@ export class Store {
                   ),
                 ) + 1,
               )
-            : field.hasDefault
-              ? (field.default ?? {
-                  integer: "0",
-                  number: "0",
-                  boolean: "true",
-                  json: "{}",
-                  datetime: new Date().toISOString(),
-                }[field.kind] ?? "pending")
-              : null;
+            : fieldDefault(field);
       }
-      row.key = btoa(
-        JSON.stringify(
-          collection.fields
-            .filter((field) => field.primaryKey)
-            .map((field) => row.values[field.name]),
-        ),
-      )
-        .replaceAll("+", "-")
-        .replaceAll("/", "_")
-        .replaceAll("=", "");
-      collection.records.push(row);
     }
     Object.assign(row.values, values);
+    for (const field of collection.fields) {
+      if (field.kind === "uuid" && row.values[field.name] != null)
+        row.values[field.name] = String(row.values[field.name]).toLowerCase();
+      if (field.control === "ticket" && row.values[field.name] != null)
+        row.values[field.name] = String(row.values[field.name]).trim().toUpperCase();
+    }
+    if (creating) {
+      row.key = recordKey(collection, row.values);
+      collection.records.push(row);
+    }
     for (const [name, selected] of Object.entries(selections)) {
       const relation = collection.relations.find((item) => item.name === name);
       if (!relation) throw new Error("Unknown relationship.");
@@ -256,6 +297,8 @@ export class Store {
   delete(slug, key) {
     const state = structuredClone(this.state);
     const collection = this.collection(slug, state);
+    if (collection.serverOnlyWrites || collection.canDelete === false)
+      throw new Error("This operation is not permitted.");
     const row = this.record(slug, key, state);
     for (const relation of collection.relations) {
       const target = this.collection(relation.target, state);

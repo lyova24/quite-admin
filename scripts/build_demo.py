@@ -17,12 +17,79 @@ sys.path.insert(0, str(ROOT))
 from sqlalchemy import inspect  # noqa: E402
 
 from examples.common import make_demo, seed  # noqa: E402
+from examples.tour import build_tour_config  # noqa: E402
 from quite_admin import Query, __version__  # noqa: E402
 from quite_admin import filters as list_filters  # noqa: E402
 from quite_admin._admin.assets import BUILTIN_SCRIPTS, STYLESHEETS  # noqa: E402
 from quite_admin._admin.rendering import _navigation_context  # noqa: E402
 from quite_admin.diagram import schema_graph  # noqa: E402
 from quite_admin.i18n import MESSAGE_ALIASES, RUSSIAN, Translator  # noqa: E402
+
+LOCAL_ACTION_EFFECTS = {
+    ("products", "deactivate"): {"active": "false"},
+    ("field_samples", "archive"): {"status": "archived"},
+    ("field_samples", "publish"): {"status": "published"},
+}
+LOCAL_MINIMUMS = {
+    ("field_samples", "quantity"): 0,
+    ("field_samples", "ratio"): 0,
+    ("regional_prices", "price"): 0,
+    ("price_alerts", "threshold"): 0,
+}
+
+
+def action_metadata(slug, actions):
+    """Only export known local effects, never Python handlers or their arguments."""
+    return [
+        {
+            "slug": action.slug,
+            "label": action.label,
+            "effect": LOCAL_ACTION_EFFECTS[slug, action.slug],
+            "bulk": action.bulk,
+        }
+        for action in actions
+        if (slug, action.slug) in LOCAL_ACTION_EFFECTS
+    ]
+
+
+def field_metadata(resource, field, *, form_only=False):
+    options = resource.options.fields.get(field.name)
+    original = resource.schema.by_name.get(field.name, field)
+    column = inspect(resource.model).local_table.columns.get(field.name)
+    default = column.default if column is not None else None
+    minimum = LOCAL_MINIMUMS.get((resource.slug, field.name), field.minimum)
+    maximum = field.maximum
+    return {
+        "name": field.name,
+        "label": field.label,
+        "kind": field.kind,
+        "nullable": field.nullable,
+        "generated": field.generated,
+        "readOnly": field.read_only,
+        "hasDefault": field.has_default,
+        "default": original.format(default.arg)
+        if default is not None and default.is_scalar and field.kind != "password"
+        else None,
+        "maxLength": field.max_length,
+        "minimum": str(minimum)
+        if isinstance(minimum, int) and abs(minimum) > 2**53 - 1
+        else minimum,
+        "maximum": str(maximum)
+        if isinstance(maximum, int) and abs(maximum) > 2**53 - 1
+        else maximum,
+        "multiline": field.multiline,
+        "help": options.help_text if options is not None else "",
+        "choices": field.choices,
+        "operators": list_filters.field_operators(field),
+        "supports_not_empty": True,
+        "primaryKey": field.primary_key,
+        "display": options.display if options is not None else None,
+        "urlTemplate": options.url_template if options is not None else None,
+        "control": "ticket"
+        if resource.slug == "field_samples" and field.name == "ticket"
+        else None,
+        "formOnly": form_only,
+    }
 
 
 async def build(output):
@@ -44,11 +111,17 @@ async def build(output):
                 schema = resource.schema
                 adapter = resource.adapter
                 fields = resource.options.visible_fields(schema)
+                visible = {field.name for field in fields}
+                server_only_writes = slug == "demo_accounts"
                 rows = (await adapter.list(resource.model, Query(limit=10000))).records
                 relations = [
                     relation
                     for relation in adapter.relations(resource.model)
                     if relation.target in slugs
+                    and (
+                        resource.options.relations is None
+                        or relation.name in resource.options.relations
+                    )
                 ]
                 records = []
                 for row in rows:
@@ -68,46 +141,49 @@ async def build(output):
                             "values": {
                                 field.name: None
                                 if row[field.name] is None
-                                else field.format(row[field.name])
+                                else schema.by_name[field.name].format(row[field.name])
                                 for field in fields
                             },
                             "links": links,
                         }
                     )
                 collections[slug] = {
+                    "slug": slug,
                     "label": resource.label,
-                    "fields": [
-                        {
-                            "name": field.name,
-                            "label": field.label,
-                            "kind": field.kind,
-                            "nullable": field.nullable,
-                            "generated": field.generated,
-                            "hasDefault": field.has_default,
-                            "default": field.format(default.arg)
-                            if (
-                                default := inspect(resource.model)
-                                .local_table.columns[field.name]
-                                .default
-                            )
-                            is not None
-                            and default.is_scalar
-                            else None,
-                            "maxLength": field.max_length,
-                            "multiline": field.multiline,
-                            "help": resource.options.fields[field.name].help_text
-                            if field.name in resource.options.fields
-                            else "",
-                            "choices": field.choices,
-                            "operators": list_filters.field_operators(field),
-                            "supports_not_empty": True,
-                            "primaryKey": field.primary_key,
-                        }
+                    "recordLabel": resource.options.record_label,
+                    "searchFields": [
+                        field.name
                         for field in fields
+                        if field.kind == "string"
+                        and (
+                            resource.options.search_fields is None
+                            or field.name in resource.options.search_fields
+                        )
                     ],
+                    "canCreate": resource.options.can_create and not server_only_writes,
+                    "canEdit": resource.options.can_edit and not server_only_writes,
+                    "canDelete": resource.options.can_delete and not server_only_writes,
+                    "bulkDelete": resource.options.bulk_delete and not server_only_writes,
+                    "serverOnlyWrites": server_only_writes,
+                    "readonlyRelations": resource.options.readonly_relations,
+                    "actions": action_metadata(slug, resource.options.actions),
+                    "bulkActions": action_metadata(
+                        slug,
+                        (
+                            *resource.options.bulk_actions,
+                            *(action for action in resource.options.actions if action.bulk),
+                        ),
+                    ),
+                    "inputFields": [
+                        field_metadata(resource, field, form_only=True)
+                        for field in resource.options.input_fields
+                    ],
+                    "fields": [field_metadata(resource, field) for field in fields],
                     "columns": resource.options.list_fields or [field.name for field in fields[:6]],
                     "group": resource.options.group,
-                    "inline": list(admin._inline_fields(resource)),
+                    "inline": list(admin._inline_fields(resource))
+                    if resource.options.can_edit and not server_only_writes
+                    else [],
                     "pagination": resource.options.pagination,
                     "writable": {
                         "create": list(resource.options.writable_fields(schema, True)),
@@ -116,7 +192,7 @@ async def build(output):
                     "unique": [
                         column.name
                         for column in inspect(resource.model).local_table.columns
-                        if column.unique
+                        if column.unique and column.name in visible
                     ],
                     "relations": [
                         {
@@ -126,6 +202,28 @@ async def build(output):
                             "target": slugs[relation.target],
                             "canDetach": relation.can_detach,
                             "sourceFields": relation.source_fields,
+                            "sourceReferences": {
+                                inspect(resource.model).get_property_by_column(local).key: inspect(
+                                    relation.target
+                                )
+                                .get_property_by_column(remote)
+                                .key
+                                for local, remote in inspect(resource.model)
+                                .relationships[relation.name]
+                                .local_remote_pairs
+                                if relation.source_fields
+                            },
+                            "readonly": relation.name in resource.options.readonly_relations
+                            or relation.read_only,
+                            "labelField": next(
+                                (
+                                    resource.options.fields[name].relation_label
+                                    for name in relation.source_fields
+                                    if name in resource.options.fields
+                                    and resource.options.fields[name].relation_label
+                                ),
+                                None,
+                            ),
                             "inverse": inspect(resource.model)
                             .relationships[relation.name]
                             .back_populates,
@@ -143,6 +241,7 @@ async def build(output):
             history_periods = {}
             shell_pages = {}
             home_pages = {}
+            tour_configs = {}
             table_pins = {}
             for language in ("en", "ru"):
                 translations = Translator(language)
@@ -158,7 +257,7 @@ async def build(output):
                     **_navigation_context(
                         list(resources.values()), lambda path: "#" + path, translations.gettext
                     ),
-                    pages=[SimpleNamespace(slug="report", title="Store report")],
+                    pages=list(admin.pages.values()),
                     history_allowed=True,
                     csrf="browser-demo",
                     url=lambda path="/": "#" + path,
@@ -170,6 +269,9 @@ async def build(output):
                 home_pages[language] = admin.templates.env.get_template(
                     "quite_admin/_home_content.html"
                 ).render(**demo_context)
+                tour_configs[language] = build_tour_config(
+                    lambda path: "#" + path, language, "quite-admin-browser-demo-tour"
+                )
                 table_pins[language] = {
                     slug: admin.templates.env.get_template("quite_admin/_table_pin.html").render(
                         resource=resource, t=translations.gettext
@@ -235,6 +337,7 @@ async def build(output):
                         "schemaPages": schema_pages,
                         "shellPages": shell_pages,
                         "homePages": home_pages,
+                        "tourConfigs": tour_configs,
                         "tablePins": table_pins,
                         "historyPeriods": history_periods,
                     },

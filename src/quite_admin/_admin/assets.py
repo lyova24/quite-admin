@@ -20,6 +20,7 @@ BUILTIN_SCRIPTS = {
     "inline.js": (),
     "history.js": ("datetime.js",),
     "values.js": (),
+    "tour.js": (),
 }
 STYLESHEETS = (
     "admin.css",
@@ -27,6 +28,7 @@ STYLESHEETS = (
     "table-navigation.css",
     "dashboard.css",
     "schema-layout.css",
+    "tour.css",
 )
 
 

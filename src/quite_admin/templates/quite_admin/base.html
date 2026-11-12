@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="{{ url('/theme.css') }}">
   <link rel="stylesheet" href="{{ url('/assets/shell.css') }}">
   <link rel="stylesheet" href="{{ url('/assets/table-navigation.css') }}">
+  {% if tour_config %}<link rel="stylesheet" href="{{ url('/assets/tour.css') }}">{% endif %}
   {% block head %}{% endblock %}
 </head>
 <body{% if schema_page %} class="schema-page"{% elif listing_page %} class="listing-page"{% endif %}>
@@ -30,7 +31,7 @@
           <details class="sidebar-profile" data-sidebar-profile>
             <summary class="profile-trigger" data-profile-toggle aria-label="{{ t('Profile') }}" title="{{ t('Profile') }}" aria-controls="admin-profile-menu"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span></summary>
             <div class="profile-popover" id="admin-profile-menu" data-profile-popover>
-              <div class="profile-identity"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><strong>{{ identity.display_name or identity.subject }}</strong></div><p class="profile-version">Quite Admin <span>v0.8.17</span></p>
+              <div class="profile-identity"><span class="avatar" aria-hidden="true">{{ (identity.display_name or identity.subject)[:1]|upper }}</span><strong>{{ identity.display_name or identity.subject }}</strong></div><p class="profile-version">Quite Admin <span>v0.8.18</span></p>
               <form method="post" action="{{ url('/logout') }}">{{ csrf_input() }}<button class="profile-signout" type="submit">{{ shell_icon('logout') }}{{ t('Sign out') }}</button></form>
             </div>
           </details>
@@ -48,6 +49,7 @@
       <div class="content">{% block content %}{% endblock %}</div>
     </main>
   </div>
+{% if tour_config %}<div data-admin-tour hidden data-config='{{ tour_config|tojson }}'></div>{% endif %}
 {% for script in scripts %}<script src="{{ script.url }}" integrity="{{ script.integrity }}" crossorigin="anonymous" defer></script>{% endfor %}
 </body>
 </html>
