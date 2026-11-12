@@ -321,8 +321,36 @@ test('reload resumes an accepted active step while another tab requires a fresh 
 async function trackCsp(page) {
   await page.addInitScript(() => {
     window.tourCspViolations = [];
+    window.tourCspDetails = [];
+    window.tourNativeSelectCsp = [];
+    const authoredStyleTargets = new WeakSet();
+    new MutationObserver(records => {
+      for (const record of records) authoredStyleTargets.add(record.target);
+    }).observe(document, {attributes: true, attributeFilter: ['style'], attributeOldValue: true, subtree: true});
     document.addEventListener('securitypolicyviolation', event => {
+      const details = {
+        effectiveDirective: event.effectiveDirective,
+        blockedURI: event.blockedURI,
+        sourceFile: event.sourceFile,
+        lineNumber: event.lineNumber,
+        columnNumber: event.columnNumber,
+        sample: event.sample,
+        targetTag: event.target?.tagName || null,
+        targetId: event.target?.id || null,
+        targetStyle: event.target instanceof Element ? event.target.getAttribute('style') : null,
+      };
+      // Reproduced without application code: WebKit's native SELECT shadow control
+      // reports its own text-overflow rule. Authored attributes, including the same
+      // rule on SELECT, remain violations; never exempt Document or empty samples.
+      if (event.effectiveDirective === 'style-src-attr' && event.blockedURI === 'inline'
+        && event.target instanceof HTMLSelectElement && !event.target.hasAttribute('style')
+        && !authoredStyleTargets.has(event.target)
+        && event.sample === 'text-overflow:inherit') {
+        window.tourNativeSelectCsp.push(details);
+        return;
+      }
       window.tourCspViolations.push(event.effectiveDirective);
+      window.tourCspDetails.push(details);
     });
   });
 }
@@ -491,4 +519,38 @@ test('calendar and export spotlights follow the opened controls while calendar c
   expect(await records(page)).toEqual(initial);
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => window.tourCspViolations)).toEqual([]);
+});
+
+test('CSP catches attached and detached author styles, including the native SELECT rule text', async ({page}) => {
+  await trackCsp(page);
+  const consent = await login(page);
+  await consent.getByRole('button', {name: 'Not now', exact: true}).click();
+  expect(await page.evaluate(() => window.tourCspViolations)).toEqual([]);
+  await page.evaluate(() => {
+    // Construct in an inert document so WebKit has no pending native-control CSP
+    // event when we deliberately author a style attribute on this same SELECT.
+    const inert = document.implementation.createHTMLDocument('');
+    const select = inert.createElement('select');
+    select.id = 'authored-select-style';
+    document.body.append(document.adoptNode(select));
+    select.setAttribute('style', 'text-overflow:inherit');
+    const div = document.createElement('div');
+    div.id = 'authored-div-style';
+    div.textContent = 'This authored inline style must be blocked.';
+    document.body.append(div);
+    div.setAttribute('style', 'color:red');
+    document.createElement('div').setAttribute('style', 'background:blue');
+    const removed = inert.createElement('select');
+    removed.id = 'removed-select-style';
+    document.body.append(document.adoptNode(removed));
+    removed.setAttribute('style', 'text-overflow:inherit');
+    removed.removeAttribute('style');
+  });
+  await expect.poll(() => page.evaluate(() => ({
+    count: window.tourCspViolations.length,
+    attached: window.tourCspDetails.filter(details => details.targetId).map(details => details.targetId).sort(),
+    detached: window.tourCspDetails.filter(details => details.targetTag === null).length,
+  }))).toEqual({count: 4, attached: ['authored-div-style', 'authored-select-style', 'removed-select-style'], detached: 1});
+  expect(await page.evaluate(() => window.tourCspViolations)).toEqual(['style-src-attr', 'style-src-attr', 'style-src-attr', 'style-src-attr']);
+  await expect(page.locator('#authored-div-style')).not.toHaveCSS('color', 'rgb(255, 0, 0)');
 });

@@ -53,26 +53,26 @@
   }
   const enhanced = new WeakSet();
   // The same controls are used by inline edits and the standalone browser demo.
-  function createFieldControl(field, {id, value = '', t = text => text, rows = 6, enhance = true, noneLabel = '—'} = {}) {
+  function createFieldControl(field, {id, value = '', t = text => text, rows = 6, enhance = true, noneLabel = '—', ownerDocument = doc} = {}) {
     let control;
     if (field.kind === 'boolean' || field.choices?.length) {
-      control = doc.createElement('select');
+      control = ownerDocument.createElement('select');
       const choices = field.kind === 'boolean'
         ? [['true', t('True')], ['false', t('False')]] : field.choices.map(choice => [choice, choice]);
       if (field.nullable) choices.unshift(['', noneLabel]);
       for (const [key, text] of choices) {
-        const option = doc.createElement('option'); option.value = key; option.textContent = text;
+        const option = ownerDocument.createElement('option'); option.value = key; option.textContent = text;
         option.defaultSelected = key === value; control.append(option);
       }
       if (enhance && field.kind === 'boolean') control.dataset.booleanToggle = '';
     } else if (field.kind === 'json' || field.multiline) {
-      control = doc.createElement('textarea'); control.rows = rows; control.textContent = value;
+      control = ownerDocument.createElement('textarea'); control.rows = rows; control.textContent = value;
       if (field.kind === 'json') {
         control.className = 'code-input'; control.spellcheck = false;
         if (enhance) control.dataset.jsonEditor = '';
       }
     } else {
-      control = doc.createElement('input');
+      control = ownerDocument.createElement('input');
       control.type = ['integer', 'number'].includes(field.kind) ? 'number' : field.kind === 'date' ? 'date' : 'text';
       if (['integer', 'number'].includes(field.kind)) control.step = field.kind === 'integer' ? '1' : 'any';
       if (field.kind === 'date') control.dataset.calendarInput = '';

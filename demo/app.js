@@ -70,9 +70,11 @@ const persist = () =>
   write("localStorage", storageKey, JSON.stringify(store.snapshot()));
 const button = (path, text, cls = "secondary") =>
   `<a class="button ${cls}" href="${e(path)}">${e(t(text))}</a>`;
+// These controls are serialized, so construct them outside the live document.
+const controlDocument = document.implementation.createHTMLDocument("");
 const input = (field, value) => {
   const control = window.QuiteAdmin.createFieldControl(
-    {...field, max_length: field.maxLength}, {id:'field-' + field.name, value, t, rows:6});
+    {...field, max_length: field.maxLength}, {id:'field-' + field.name, value, t, rows:6, ownerDocument:controlDocument});
   if (field.control === 'ticket') control.setAttribute('list','ticket-suggestions');
   return control.outerHTML;
 };
